@@ -2365,10 +2365,28 @@ function renderLeaderboard() {
   recalculateAll();
   const searchInput = document.getElementById('leaderboard-search').value.toLowerCase();
   
+  // Get checked team names
+  const checkedBoxes = document.querySelectorAll('.team-filter-checkbox:checked');
+  const selectedTeams = Array.from(checkedBoxes).map(cb => cb.value);
+  
+  // Update button text
+  const btnText = document.getElementById('team-filter-btn-text');
+  if (btnText) {
+    if (selectedTeams.length === 0) {
+      btnText.textContent = '🔍 กรองตามทีมที่เลือก (ทั้งหมด)';
+    } else {
+      btnText.textContent = `🔍 กรองตามทีมที่เลือก (${selectedTeams.length} ทีม)`;
+    }
+  }
+  
   const tbody = document.getElementById('leaderboard-tbody');
   tbody.innerHTML = '';
   
-  const filtered = processedPlayers.filter(p => p.name.toLowerCase().includes(searchInput));
+  const filtered = processedPlayers.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchInput);
+    const matchesTeam = selectedTeams.length === 0 || selectedTeams.every(team => p.teams.includes(team));
+    return matchesSearch && matchesTeam;
+  });
   
   // Show/hide admin column header in leaderboard
   const lbAdminCol = document.getElementById('lb-admin-col');
@@ -2703,9 +2721,10 @@ function renderTeamsMatrix() {
 
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
-  recalculateAll();
-  const player = processedPlayers.find(p => p.name === name);
-  if (!player) return;
+  try {
+    recalculateAll();
+    const player = processedPlayers.find(p => p.name === name);
+    if (!player) return;
   
   document.getElementById('detail-player-name').textContent = player.name;
   document.getElementById('detail-teams-score').textContent = player.teamsScore.toFixed(2);
@@ -2959,7 +2978,11 @@ function openPlayerDetails(name) {
     editBtn.style.display = 'none';
   }
   
-  document.getElementById('player-details-drawer-overlay').classList.add('active');
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  overlay.classList.add('active');
+  } catch (err) {
+    console.error('Error in openPlayerDetails:', err);
+  }
 }
 
 // PLAYER ADD / EDIT FORM
@@ -3242,6 +3265,99 @@ document.addEventListener('DOMContentLoaded', () => {
   // Search listeners
   document.getElementById('leaderboard-search').addEventListener('input', renderLeaderboard);
   document.getElementById('players-search').addEventListener('input', renderPlayers);
+  
+  // Populate leaderboard team filter dropdown (multi checkbox)
+  const filterDropdownContainer = document.getElementById('team-filter-dropdown-container');
+  const filterBtn = document.getElementById('team-filter-btn');
+  const filterMenu = document.getElementById('team-filter-menu');
+  const checkboxesContainer = document.getElementById('team-filter-checkboxes-container');
+  
+  if (filterBtn && filterMenu && checkboxesContainer) {
+    // Group teams by zone
+    const teamsByZone = {};
+    TEAMS.forEach(t => {
+      if (!teamsByZone[t.zone]) teamsByZone[t.zone] = [];
+      teamsByZone[t.zone].push(t);
+    });
+    
+    // Zone styling helper
+    const zoneLabels = {
+      blue: 'Blue Zone (x1.0 - x1.3)',
+      green: 'Green Zone (x1.4 - x1.7)',
+      yellow: 'Yellow Zone (x1.8 - x2.1)',
+      'light-orange': 'Light Orange (x2.2 - x2.6)',
+      'red-orange': 'Red-Orange (x2.7 - x3.0)'
+    };
+    
+    let containerHTML = '';
+    
+    // Sort zones and build checkboxes inside columns
+    Object.keys(zoneLabels).forEach(zoneKey => {
+      const zoneTeams = teamsByZone[zoneKey] || [];
+      if (zoneTeams.length === 0) return;
+      
+      containerHTML += `
+        <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 8px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--zone-${zoneKey}); text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--zone-${zoneKey});"></span>
+            ${zoneLabels[zoneKey]}
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px;">
+      `;
+      
+      // Sort teams in zone alphabetically
+      const sortedZoneTeams = [...zoneTeams].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+      sortedZoneTeams.forEach(t => {
+        containerHTML += `
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
+            <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
+            <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} (x${t.multiplier})</span>
+          </label>
+        `;
+      });
+      
+      containerHTML += `
+          </div>
+        </div>
+      `;
+    });
+    
+    checkboxesContainer.innerHTML = containerHTML;
+    
+    // Toggle dropdown visibility
+    filterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = filterMenu.style.display === 'none';
+      filterMenu.style.display = isHidden ? 'block' : 'none';
+    });
+    
+    // Prevent dropdown click from closing itself
+    filterMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    
+    // Close dropdown clicking outside
+    document.addEventListener('click', () => {
+      filterMenu.style.display = 'none';
+    });
+    
+    // Listen to changes on checkboxes to trigger renderLeaderboard
+    checkboxesContainer.addEventListener('change', (e) => {
+      if (e.target && e.target.classList.contains('team-filter-checkbox')) {
+        renderLeaderboard();
+      }
+    });
+    
+    // Reset selections button
+    const clearBtn = document.getElementById('clear-team-filter-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        const checkboxes = checkboxesContainer.querySelectorAll('.team-filter-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        renderLeaderboard();
+      });
+    }
+  }
   
   // Chart highlight dropdown listener
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
