@@ -1885,6 +1885,9 @@ function setupNavigation() {
       
       // Close mobile sidebar if active
       document.getElementById('sidebar').classList.remove('active');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.style.overflow = '';
       
       // Specific page triggers
       if (tab === 'dashboard') renderDashboard();
@@ -1898,17 +1901,42 @@ function setupNavigation() {
   // Mobile Hamburger menu
   const menuBtn = document.getElementById('menu-toggle-btn');
   const sidebar = document.getElementById('sidebar');
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+  
+  function closeMobileSidebar() {
+    sidebar.classList.remove('active');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  function openMobileSidebar() {
+    sidebar.classList.add('active');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  
   if (menuBtn) {
     menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      sidebar.classList.toggle('active');
+      if (sidebar.classList.contains('active')) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    });
+  }
+  
+  // Close sidebar when clicking backdrop
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', () => {
+      closeMobileSidebar();
     });
   }
   
   // Close sidebar clicking outside on mobile
   document.addEventListener('click', (e) => {
     if (window.innerWidth <= 992 && sidebar.classList.contains('active') && !sidebar.contains(e.target)) {
-      sidebar.classList.remove('active');
+      closeMobileSidebar();
     }
   });
 }

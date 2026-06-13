@@ -669,19 +669,365 @@ tr.zone-red-row td {
   border-left: 3px solid transparent;
 }
 
-/* Mobile Responsiveness */
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE DESIGN — TABLET & MOBILE
+   ═══════════════════════════════════════════════════ */
+
+/* ── Tablet (≤992px) ──────────────────────────────── */
 @media (max-width: 992px) {
+  /* Sidebar becomes full-screen overlay */
   .sidebar {
     transform: translateX(-100%);
+    width: 280px;
+    z-index: 500;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.5);
   }
-  
+
   .sidebar.active {
     transform: translateX(0);
   }
-  
+
+  /* Dim background behind open sidebar */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 499;
+  }
+
+  .sidebar-backdrop.active {
+    display: block;
+  }
+
+  /* Show mobile header */
+  .mobile-header {
+    display: flex !important;
+  }
+
   .main-content {
     margin-left: 0;
-    padding: 24px;
+    padding: 80px 20px 24px 20px; /* top padding for fixed mobile header */
+  }
+
+  /* Match grid to 2 columns */
+  .matches-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  /* Dashboard grid flexible */
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  /* Drawer responsive */
+  .drawer {
+    width: 80% !important;
+    max-width: 600px;
+  }
+
+  /* Page header stacking for matches page */
+  #matches > header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #matches > header > div:last-child {
+    width: 100%;
+  }
+
+  #matches > header > div:last-child .btn {
+    flex: 1;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  /* Team matrix grid */
+  .teams-matrix {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  /* Chart svg - allow horizontal scroll */
+  #score-chart-svg {
+    min-width: 800px;
+  }
+}
+
+/* ── Mobile (≤768px) ──────────────────────────────── */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 24px;
+  }
+
+  .page-description {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  /* Dashboard stat cards compact */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .stat-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  /* Match cards single column */
+  .matches-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .match-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .match-team-name {
+    font-size: 13px;
+  }
+
+  .score-input {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  /* Tables – compact cells */
+  th {
+    padding: 10px 12px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Search bar stacking */
+  .search-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-group {
+    min-width: 100% !important;
+  }
+
+  .search-input {
+    padding: 12px 12px 12px 42px;
+    font-size: 14px;
+  }
+
+  /* Drawer full-width on mobile */
+  .drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    padding: 24px 16px;
+  }
+
+  .drawer-header h2 {
+    font-size: 18px;
+  }
+
+  /* Player detail drawer */
+  #player-details-drawer-overlay .drawer {
+    width: 100% !important;
+  }
+
+  /* Player form drawer */
+  #player-form-drawer-overlay .drawer {
+    width: 100% !important;
+  }
+
+  /* Match form modal - make it full width too */
+  #match-form-drawer-overlay {
+    align-items: flex-end;
+  }
+
+  #match-form-drawer-overlay .drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin: 0 !important;
+    transform: translateY(100%) !important;
+  }
+
+  #match-form-drawer-overlay.active .drawer {
+    transform: translateY(0) !important;
+  }
+
+  /* Admin login modal center */
+  #admin-login-overlay .drawer {
+    width: 92% !important;
+    max-width: 400px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Team filter dropdown */
+  #team-filter-menu {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Rules section compact */
+  .rules-step {
+    gap: 12px;
+  }
+
+  .rules-content {
+    font-size: 13px;
+  }
+
+  .highlight-box,
+  .danger-box {
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  /* Teams matrix smaller cards */
+  .teams-matrix {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .team-card-small {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+/* ── Small Phone (≤480px) ─────────────────────────── */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 72px 12px 16px 12px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .brand-logo {
+    font-size: 18px !important;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  /* Dashboard stat cards even more compact */
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .stat-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  /* Score inputs smaller */
+  .score-input {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .match-team {
+    width: 35%;
+  }
+
+  .match-team-name {
+    font-size: 12px;
+  }
+
+  /* Table cells even tighter */
+  th {
+    padding: 8px 8px;
+    font-size: 9px;
+  }
+
+  td {
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+
+  /* Badge compact */
+  .badge {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .team-badge {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  /* Rules */
+  .rules-num {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .rules-content {
+    font-size: 12px;
+  }
+
+  /* Team filter menu */
+  #team-filter-menu {
+    max-height: 300px !important;
+    padding: 12px !important;
   }
 }
 
