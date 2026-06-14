@@ -533,6 +533,23 @@
       </div>
     </div>
 
+    <!-- MODAL: CUSTOM CONFIRM -->
+    <div class="drawer-overlay" id="confirm-modal-overlay" style="z-index: 10000;">
+      <div class="drawer" style="width: 400px; height: auto; max-height: 90%; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(50px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 24px;">
+        <div class="drawer-header" style="margin-bottom: 16px; border-bottom: none; padding-bottom: 0;">
+          <h2 id="confirm-modal-title" style="font-size: 20px; color: var(--text-primary);">ยืนยันการทำรายการ</h2>
+          <button class="close-btn" id="close-confirm-modal-btn">×</button>
+        </div>
+        <div style="margin-bottom: 24px; color: var(--text-secondary); font-size: 14px; line-height: 1.5;" id="confirm-modal-message">
+          คุณต้องการดำเนินการนี้ใช่หรือไม่?
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn btn-secondary" id="confirm-modal-cancel-btn" style="padding: 10px 20px; font-size: 14px; background: rgba(255,255,255,0.05); color: #fff;">ยกเลิก</button>
+          <button class="btn btn-primary" id="confirm-modal-ok-btn" style="padding: 10px 20px; font-size: 14px; background: linear-gradient(135deg, var(--accent), #e11d48); color: #fff; border-color: transparent;">ตกลง</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="app.js"></script>

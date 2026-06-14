@@ -2502,15 +2502,47 @@ function formatThaiDate(dateStr) {
   const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
   return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
+// Custom confirmation modal helper (eliminates native confirm dialog issues)
+function showCustomConfirm(message, onConfirm) {
+  const overlay = document.getElementById('confirm-modal-overlay');
+  const msgEl = document.getElementById('confirm-modal-message');
+  const okBtn = document.getElementById('confirm-modal-ok-btn');
+  const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+  const closeBtn = document.getElementById('close-confirm-modal-btn');
+  
+  if (!overlay || !msgEl || !okBtn) {
+    if (confirm(message)) {
+      onConfirm();
+    }
+    return;
+  }
+  
+  msgEl.textContent = message;
+  
+  const closeModal = () => {
+    overlay.classList.remove('active');
+  };
+  
+  okBtn.onclick = () => {
+    closeModal();
+    onConfirm();
+  };
+  
+  cancelBtn.onclick = closeModal;
+  closeBtn.onclick = closeModal;
+  
+  overlay.classList.add('active');
+}
 
 // Delete a match (admin only)
 function deleteMatch(matchId) {
-  if (!confirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?')) return;
-  matches = matches.filter(m => m.id != matchId);
-  localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-  recalculateAll();
-  renderMatches();
-  renderDashboard();
+  showCustomConfirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?', () => {
+    matches = matches.filter(m => m.id != matchId);
+    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    recalculateAll();
+    renderMatches();
+    renderDashboard();
+  });
 }
 
 // RENDERING - MATCHES
@@ -3025,7 +3057,7 @@ function openPlayerDetails(name) {
   // Set delete handler
   const deleteBtn = document.getElementById('delete-player-btn');
   deleteBtn.onclick = () => {
-    if (confirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`)) {
+    showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, () => {
       players = players.filter(p => p.name !== name);
       localStorage.setItem('worldcup_players', JSON.stringify(players));
       document.getElementById('player-details-drawer-overlay').classList.remove('active');
@@ -3033,7 +3065,7 @@ function openPlayerDetails(name) {
       renderDashboard();
       renderLeaderboard();
       renderPlayers();
-    }
+    });
   };
   
   // Set edit handler
@@ -3275,7 +3307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     adminToggleBtn.addEventListener('click', () => {
       if (isAdmin) {
         // Logout
-        if (confirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?')) {
+        showCustomConfirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?', () => {
           isAdmin = false;
           sessionStorage.setItem('worldcup_isAdmin', 'false');
           updateAdminUI();
@@ -3286,7 +3318,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (document.getElementById('matches').classList.contains('active')) renderMatches();
           if (document.getElementById('players').classList.contains('active')) renderPlayers();
           alert('ออกจากระบบแอดมินเรียบร้อย');
-        }
+        });
       } else {
         // Show login modal
         document.getElementById('admin-password-input').value = '';
@@ -3474,7 +3506,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('reset-all-btn');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      if (confirm('คุณต้องการรีเซ็ตผลการแข่งขันทั้งหมดกลับเป็นค่าเริ่มต้นใช่หรือไม่? (การแก้ไขสกอร์การแข่งทั้งหมดจะถูกล้าง)')) {
+      showCustomConfirm('คุณต้องการรีเซ็ตผลการแข่งขันทั้งหมดกลับเป็นค่าเริ่มต้นใช่หรือไม่? (การแก้ไขสกอร์การแข่งทั้งหมดจะถูกล้าง)', () => {
         localStorage.removeItem('worldcup_matches');
         initData();
         recalculateAll();
@@ -3483,7 +3515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('matches').classList.contains('active')) renderMatches();
         if (document.getElementById('players').classList.contains('active')) renderPlayers();
         alert('รีเซ็ตผลการแข่งขันทั้งหมดเรียบร้อยแล้ว!');
-      }
+      });
     });
   }
   
