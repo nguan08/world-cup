@@ -1514,7 +1514,7 @@ function initData() {
     let migrated = false;
     matches.forEach(m => {
       if (!m.date) {
-        const initialMatch = INITIAL_MATCHES.find(im => im.id === m.id);
+        const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id);
         if (initialMatch && initialMatch.date) {
           m.date = initialMatch.date;
           migrated = true;
@@ -2506,7 +2506,7 @@ function formatThaiDate(dateStr) {
 // Delete a match (admin only)
 function deleteMatch(matchId) {
   if (!confirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?')) return;
-  matches = matches.filter(m => m.id !== matchId);
+  matches = matches.filter(m => m.id != matchId);
   localStorage.setItem('worldcup_matches', JSON.stringify(matches));
   recalculateAll();
   renderMatches();
@@ -2621,7 +2621,7 @@ function renderMatches() {
   document.querySelectorAll('.score-input').forEach(input => {
     input.addEventListener('input', (e) => {
       const matchId = parseInt(e.target.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id === matchId);
+      const match = matches.find(m => m.id == matchId);
       if (match && match.isKnockout) {
         const card = e.target.closest('.match-card');
         const homeInput = card.querySelector('.home-score-input');
@@ -2642,6 +2642,8 @@ function renderMatches() {
   
   document.querySelectorAll('.save-match-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
       const card = btn.closest('.match-card');
       const hVal = card.querySelector('.home-score-input').value;
@@ -2655,7 +2657,7 @@ function renderMatches() {
       const homeScore = parseInt(hVal);
       const awayScore = parseInt(aVal);
       
-      const match = matches.find(m => m.id === matchId);
+      const match = matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = homeScore;
         match.awayScore = awayScore;
@@ -2683,8 +2685,10 @@ function renderMatches() {
   
   document.querySelectorAll('.clear-match-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id === matchId);
+      const match = matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = null;
         match.awayScore = null;
@@ -2701,6 +2705,8 @@ function renderMatches() {
   // Delete match button (admin)
   document.querySelectorAll('.delete-match-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
       deleteMatch(matchId);
     });
@@ -3227,7 +3233,7 @@ function handleMatchFormSubmit() {
   }
   
   // Verify ID is unique
-  if (matches.some(m => m.id === nextId)) {
+  if (matches.some(m => m.id == nextId)) {
     const allIds = matches.filter(m => m.id < 100).map(m => m.id);
     nextId = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
   }
