@@ -2710,6 +2710,7 @@ function renderMatches() {
         
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
         alert('บันทึกสกอร์การแข่งขันเรียบร้อย!');
+        recalculateAll();
         renderMatches();
       }
     });
@@ -2729,6 +2730,7 @@ function renderMatches() {
         
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
         alert('ล้างข้อมูลสกอร์เรียบร้อย!');
+        recalculateAll();
         renderMatches();
       }
     });
