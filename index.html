@@ -14,7 +14,7 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-logo">WORLD CUP 2026</div>
+        <div class="brand-logo">🏆 WORLD CUP 2026</div>
       </div>
       <nav class="nav-links">
         <li class="nav-item active" data-tab="dashboard">
@@ -73,7 +73,7 @@
 
     <!-- Mobile Header -->
     <header class="mobile-header" id="mobile-header">
-      <div class="brand-logo" style="font-size:20px;">WORLD CUP 2026</div>
+      <div class="brand-logo" style="font-size:20px;">🏆 WORLD CUP 2026</div>
       <button id="menu-toggle-btn" aria-label="เปิดเมนู">☰</button>
     </header>
 
@@ -136,8 +136,8 @@
             </div>
           </div>
 
-          <div style="position: relative; overflow-x: auto; overflow-y: visible; padding-bottom: 8px;">
-            <svg id="score-chart-svg" width="100%" height="380" style="display: block; min-width: 100%;"></svg>
+          <div id="chart-svg-container" style="position: relative; overflow-x: hidden; overflow-y: visible; padding-bottom: 8px; width: 100%;">
+            <svg id="score-chart-svg" style="display: block; width: 100%; height: 380px;"></svg>
             <div id="chart-tooltip" style="position:fixed; background:rgba(15,23,42,0.96); border:1px solid rgba(255,255,255,0.12); padding:10px 14px; border-radius:10px; font-size:13px; pointer-events:none; display:none; z-index:9999; box-shadow:0 4px 24px rgba(0,0,0,0.5);">
               <div id="tt-rank" style="color:var(--text-secondary); font-size:11px; margin-bottom:2px;"></div>
               <div id="tt-name" style="font-weight:700; margin-bottom:4px;"></div>
