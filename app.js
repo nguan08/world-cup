@@ -64,15 +64,753 @@ const TEAMS = [
 ];
 
 const INITIAL_MATCHES = [
-  { id: 1, home: 'เม็กซิโก', away: 'แอฟริกาใต้', homeScore: 2, awayScore: 0, status: 'finished', isKnockout: false, date: '2026-06-11' },
-  { id: 2, home: 'เกาหลีใต้', away: 'สาธารณรัฐเช็ก', homeScore: 2, awayScore: 1, status: 'finished', isKnockout: false, date: '2026-06-11' },
-  { id: 3, home: 'แคนาดา', away: 'บอสเนีย', homeScore: 1, awayScore: 1, status: 'finished', isKnockout: false, date: '2026-06-12' },
-  { id: 4, home: 'สหรัฐอเมริกา', away: 'ปารากวัย', homeScore: 4, awayScore: 1, status: 'finished', isKnockout: false, date: '2026-06-12' },
-  { id: 5, home: 'กาตาร์', away: 'สวิตเซอร์แลนด์', homeScore: null, awayScore: null, status: 'pending', isKnockout: false, date: '2026-06-13' },
-  { id: 6, home: 'บราซิล', away: 'โมร็อกโก', homeScore: null, awayScore: null, status: 'pending', isKnockout: false, date: '2026-06-13' },
-  { id: 7, home: 'อิตาลี', away: 'สกอตแลนด์', homeScore: null, awayScore: null, status: 'pending', isKnockout: false, date: '2026-06-14' },
-  { id: 8, home: 'ออสเตรเลีย', away: 'ตุรกี', homeScore: null, awayScore: null, status: 'pending', isKnockout: false, date: '2026-06-14' },
-  { id: 100, home: 'เยอรมนี', away: 'โครเอเชีย', homeScore: null, awayScore: null, status: 'pending', isKnockout: true, isFinal: true, date: '2026-07-19' }
+  {
+    "home": "เม็กซิโก",
+    "away": "แอฟริกาใต้",
+    "homeScore": 2,
+    "awayScore": 0,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-12",
+    "id": 1
+  },
+  {
+    "home": "เกาหลีใต้",
+    "away": "สาธารณรัฐเช็ก",
+    "homeScore": 2,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-12",
+    "id": 2,
+    "penaltyWinner": null
+  },
+  {
+    "home": "แคนาดา",
+    "away": "บอสเนีย",
+    "homeScore": 1,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-13",
+    "id": 3,
+    "penaltyWinner": null
+  },
+  {
+    "home": "สหรัฐอเมริกา",
+    "away": "ปารากวัย",
+    "homeScore": 4,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-13",
+    "id": 4,
+    "penaltyWinner": null
+  },
+  {
+    "home": "กาตาร์",
+    "away": "สวิตเซอร์แลนด์",
+    "homeScore": 1,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-14",
+    "id": 5,
+    "penaltyWinner": null
+  },
+  {
+    "home": "บราซิล",
+    "away": "โมร็อกโก",
+    "homeScore": 1,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-14",
+    "id": 6,
+    "penaltyWinner": null
+  },
+  {
+    "home": "เฮติ",
+    "away": "สกอตแลนด์",
+    "homeScore": 0,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-14",
+    "id": 7,
+    "penaltyWinner": null
+  },
+  {
+    "home": "ออสเตรเลีย",
+    "away": "ตุรกี",
+    "homeScore": 2,
+    "awayScore": 0,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-14",
+    "id": 8,
+    "penaltyWinner": null
+  },
+  {
+    "home": "เยอรมนี",
+    "away": "คูราเซา",
+    "homeScore": 7,
+    "awayScore": 1,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-15",
+    "id": 9,
+    "penaltyWinner": null
+  },
+  {
+    "home": "เนเธอร์แลนด์",
+    "away": "ญี่ปุ่น",
+    "homeScore": 2,
+    "awayScore": 2,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-15",
+    "id": 10,
+    "penaltyWinner": null
+  },
+  {
+    "home": "ไอเวอรีโคสต์",
+    "away": "เอกวาดอร์",
+    "homeScore": 1,
+    "awayScore": 0,
+    "status": "finished",
+    "isKnockout": false,
+    "date": "2026-06-15",
+    "id": 11,
+    "penaltyWinner": null
+  },
+  {
+    "home": "สวีเดน",
+    "away": "ตูนิเซีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-15",
+    "id": 12
+  },
+  {
+    "home": "สเปน",
+    "away": "เคปเวิร์ด",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-15",
+    "id": 13
+  },
+  {
+    "home": "เบลเยียม",
+    "away": "อียิปต์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-16",
+    "id": 14
+  },
+  {
+    "home": "ซาอุดีอาระเบีย",
+    "away": "อุรุกวัย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-16",
+    "id": 15
+  },
+  {
+    "home": "อิหร่าน",
+    "away": "นิวซีแลนด์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-16",
+    "id": 16
+  },
+  {
+    "home": "ฝรั่งเศส",
+    "away": "เซเนกัล",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-17",
+    "id": 17
+  },
+  {
+    "home": "อิรัก",
+    "away": "นอร์เวย์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-17",
+    "id": 18
+  },
+  {
+    "home": "อาร์เจนตินา",
+    "away": "แอลจีเรีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-17",
+    "id": 19
+  },
+  {
+    "home": "ออสเตรีย",
+    "away": "จอร์แดน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-17",
+    "id": 20
+  },
+  {
+    "home": "โปรตุเกส",
+    "away": "คองโก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-18",
+    "id": 21
+  },
+  {
+    "home": "อังกฤษ",
+    "away": "โครเอเชีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-18",
+    "id": 22
+  },
+  {
+    "home": "กานา",
+    "away": "ปานามา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-18",
+    "id": 23
+  },
+  {
+    "home": "อุซเบกิสถาน",
+    "away": "โคลอมเบีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-18",
+    "id": 24
+  },
+  {
+    "home": "สาธารณรัฐเช็ก",
+    "away": "แอฟริกาใต้",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-18",
+    "id": 25
+  },
+  {
+    "home": "สวิตเซอร์แลนด์",
+    "away": "บอสเนีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-19",
+    "id": 26
+  },
+  {
+    "home": "แคนาดา",
+    "away": "กาตาร์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-19",
+    "id": 27
+  },
+  {
+    "home": "เม็กซิโก",
+    "away": "เกาหลีใต้",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-19",
+    "id": 28
+  },
+  {
+    "home": "สหรัฐอเมริกา",
+    "away": "ออสเตรเลีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-20",
+    "id": 29
+  },
+  {
+    "home": "สกอตแลนด์",
+    "away": "โมร็อกโก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-20",
+    "id": 30
+  },
+  {
+    "home": "บราซิล",
+    "away": "เฮติ",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-20",
+    "id": 31
+  },
+  {
+    "home": "ตุรกี",
+    "away": "ปารากวัย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-20",
+    "id": 32
+  },
+  {
+    "home": "เนเธอร์แลนด์",
+    "away": "สวีเดน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-21",
+    "id": 33
+  },
+  {
+    "home": "เยอรมนี",
+    "away": "ไอเวอรีโคสต์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-21",
+    "id": 34
+  },
+  {
+    "home": "เอกวาดอร์",
+    "away": "คูราเซา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-21",
+    "id": 35
+  },
+  {
+    "home": "ตูนิเซีย",
+    "away": "ญี่ปุ่น",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-21",
+    "id": 36
+  },
+  {
+    "home": "สเปน",
+    "away": "ซาอุดีอาระเบีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-21",
+    "id": 37
+  },
+  {
+    "home": "เบลเยียม",
+    "away": "อิหร่าน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-22",
+    "id": 38
+  },
+  {
+    "home": "อุรุกวัย",
+    "away": "เคปเวิร์ด",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-22",
+    "id": 39
+  },
+  {
+    "home": "นิวซีแลนด์",
+    "away": "อียิปต์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-22",
+    "id": 40
+  },
+  {
+    "home": "อาร์เจนตินา",
+    "away": "ออสเตรีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-23",
+    "id": 41
+  },
+  {
+    "home": "ฝรั่งเศส",
+    "away": "อิรัก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-23",
+    "id": 42
+  },
+  {
+    "home": "นอร์เวย์",
+    "away": "เซเนกัล",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-23",
+    "id": 43
+  },
+  {
+    "home": "จอร์แดน",
+    "away": "แอลจีเรีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-23",
+    "id": 44
+  },
+  {
+    "home": "โปรตุเกส",
+    "away": "อุซเบกิสถาน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-24",
+    "id": 45
+  },
+  {
+    "home": "อังกฤษ",
+    "away": "กานา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-24",
+    "id": 46
+  },
+  {
+    "home": "ปานามา",
+    "away": "โครเอเชีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-24",
+    "id": 47
+  },
+  {
+    "home": "โคลอมเบีย",
+    "away": "คองโก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-24",
+    "id": 48
+  },
+  {
+    "home": "สวิตเซอร์แลนด์",
+    "away": "แคนาดา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 49
+  },
+  {
+    "home": "บอสเนีย",
+    "away": "กาตาร์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 50
+  },
+  {
+    "home": "โมร็อกโก",
+    "away": "เฮติ",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 51
+  },
+  {
+    "home": "สกอตแลนด์",
+    "away": "บราซิล",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 52
+  },
+  {
+    "home": "แอฟริกาใต้",
+    "away": "เกาหลีใต้",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 53,
+    "penaltyWinner": null
+  },
+  {
+    "home": "สาธารณรัฐเช็ก",
+    "away": "เม็กซิโก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-25",
+    "id": 54,
+    "penaltyWinner": null
+  },
+  {
+    "home": "คูราเซา",
+    "away": "ไอเวอรีโคสต์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 55,
+    "penaltyWinner": null
+  },
+  {
+    "home": "เอกวาดอร์",
+    "away": "เยอรมนี",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 56,
+    "penaltyWinner": null
+  },
+  {
+    "home": "ตูนิเซีย",
+    "away": "เนเธอร์แลนด์",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 57,
+    "penaltyWinner": null
+  },
+  {
+    "home": "ญี่ปุ่น",
+    "away": "สวีเดน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 58,
+    "penaltyWinner": null
+  },
+  {
+    "home": "ตุรกี",
+    "away": "สหรัฐอเมริกา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 59
+  },
+  {
+    "home": "ปารากวัย",
+    "away": "ออสเตรเลีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-26",
+    "id": 60
+  },
+  {
+    "home": "นอร์เวย์",
+    "away": "ฝรั่งเศส",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 61
+  },
+  {
+    "home": "เซเนกัล",
+    "away": "อิรัก",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 62
+  },
+  {
+    "home": "เคปเวิร์ด",
+    "away": "ซาอุดีอาระเบีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 63
+  },
+  {
+    "home": "อุรุกวัย",
+    "away": "สเปน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 64
+  },
+  {
+    "home": "นิวซีแลนด์",
+    "away": "เบลเยียม",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 65
+  },
+  {
+    "home": "อียิปต์",
+    "away": "อิหร่าน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-27",
+    "id": 66
+  },
+  {
+    "home": "ปานามา",
+    "away": "อังกฤษ",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 67
+  },
+  {
+    "home": "โครเอเชีย",
+    "away": "กานา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 68
+  },
+  {
+    "home": "โคลอมเบีย",
+    "away": "โปรตุเกส",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 69
+  },
+  {
+    "home": "คองโก",
+    "away": "อุซเบกิสถาน",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 70
+  },
+  {
+    "home": "แอลจีเรีย",
+    "away": "ออสเตรีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 71
+  },
+  {
+    "home": "จอร์แดน",
+    "away": "อาร์เจนตินา",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": false,
+    "date": "2026-06-28",
+    "id": 72
+  },
+  {
+    "id": 100,
+    "home": "เยอรมนี",
+    "away": "โครเอเชีย",
+    "homeScore": null,
+    "awayScore": null,
+    "status": "pending",
+    "isKnockout": true,
+    "isFinal": true,
+    "date": "2026-07-19"
+  }
 ];
 
 const INITIAL_PLAYERS = [
@@ -1489,6 +2227,7 @@ function updateAdminUI() {
     if (resetAllBtn) resetAllBtn.style.display = 'none';
   }
 
+
   // Re-render leaderboard and dashboard to show/hide edit column
   if (document.getElementById('dashboard') && document.getElementById('dashboard').classList.contains('active')) {
     renderDashboard();
@@ -1503,57 +2242,134 @@ function updateAdminUI() {
   if (top5AdminCol) top5AdminCol.style.display = isAdmin ? 'table-cell' : 'none';
 }
 
-// Initialize data from localstorage or initial arrays
-function initData() {
+// Initialize data from server data.json and/or localstorage
+async function initData() {
+  let serverData = { matches: [], players: [] };
+  try {
+    const res = await fetch('data.json');
+    if (res.ok) {
+      serverData = await res.json();
+    }
+  } catch (e) {
+    console.error('Failed to fetch data.json from server:', e);
+  }
+
   const storedMatches = localStorage.getItem('worldcup_matches');
   const storedPlayers = localStorage.getItem('worldcup_players');
   
+  // Load override lists from localStorage with safety try-catch
+  let manuallyEditedMatches = [];
+  try {
+    manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+    if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
+  } catch (e) {
+    console.error('Failed to parse manually edited matches:', e);
+  }
+
+  let deletedMatches = [];
+  try {
+    deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+    if (!Array.isArray(deletedMatches)) deletedMatches = [];
+  } catch (e) {
+    console.error('Failed to parse deleted matches:', e);
+  }
+  
   if (storedMatches) {
     matches = JSON.parse(storedMatches);
-    // Migrate: add dates from INITIAL_MATCHES if missing
-    let migrated = false;
+    
+    // Auto-sync matches from server data (for automated scrapes)
+    let updated = false;
+    if (serverData.matches && serverData.matches.length > 0) {
+      serverData.matches.forEach(sm => {
+        // Skip syncing if match is deleted by user (using loose comparison for safety)
+        if (deletedMatches.some(id => id == sm.id)) return;
+        
+        const lmIdx = matches.findIndex(m => m.id == sm.id);
+        if (lmIdx !== -1) {
+          const lm = matches[lmIdx];
+          
+          // Skip syncing if match was manually edited by user (using loose comparison for safety)
+          if (manuallyEditedMatches.some(id => id == sm.id)) return;
+          
+          // If server match is finished but local match is pending, auto-update local match
+          if (sm.status === 'finished' && lm.status === 'pending') {
+            matches[lmIdx] = { ...lm, ...sm };
+            updated = true;
+          }
+        } else {
+          // If it's a new match from server not present in local matches, add it
+          matches.push(sm);
+          updated = true;
+        }
+      });
+    }
+    
+    // Migrate: add dates from INITIAL_MATCHES or server matches if missing
     matches.forEach(m => {
       if (!m.date) {
-        const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id);
+        const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
         if (initialMatch && initialMatch.date) {
           m.date = initialMatch.date;
-          migrated = true;
+          updated = true;
         }
       }
     });
-    if (migrated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    
+    if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
   } else {
-    matches = [...INITIAL_MATCHES];
+    matches = (serverData.matches && serverData.matches.length > 0) ? serverData.matches : [...INITIAL_MATCHES];
+    // Filter out deleted matches if any exist (using loose comparison for safety)
+    if (deletedMatches.length > 0) {
+      matches = matches.filter(m => !deletedMatches.some(id => id == m.id));
+    }
     localStorage.setItem('worldcup_matches', JSON.stringify(matches));
   }
   
   if (storedPlayers) {
-    const tempPlayers = JSON.parse(storedPlayers);
-    const storedNames = new Set(tempPlayers.map(p => p.name));
-    const initialNames = new Set(INITIAL_PLAYERS.map(p => p.name));
+    players = JSON.parse(storedPlayers);
     
-    let needsUpdate = tempPlayers.length !== INITIAL_PLAYERS.length;
-    if (!needsUpdate) {
-      for (let name of initialNames) {
-        if (!storedNames.has(name)) {
-          needsUpdate = true;
-          break;
+    // Auto-sync players from server data if there are new ones
+    let updated = false;
+    if (serverData.players && serverData.players.length > 0) {
+      serverData.players.forEach(sp => {
+        if (!players.some(p => p.name === sp.name)) {
+          players.push(sp);
+          updated = true;
         }
-      }
+      });
     }
-    
-    if (needsUpdate) {
-      players = [...INITIAL_PLAYERS];
-      localStorage.setItem('worldcup_players', JSON.stringify(players));
-    } else {
-      players = tempPlayers;
-    }
+    if (updated) localStorage.setItem('worldcup_players', JSON.stringify(players));
   } else {
-    players = [...INITIAL_PLAYERS];
+    players = (serverData.players && serverData.players.length > 0) ? serverData.players : [...INITIAL_PLAYERS];
     localStorage.setItem('worldcup_players', JSON.stringify(players));
   }
 
   loadEliminatedTeams();
+}
+
+// Sync local changes (matches and players) back to server data.json
+async function saveToServer() {
+  try {
+    const payload = {
+      matches: matches,
+      players: players
+    };
+    const response = await fetch('/api/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (response.ok) {
+      console.log('Successfully synced data to server data.json');
+    } else {
+      console.warn('Server refused to save data:', response.statusText);
+    }
+  } catch (e) {
+    // Fail silently in offline or static hosting environments
+    console.log('Offline/Static hosting: skipped syncing to server.');
+  }
 }
 
 // Calculate team points from matches
@@ -2536,9 +3352,25 @@ function showCustomConfirm(message, onConfirm) {
 
 // Delete a match (admin only)
 function deleteMatch(matchId) {
-  showCustomConfirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?', () => {
+  showCustomConfirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?', async () => {
     matches = matches.filter(m => m.id != matchId);
+    
+    // Track deleted matches to persist on page loads with safety try-catch
+    let deletedMatches = [];
+    try {
+      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+      if (!Array.isArray(deletedMatches)) deletedMatches = [];
+    } catch (e) {
+      console.error(e);
+    }
+    
+    if (!deletedMatches.some(id => id == matchId)) {
+      deletedMatches.push(matchId);
+      localStorage.setItem('worldcup_deleted_matches', JSON.stringify(deletedMatches));
+    }
+    
     localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    await saveToServer();
     recalculateAll();
     renderMatches();
     renderDashboard();
@@ -2673,7 +3505,7 @@ function renderMatches() {
   });
   
   document.querySelectorAll('.save-match-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
@@ -2708,7 +3540,22 @@ function renderMatches() {
           }
         }
         
+        // Track manual scores edits with safety try-catch
+        let manuallyEditedMatches = [];
+        try {
+          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
+        } catch (e) {
+          console.error(e);
+        }
+        
+        if (!manuallyEditedMatches.some(id => id == matchId)) {
+          manuallyEditedMatches.push(matchId);
+          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
+        }
+        
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        await saveToServer();
         alert('บันทึกสกอร์การแข่งขันเรียบร้อย!');
         recalculateAll();
         renderMatches();
@@ -2717,7 +3564,7 @@ function renderMatches() {
   });
   
   document.querySelectorAll('.clear-match-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
@@ -2728,7 +3575,22 @@ function renderMatches() {
         match.status = 'pending';
         match.penaltyWinner = null;
         
+        // Track manual score clear with safety try-catch
+        let manuallyEditedMatches = [];
+        try {
+          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
+        } catch (e) {
+          console.error(e);
+        }
+        
+        if (!manuallyEditedMatches.some(id => id == matchId)) {
+          manuallyEditedMatches.push(matchId);
+          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
+        }
+        
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        await saveToServer();
         alert('ล้างข้อมูลสกอร์เรียบร้อย!');
         recalculateAll();
         renderMatches();
@@ -3245,7 +4107,7 @@ function closeMatchForm() {
   document.getElementById('match-form-drawer-overlay').classList.remove('active');
 }
 
-function handleMatchFormSubmit() {
+async function handleMatchFormSubmit() {
   const home = document.getElementById('form-match-home').value;
   const away = document.getElementById('form-match-away').value;
   const matchDate = document.getElementById('form-match-date').value;
@@ -3286,6 +4148,7 @@ function handleMatchFormSubmit() {
   
   matches.push(newMatch);
   localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+  await saveToServer();
   
   closeMatchForm();
   alert('เพิ่มคู่ตารางการแข่งขันสำเร็จ!');
@@ -3296,8 +4159,8 @@ function handleMatchFormSubmit() {
 }
 
 // SETUP EVENTS & DOM CONTENT LOADED
-document.addEventListener('DOMContentLoaded', () => {
-  initData();
+document.addEventListener('DOMContentLoaded', async () => {
+  await initData();
   setupNavigation();
   
   // Initialize admin status
@@ -3508,9 +4371,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('reset-all-btn');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      showCustomConfirm('คุณต้องการรีเซ็ตผลการแข่งขันทั้งหมดกลับเป็นค่าเริ่มต้นใช่หรือไม่? (การแก้ไขสกอร์การแข่งทั้งหมดจะถูกล้าง)', () => {
+      showCustomConfirm('คุณต้องการรีเซ็ตผลการแข่งขันทั้งหมดกลับเป็นค่าเริ่มต้นใช่หรือไม่? (การแก้ไขสกอร์การแข่งทั้งหมดจะถูกล้าง)', async () => {
         localStorage.removeItem('worldcup_matches');
-        initData();
+        localStorage.removeItem('worldcup_manually_edited_matches');
+        localStorage.removeItem('worldcup_deleted_matches');
+        await initData();
+        await saveToServer();
         recalculateAll();
         if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
         if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard();
@@ -3585,6 +4451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPlayers();
   });
   
+
   // Initial page renders
   renderDashboard();
 });

@@ -1,0 +1,26 @@
+{
+  "name": "world-cup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node server.js",
+    "scrape": "node update-scores.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nguan08/world-cup.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nguan08/world-cup/issues"
+  },
+  "homepage": "https://github.com/nguan08/world-cup#readme",
+  "dependencies": {
+    "playwright": "^1.60.0"
+  }
+}
