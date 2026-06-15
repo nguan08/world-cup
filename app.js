@@ -2184,6 +2184,7 @@ const INITIAL_PLAYERS = [
 let matches = [];
 let players = [];
 let isAdmin = false;
+let isSyncEnabled = false;
 
 function initAdminState() {
   isAdmin = sessionStorage.getItem('worldcup_isAdmin') === 'true';
@@ -2244,7 +2245,24 @@ function updateAdminUI() {
 
 // Initialize data from server data.json and/or localstorage
 async function initData() {
-  let serverData = { matches: [], players: [] };
+  let serverData = { matches: [], players: [], eliminatedTeams: [] };
+  
+  // 1. Detect if synchronization backend is enabled
+  window.isSyncEnabled = false;
+  try {
+    const statusRes = await fetch('/api/status');
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (statusData.sync) {
+        isSyncEnabled = true;
+        window.isSyncEnabled = true;
+      }
+    }
+  } catch (e) {
+    console.log('[Sync] Synchronization backend is disabled (static pages or offline)');
+  }
+
+  // 2. Fetch server data
   try {
     const res = await fetch('data.json');
     if (res.ok) {
@@ -2254,94 +2272,108 @@ async function initData() {
     console.error('Failed to fetch data.json from server:', e);
   }
 
-  const storedMatches = localStorage.getItem('worldcup_matches');
-  const storedPlayers = localStorage.getItem('worldcup_players');
-  
-  // Load override lists from localStorage with safety try-catch
-  let manuallyEditedMatches = [];
-  try {
-    manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
-    if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
-  } catch (e) {
-    console.error('Failed to parse manually edited matches:', e);
-  }
-
-  let deletedMatches = [];
-  try {
-    deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
-    if (!Array.isArray(deletedMatches)) deletedMatches = [];
-  } catch (e) {
-    console.error('Failed to parse deleted matches:', e);
-  }
-  
-  if (storedMatches) {
-    matches = JSON.parse(storedMatches);
+  // 3. Load database state
+  if (isSyncEnabled && serverData.matches && serverData.matches.length > 0) {
+    console.log('[Sync] Using server-side data.json as primary database');
+    matches = serverData.matches;
+    players = serverData.players || [];
+    manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
     
-    // Auto-sync matches from server data (for automated scrapes)
-    let updated = false;
-    if (serverData.matches && serverData.matches.length > 0) {
-      serverData.matches.forEach(sm => {
-        // Skip syncing if match is deleted by user (using loose comparison for safety)
-        if (deletedMatches.some(id => id == sm.id)) return;
-        
-        const lmIdx = matches.findIndex(m => m.id == sm.id);
-        if (lmIdx !== -1) {
-          const lm = matches[lmIdx];
+    // Fallback sync to localstorage so offline fallback is close to last saved state
+    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    localStorage.setItem('worldcup_players', JSON.stringify(players));
+    localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
+  } else {
+    console.log('[Sync] Using client-side localStorage as database');
+    const storedMatches = localStorage.getItem('worldcup_matches');
+    const storedPlayers = localStorage.getItem('worldcup_players');
+    
+    // Load override lists from localStorage with safety try-catch
+    let manuallyEditedMatches = [];
+    try {
+      manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+      if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
+    } catch (e) {
+      console.error('Failed to parse manually edited matches:', e);
+    }
+
+    let deletedMatches = [];
+    try {
+      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+      if (!Array.isArray(deletedMatches)) deletedMatches = [];
+    } catch (e) {
+      console.error('Failed to parse deleted matches:', e);
+    }
+    
+    if (storedMatches) {
+      matches = JSON.parse(storedMatches);
+      
+      // Auto-sync matches from server data (for automated scrapes)
+      let updated = false;
+      if (serverData.matches && serverData.matches.length > 0) {
+        serverData.matches.forEach(sm => {
+          // Skip syncing if match is deleted by user (using loose comparison for safety)
+          if (deletedMatches.some(id => id == sm.id)) return;
           
-          // Skip syncing if match was manually edited by user (using loose comparison for safety)
-          if (manuallyEditedMatches.some(id => id == sm.id)) return;
-          
-          // If server match is finished but local match is pending, auto-update local match
-          if (sm.status === 'finished' && lm.status === 'pending') {
-            matches[lmIdx] = { ...lm, ...sm };
+          const lmIdx = matches.findIndex(m => m.id == sm.id);
+          if (lmIdx !== -1) {
+            const lm = matches[lmIdx];
+            
+            // Skip syncing if match was manually edited by user (using loose comparison for safety)
+            if (manuallyEditedMatches.some(id => id == sm.id)) return;
+            
+            // If server match is finished but local match is pending, auto-update local match
+            if (sm.status === 'finished' && lm.status === 'pending') {
+              matches[lmIdx] = { ...lm, ...sm };
+              updated = true;
+            }
+          } else {
+            // If it's a new match from server not present in local matches, add it
+            matches.push(sm);
             updated = true;
           }
-        } else {
-          // If it's a new match from server not present in local matches, add it
-          matches.push(sm);
-          updated = true;
-        }
-      });
-    }
-    
-    // Migrate: add dates from INITIAL_MATCHES or server matches if missing
-    matches.forEach(m => {
-      if (!m.date) {
-        const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
-        if (initialMatch && initialMatch.date) {
-          m.date = initialMatch.date;
-          updated = true;
-        }
+        });
       }
-    });
-    
-    if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-  } else {
-    matches = (serverData.matches && serverData.matches.length > 0) ? serverData.matches : [...INITIAL_MATCHES];
-    // Filter out deleted matches if any exist (using loose comparison for safety)
-    if (deletedMatches.length > 0) {
-      matches = matches.filter(m => !deletedMatches.some(id => id == m.id));
-    }
-    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-  }
-  
-  if (storedPlayers) {
-    players = JSON.parse(storedPlayers);
-    
-    // Auto-sync players from server data if there are new ones
-    let updated = false;
-    if (serverData.players && serverData.players.length > 0) {
-      serverData.players.forEach(sp => {
-        if (!players.some(p => p.name === sp.name)) {
-          players.push(sp);
-          updated = true;
+      
+      // Migrate: add dates from INITIAL_MATCHES or server matches if missing
+      matches.forEach(m => {
+        if (!m.date) {
+          const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
+          if (initialMatch && initialMatch.date) {
+            m.date = initialMatch.date;
+            updated = true;
+          }
         }
       });
+      
+      if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    } else {
+      matches = (serverData.matches && serverData.matches.length > 0) ? serverData.matches : [...INITIAL_MATCHES];
+      // Filter out deleted matches if any exist (using loose comparison for safety)
+      if (deletedMatches.length > 0) {
+        matches = matches.filter(m => !deletedMatches.some(id => id == m.id));
+      }
+      localStorage.setItem('worldcup_matches', JSON.stringify(matches));
     }
-    if (updated) localStorage.setItem('worldcup_players', JSON.stringify(players));
-  } else {
-    players = (serverData.players && serverData.players.length > 0) ? serverData.players : [...INITIAL_PLAYERS];
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
+    
+    if (storedPlayers) {
+      players = JSON.parse(storedPlayers);
+      
+      // Auto-sync players from server data if there are new ones
+      let updated = false;
+      if (serverData.players && serverData.players.length > 0) {
+        serverData.players.forEach(sp => {
+          if (!players.some(p => p.name === sp.name)) {
+            players.push(sp);
+            updated = true;
+          }
+        });
+      }
+      if (updated) localStorage.setItem('worldcup_players', JSON.stringify(players));
+    } else {
+      players = (serverData.players && serverData.players.length > 0) ? serverData.players : [...INITIAL_PLAYERS];
+      localStorage.setItem('worldcup_players', JSON.stringify(players));
+    }
   }
 
   loadEliminatedTeams();
@@ -2352,7 +2384,8 @@ async function saveToServer() {
   try {
     const payload = {
       matches: matches,
-      players: players
+      players: players,
+      eliminatedTeams: Array.from(manualEliminatedTeams)
     };
     const response = await fetch('/api/save', {
       method: 'POST',
@@ -2663,6 +2696,7 @@ let manualEliminatedTeams = new Set();
 
 // Load manual eliminated teams
 function loadEliminatedTeams() {
+  if (isSyncEnabled) return; // Do not load from localstorage if sync is enabled
   const stored = localStorage.getItem('worldcup_eliminated_teams');
   if (stored) {
     try {
@@ -2676,8 +2710,11 @@ function loadEliminatedTeams() {
 }
 
 // Save manual eliminated teams
-function saveEliminatedTeams() {
+async function saveEliminatedTeams() {
   localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
+  if (isSyncEnabled) {
+    await saveToServer();
+  }
 }
 
 // Check if a team is eliminated (auto-calculated from knockout losses + manual overrides)
@@ -3901,7 +3938,7 @@ function openPlayerDetails(name) {
   
   // Set toggle handler listeners
   grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const team = btn.getAttribute('data-team');
       if (manualEliminatedTeams.has(team)) {
@@ -3909,7 +3946,7 @@ function openPlayerDetails(name) {
       } else {
         manualEliminatedTeams.add(team);
       }
-      saveEliminatedTeams();
+      await saveEliminatedTeams();
       recalculateAll();
       openPlayerDetails(name); // Refresh view
       renderDashboard();
@@ -3921,9 +3958,12 @@ function openPlayerDetails(name) {
   // Set delete handler
   const deleteBtn = document.getElementById('delete-player-btn');
   deleteBtn.onclick = () => {
-    showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, () => {
+    showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
       players = players.filter(p => p.name !== name);
       localStorage.setItem('worldcup_players', JSON.stringify(players));
+      if (isSyncEnabled) {
+        await saveToServer();
+      }
       document.getElementById('player-details-drawer-overlay').classList.remove('active');
       recalculateAll();
       renderDashboard();
@@ -4395,7 +4435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   
   // Player form submission
-  document.getElementById('player-form').addEventListener('submit', (e) => {
+  document.getElementById('player-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const id = document.getElementById('form-player-id').value;
@@ -4442,6 +4482,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     localStorage.setItem('worldcup_players', JSON.stringify(players));
+    if (isSyncEnabled) {
+      await saveToServer();
+    }
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
     
     alert('บันทึกข้อมูลผู้เล่นเรียบร้อย!');

@@ -1,71 +1,72 @@
 {
   "matches": [
     {
+      "id": 1,
       "home": "เม็กซิโก",
       "away": "แอฟริกาใต้",
       "homeScore": 2,
       "awayScore": 0,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-12",
-      "id": 1
+      "date": "2026-06-11"
     },
     {
+      "id": 2,
       "home": "เกาหลีใต้",
       "away": "สาธารณรัฐเช็ก",
       "homeScore": 2,
       "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-12",
-      "id": 2,
+      "date": "2026-06-11",
       "penaltyWinner": null
     },
     {
+      "id": 3,
       "home": "แคนาดา",
       "away": "บอสเนีย",
       "homeScore": 1,
       "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-13",
-      "id": 3,
+      "date": "2026-06-12",
       "penaltyWinner": null
     },
     {
+      "id": 4,
       "home": "สหรัฐอเมริกา",
       "away": "ปารากวัย",
       "homeScore": 4,
       "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-13",
-      "id": 4,
+      "date": "2026-06-12",
       "penaltyWinner": null
     },
     {
+      "id": 5,
       "home": "กาตาร์",
       "away": "สวิตเซอร์แลนด์",
       "homeScore": 1,
       "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-14",
-      "id": 5,
+      "date": "2026-06-13",
       "penaltyWinner": null
     },
     {
+      "id": 6,
       "home": "บราซิล",
       "away": "โมร็อกโก",
       "homeScore": 1,
       "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
-      "date": "2026-06-14",
-      "id": 6,
+      "date": "2026-06-13",
       "penaltyWinner": null
     },
     {
+      "id": 7,
       "home": "เฮติ",
       "away": "สกอตแลนด์",
       "homeScore": 0,
@@ -73,10 +74,10 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-14",
-      "id": 7,
       "penaltyWinner": null
     },
     {
+      "id": 8,
       "home": "ออสเตรเลีย",
       "away": "ตุรกี",
       "homeScore": 2,
@@ -84,8 +85,18 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-14",
-      "id": 8,
       "penaltyWinner": null
+    },
+    {
+      "id": 100,
+      "home": "เยอรมนี",
+      "away": "โครเอเชีย",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "isFinal": true,
+      "date": "2026-07-19"
     },
     {
       "home": "เยอรมนี",
@@ -133,9 +144,9 @@
     {
       "home": "สเปน",
       "away": "เคปเวิร์ด",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 5,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-15",
       "id": 13
@@ -719,9 +730,9 @@
     {
       "home": "แอลจีเรีย",
       "away": "ออสเตรีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 5,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 71
@@ -735,17 +746,6 @@
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 72
-    },
-    {
-      "id": 100,
-      "home": "เยอรมนี",
-      "away": "โครเอเชีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
-      "isKnockout": true,
-      "isFinal": true,
-      "date": "2026-07-19"
     }
   ],
   "players": [
