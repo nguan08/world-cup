@@ -2273,9 +2273,9 @@ async function initData() {
     console.log('[Sync] Synchronization backend is disabled (static pages or offline)');
   }
 
-  // 2. Fetch server data
+  // 2. Fetch server data with cache busting to ensure the latest file is loaded
   try {
-    const res = await fetch('data.json');
+    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
       serverData = await res.json();
     }
@@ -2322,7 +2322,36 @@ async function initData() {
       console.error('Failed to parse deleted matches:', e);
     }
     
-    if (storedMatches) {
+    if (serverData.matches && serverData.matches.length > 0) {
+      matches = serverData.matches.filter(m => !deletedMatches.some(id => id == m.id));
+
+      // Preserve any locally manually edited matches on top of the latest server data
+      if (storedMatches) {
+        const localMatches = JSON.parse(storedMatches);
+        localMatches.forEach(lm => {
+          if (manuallyEditedMatches.some(id => id == lm.id)) {
+            const idx = matches.findIndex(m => m.id == lm.id);
+            if (idx !== -1) {
+              matches[idx] = { ...matches[idx], ...lm };
+            } else {
+              matches.push(lm);
+            }
+          }
+        });
+      }
+
+      // Migrate: add dates from INITIAL_MATCHES or server matches if missing
+      matches.forEach(m => {
+        if (!m.date) {
+          const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
+          if (initialMatch && initialMatch.date) {
+            m.date = initialMatch.date;
+          }
+        }
+      });
+
+      localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    } else if (storedMatches) {
       matches = JSON.parse(storedMatches);
       
       // Auto-sync matches from server data (for automated scrapes)
@@ -2365,7 +2394,7 @@ async function initData() {
       
       if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
     } else {
-      matches = (serverData.matches && serverData.matches.length > 0) ? serverData.matches : [...INITIAL_MATCHES];
+      matches = [...INITIAL_MATCHES];
       // Filter out deleted matches if any exist (using loose comparison for safety)
       if (deletedMatches.length > 0) {
         matches = matches.filter(m => !deletedMatches.some(id => id == m.id));
