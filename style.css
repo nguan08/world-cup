@@ -955,6 +955,29 @@ tr.leader-second-row {
     min-width: 100% !important;
   }
 
+  /* Leaderboard responsive table on mobile */
+  #leaderboard .table-container {
+    overflow-x: auto;
+  }
+
+  #leaderboard table {
+    width: 100%;
+    table-layout: fixed;
+    min-width: 0;
+  }
+
+  #leaderboard th,
+  #leaderboard td {
+    white-space: normal;
+  }
+
+  #leaderboard th:nth-child(4),
+  #leaderboard td:nth-child(4),
+  #leaderboard th:nth-child(6),
+  #leaderboard td:nth-child(6) {
+    display: none;
+  }
+
   .search-input {
     padding: 12px 12px 12px 42px;
     font-size: 14px;
@@ -1106,6 +1129,16 @@ tr.leader-second-row {
   td {
     padding: 8px 8px;
     font-size: 12px;
+  }
+
+  /* More compact leaderboard columns for small phones */
+  #leaderboard th:nth-child(3),
+  #leaderboard td:nth-child(3),
+  #leaderboard th:nth-child(4),
+  #leaderboard td:nth-child(4),
+  #leaderboard th:nth-child(6),
+  #leaderboard td:nth-child(6) {
+    display: none;
   }
 
   /* Badge compact */
