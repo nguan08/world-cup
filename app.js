@@ -3092,22 +3092,43 @@ function renderScoreChart() {
     yGridLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
   }
 
-  // 5. Render X-axis labels
+  // 5. Render X-axis labels (dynamic interval, rotation when crowded, mobile-shortened)
   let xLabels = '';
+  const desiredLabels = isMobile ? 5 : 8; // target number of labels to show
+  const interval = Math.max(1, Math.ceil((stepsCount + 1) / desiredLabels));
+  const labelFontSize = isMobile ? '8' : '10';
+
+  // decide whether to rotate labels if points are too close
+  const minPixelPerStep = chartW / Math.max(1, stepsCount);
+  const rotateWhenNarrow = isMobile ? 36 : 48;
+  const rotateAngle = minPixelPerStep < rotateWhenNarrow ? -45 : 0;
+
   for (let i = 0; i <= stepsCount; i++) {
     const x = xOf(i);
+    const showLabel = (i === 0) || (i % interval === 0);
+
     let label = '';
     if (i === 0) {
       label = 'เริ่มต้น';
-    } else {
+    } else if (showLabel) {
       const dateStr = finishedMatches[i - 1].date;
       const d = new Date(dateStr + 'T00:00:00');
-      label = `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      // mobile: show day only to save space, desktop: show dd/mm
+      label = isMobile ? `${d.getDate()}` : `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
-    xLabels += `
+
+    if (rotateAngle !== 0 && showLabel) {
+      // rotate around the label position; use end anchor for better alignment
+      xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-      <text x="${x}" y="${padT + chartH + 18}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
+      <text x="${x}" y="${padT + chartH + 18}" transform="rotate(${rotateAngle} ${x} ${padT + chartH + 18})" text-anchor="end" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
     `;
+    } else {
+      xLabels += `
+      <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      ${showLabel ? `<text x="${x}" y="${padT + chartH + 18}" text-anchor="middle" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>` : ''}
+    `;
+    }
   }
 
   // 6. Draw lines, dots, and labels
@@ -4338,7 +4359,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
   
+
+  // Export leaderboard image button
+  const exportBtn = document.getElementById('export-leaderboard-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+      try {
+        await exportLeaderboardImage();
+      } catch (err) {
+        console.error('Export failed', err);
+        alert('การส่งออกภาพล้มเหลว');
+      }
+    });
+  }
   // Close login modal
+
+async function exportLeaderboardImage() {
+  const container = document.querySelector('#leaderboard .table-container');
+  if (!container) return alert('ไม่พบตารางคะแนนเพื่อส่งออก');
+
+  // Use html2canvas to render with white background for readability
+  const canvas = await html2canvas(container, {backgroundColor: '#ffffff', scale: 2});
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // Trigger download
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = 'leaderboard.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  // Also open in new tab for quick sharing (LINE web will allow drag/drop)
+  const w = window.open();
+  if (w) {
+    w.document.title = 'Leaderboard Image';
+    const img = w.document.createElement('img');
+    img.src = dataUrl;
+    img.style.maxWidth = '100%';
+    img.style.display = 'block';
+    img.style.margin = '12px auto';
+    w.document.body.style.background = '#fff';
+    w.document.body.appendChild(img);
+  }
+}
   const closeLoginBtn = document.getElementById('close-login-btn');
   if (closeLoginBtn) {
     closeLoginBtn.addEventListener('click', () => {
