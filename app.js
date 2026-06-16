@@ -4413,10 +4413,19 @@ async function exportLeaderboardImage() {
       // Always download via object URL (ensure consistent download behavior across devices)
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       a.download = fileName;
+      a.target = '_blank';
       document.body.appendChild(a);
-      a.click();
+      const clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
+      const clickResult = a.dispatchEvent(clickEvent);
+
+      // If download is blocked, open image in a new tab as fallback so user can save manually
+      if (!clickResult || !a.href) {
+        window.open(url, '_blank');
+      }
+
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       clone.remove();
