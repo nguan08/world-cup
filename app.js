@@ -4410,18 +4410,7 @@ async function exportLeaderboardImage() {
 
       const fileName = 'leaderboard.jpg';
 
-      // Try Web Share API with files when available (mobile UX)
-      try {
-        if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
-          await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: 'Leaderboard', text: 'ตารางคะแนนล่าสุด' });
-          clone.remove();
-          return resolve();
-        }
-      } catch (e) {
-        // ignore and fallback to download
-      }
-
-      // Fallback: download via object URL
+      // Always download via object URL (ensure consistent download behavior across devices)
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
