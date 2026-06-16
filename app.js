@@ -3096,16 +3096,17 @@ function renderScoreChart() {
   let xLabels = '';
   for (let i = 0; i <= stepsCount; i++) {
     const x = xOf(i);
-    let label = i === 0 ? 'เริ่มต้น' : `วันที่ ${i}`;
-    let matchDetail = '';
-    if (i > 0 && !isMobile) { // only show team names on desktop to avoid overlap
-      const match = finishedMatches[i - 1];
-      matchDetail = `<text x="${x}" y="${padT + chartH + 32}" text-anchor="middle" font-size="8.5" fill="rgba(255,255,255,0.3)" font-family="Inter,Sarabun,sans-serif">${match.home}-${match.away}</text>`;
+    let label = '';
+    if (i === 0) {
+      label = 'เริ่มต้น';
+    } else {
+      const dateStr = finishedMatches[i - 1].date;
+      const d = new Date(dateStr + 'T00:00:00');
+      label = `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
     xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
       <text x="${x}" y="${padT + chartH + 18}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
-      ${matchDetail}
     `;
   }
 
@@ -3363,7 +3364,7 @@ function highlightPlayerInChart(playerName) {
   dotsOfPlayer.forEach(dot => {
     const cx = parseFloat(dot.getAttribute('cx'));
     const cy = parseFloat(dot.getAttribute('cy'));
-    const score = parseFloat(dot.getAttribute('data-score'));
+    const rank = parseInt(dot.getAttribute('data-rank'));
 
     const textLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textLabel.setAttribute('x', cx);
@@ -3374,7 +3375,7 @@ function highlightPlayerInChart(playerName) {
     textLabel.setAttribute('fill', '#fff');
     textLabel.setAttribute('class', 'temp-dot-label');
     textLabel.setAttribute('style', 'pointer-events: none; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.85)); font-family: Inter,sans-serif;');
-    textLabel.textContent = score.toFixed(1);
+    textLabel.textContent = rank;
     
     dot.parentElement.appendChild(textLabel);
   });
