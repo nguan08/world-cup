@@ -3441,9 +3441,17 @@ function renderLeaderboard() {
     tr.classList.add('hoverable');
     
     // Assign zone rows
-    if (p.zone === 'blue') tr.classList.add('zone-blue-row');
-    else if (p.zone === 'green') tr.classList.add('zone-green-row');
-    else if (p.zone === 'red') tr.classList.add('zone-red-row');
+    if (p.rank === 1) {
+      tr.classList.add('leader-first-row');
+    } else if (p.rank === 2) {
+      tr.classList.add('leader-second-row');
+    } else if (p.zone === 'blue') {
+      tr.classList.add('zone-blue-row');
+    } else if (p.zone === 'green') {
+      tr.classList.add('zone-green-row');
+    } else if (p.zone === 'red') {
+      tr.classList.add('zone-red-row');
+    }
     
     tr.addEventListener('click', () => openPlayerDetails(p.name));
     
@@ -3459,9 +3467,18 @@ function renderLeaderboard() {
       : '<td style="display:none"></td>';
     
     const teamsPlayedCount = p.teams.filter(teamName => playCompletedTeams.has(teamName)).length;
+    const rankLabel = p.rank === 1
+      ? `<span class="leader-rank leader-rank-first">👑 ${p.rank}</span>`
+      : p.rank === 2
+        ? `<span class="leader-rank leader-rank-second">${p.rank}</span>`
+        : `<strong>${p.rank}</strong>`;
+    const nameLabel = p.rank === 1
+      ? `<span class="leader-name-first">${p.name} <span class="leader-crown">👑</span></span>`
+      : p.name;
+
     tr.innerHTML = `
-      <td><strong>${p.rank}</strong></td>
-      <td>${p.name}</td>
+      <td>${rankLabel}</td>
+      <td>${nameLabel}</td>
       <td style="text-align: center;">${teamsPlayedCount}</td>
       <td style="text-align: center;">${p.guess}</td>
       <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
