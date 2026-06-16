@@ -3403,6 +3403,7 @@ function renderLeaderboard() {
   const tbody = document.getElementById('leaderboard-tbody');
   tbody.innerHTML = '';
   
+  const playCompletedTeams = new Set(matches.filter(m => m.status === 'finished').flatMap(m => [m.home, m.away]));
   const filtered = processedPlayers.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchInput);
     const matchesTeam = selectedTeams.length === 0 || selectedTeams.every(team => p.teams.includes(team));
@@ -3435,9 +3436,11 @@ function renderLeaderboard() {
          </td>`
       : '<td style="display:none"></td>';
     
+    const teamsPlayedCount = p.teams.filter(teamName => playCompletedTeams.has(teamName)).length;
     tr.innerHTML = `
       <td><strong>${p.rank}</strong></td>
       <td>${p.name}</td>
+      <td style="text-align: center;">${teamsPlayedCount}</td>
       <td style="text-align: center;">${p.guess}</td>
       <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
       <td>${zoneBadge}</td>
