@@ -2538,9 +2538,9 @@ function calculatePredictionPoints(user, finalMatch) {
   
   let score = (calcHomeGoals * hMult) + (calcAwayGoals * aMult);
   
-  // Capping at 7 points
+  // Divide by 2 if score exceeds 7 points
   if (score > 7) {
-    score = 7;
+    score = score / 2;
   }
   
   return parseFloat(score.toFixed(2));
@@ -2654,7 +2654,20 @@ function processPlayers(teamScores) {
   const lastIndex = total - 1;
   const secondLastIndex = total - 2;
   
-  // Find the top of Red Zone (first player in Red Zone)
+  // Find Red Zone players and calculate average score
+  const redZonePlayers = processed.filter(p => p.zone === 'red');
+  
+  let closestToAvgPlayer = null;
+  if (redZonePlayers.length > 0) {
+    const avgScore = redZonePlayers.reduce((sum, p) => sum + p.totalScore, 0) / redZonePlayers.length;
+    closestToAvgPlayer = redZonePlayers.reduce((closest, p) => {
+      const currentDiff = Math.abs(p.totalScore - avgScore);
+      const closestDiff = Math.abs(closest.totalScore - avgScore);
+      return currentDiff < closestDiff ? p : closest;
+    });
+  }
+  
+  // Find the top of Red Zone (first player in Red Zone) - DEPRECATED, use closest to avg instead
   let topRedPlayer = null;
   for (let i = 0; i < total; i++) {
     if (processed[i].zone === 'red') {
@@ -2663,10 +2676,30 @@ function processPlayers(teamScores) {
     }
   }
   
-  // Find bottom 2 Green Zone players
+  // Find Green Zone players and calculate average score for the special charge rule
   const greenPlayers = processed.filter(p => p.zone === 'green');
-  const bottomGreen1 = greenPlayers[greenPlayers.length - 1];
-  const bottomGreen2 = greenPlayers[greenPlayers.length - 2];
+  let closestToAvgGreen = null;
+  if (greenPlayers.length > 0) {
+    const greenAvgScore = greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length;
+    closestToAvgGreen = greenPlayers.reduce((closest, p) => {
+      if (!closest) return p;
+      const currentDiff = Math.abs(p.totalScore - greenAvgScore);
+      const closestDiff = Math.abs(closest.totalScore - greenAvgScore);
+      return currentDiff < closestDiff ? p : closest;
+    }, null);
+  }
+  
+  // Find overall average score for the all-player charging rule
+  let closestToAvgAll = null;
+  if (total > 0) {
+    const overallAvgScore = processed.reduce((sum, p) => sum + p.totalScore, 0) / total;
+    closestToAvgAll = processed.reduce((closest, p) => {
+      if (!closest) return p;
+      const currentDiff = Math.abs(p.totalScore - overallAvgScore);
+      const closestDiff = Math.abs(closest.totalScore - overallAvgScore);
+      return currentDiff < closestDiff ? p : closest;
+    }, null);
+  }
   
   processed.forEach((p, idx) => {
     p.payout = 0;
@@ -2676,10 +2709,10 @@ function processPlayers(teamScores) {
       p.payout = 1000;
       p.payoutLabel = 'จ่าย 1,000 บาท';
       
-      // Top of Red Zone exemption
-      if (topRedPlayer && p.name === topRedPlayer.name) {
+      // Closest to Red Zone average exemption
+      if (closestToAvgPlayer && p.name === closestToAvgPlayer.name) {
         p.payout = 0;
-        p.payoutLabel = 'ยกเว้นไม่ต้องจ่าย (อันดับ 1 Red Zone)';
+        p.payoutLabel = 'ยกเว้นไม่ต้องจ่าย (ใกล้ค่าเฉลี่ย Red Zone)';
       }
       
       // Second to last
@@ -2694,12 +2727,19 @@ function processPlayers(teamScores) {
         p.payoutLabel = 'บ๊วย จ่าย 1,500 บาท';
       }
     } else if (p.zone === 'green') {
-      if ((bottomGreen1 && p.name === bottomGreen1.name) || (bottomGreen2 && p.name === bottomGreen2.name)) {
-        p.payout = 200; // Let's say they pay 200 Baht extra as punishment for being bottom green
-        p.payoutLabel = 'จ่ายเพิ่มพิเศษ 200 บาท (ท้าย Green Zone)';
+      // Closest to Green Zone average - must pay 1000
+      if (closestToAvgGreen && p.name === closestToAvgGreen.name) {
+        p.payout = 1000;
+        p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ย Green Zone)';
       }
     } else if (p.zone === 'blue') {
       p.payoutLabel = 'สิทธิ์เลือกสถานที่ (ไม่ต้องจ่าย)';
+    }
+    
+    // Closest to overall average - must pay 1000
+    if (closestToAvgAll && p.name === closestToAvgAll.name) {
+      p.payout = 1000;
+      p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ยทั้งหมด)';
     }
   });
   
@@ -2876,7 +2916,7 @@ function renderDashboard() {
     tr.innerHTML = `
       <td><strong>${p.rank}</strong></td>
       <td>${p.name}</td>
-      <td style="text-align: center;">${p.guess} ประตู</td>
+      <td style="text-align: center;">${p.guess}</td>
       <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
       <td>${zoneBadge}</td>
       ${editCell}
@@ -3369,10 +3409,10 @@ function renderLeaderboard() {
     tr.innerHTML = `
       <td><strong>${p.rank}</strong></td>
       <td>${p.name}</td>
-      <td style="text-align: center;">${p.guess} ประตู</td>
+      <td style="text-align: center;">${p.guess}</td>
       <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
       <td>${zoneBadge}</td>
-      <td style="color: ${p.payout > 0 ? 'var(--zone-red-orange)' : 'var(--text-secondary)'}; font-weight: ${p.payout > 0 ? '600' : '500'};">${p.payoutLabel}</td>
+      <td style="text-align: right; color: ${p.payout > 0 ? 'var(--zone-red-orange)' : 'var(--zone-green)'}; font-weight: 700;">${p.payout}</td>
       ${editCell}
     `;
     tbody.appendChild(tr);
