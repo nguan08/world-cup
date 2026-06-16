@@ -4396,34 +4396,44 @@ async function exportLeaderboardImage() {
   clone.style.left = '-9999px';
   document.body.appendChild(clone);
 
-  // Use html2canvas to render; keep background (null) so dark theme preserved
+  // Use html2canvas to render; keep background (null) so theme preserved
   const canvas = await html2canvas(clone, {backgroundColor: null, scale: 2, useCORS: true});
-  const dataUrl = canvas.toDataURL('image/png');
 
-  // Trigger download
-  const a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = 'leaderboard.png';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  // Convert canvas to JPEG blob for mobile-friendly file size
+  await new Promise((resolve) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        alert('สร้างภาพล้มเหลว');
+        clone.remove();
+        return resolve();
+      }
 
-  // Also open in new tab for quick sharing (LINE web will allow drag/drop)
-  const w = window.open();
-  if (w) {
-    w.document.title = 'Leaderboard Image';
-    const img = w.document.createElement('img');
-    img.src = dataUrl;
-    img.style.maxWidth = '100%';
-    img.style.display = 'block';
-    img.style.margin = '12px auto';
-    // Keep same background as site for visual parity
-    w.document.body.style.background = getComputedStyle(document.body).backgroundColor || '#050b14';
-    w.document.body.style.color = getComputedStyle(document.body).color || '#fff';
-    w.document.body.appendChild(img);
-  }
-  // cleanup clone
-  clone.remove();
+      const fileName = 'leaderboard.jpg';
+
+      // Try Web Share API with files when available (mobile UX)
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
+          await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: 'Leaderboard', text: 'ตารางคะแนนล่าสุด' });
+          clone.remove();
+          return resolve();
+        }
+      } catch (e) {
+        // ignore and fallback to download
+      }
+
+      // Fallback: download via object URL
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      clone.remove();
+      resolve();
+    }, 'image/jpeg', 0.85);
+  });
 }
   const closeLoginBtn = document.getElementById('close-login-btn');
   if (closeLoginBtn) {
