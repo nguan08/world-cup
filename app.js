@@ -2244,6 +2244,17 @@ function updateAdminUI() {
 }
 
 // Initialize data from server data.json and/or localstorage
+function clearCachedData() {
+  const cachedKeys = [
+    'worldcup_matches',
+    'worldcup_players',
+    'worldcup_eliminated_teams',
+    'worldcup_manually_edited_matches',
+    'worldcup_deleted_matches'
+  ];
+  cachedKeys.forEach(key => localStorage.removeItem(key));
+}
+
 async function initData() {
   let serverData = { matches: [], players: [], eliminatedTeams: [] };
   
@@ -2270,6 +2281,12 @@ async function initData() {
     }
   } catch (e) {
     console.error('Failed to fetch data.json from server:', e);
+  }
+
+  const hasServerData = serverData.matches && serverData.matches.length > 0;
+  if (hasServerData) {
+    console.log('[Sync] Server data available; clearing stale local cache to ensure current scores');
+    clearCachedData();
   }
 
   // 3. Load database state
@@ -2868,7 +2885,7 @@ function renderDashboard() {
   });
 }
 
-// ── Render SVG Line Chart (X = Days, Y = Scores) ──────────────
+// ── Render SVG Line Chart (X = Days, Y = Rank) ──────────────
 let lastHighlightPlayer = ""; // global variable to track selected player in chart
 
 function renderScoreChart() {
@@ -2881,18 +2898,18 @@ function renderScoreChart() {
     .sort((a, b) => a.id - b.id);
   const stepsCount = finishedMatches.length;
 
-  // 2. Cache historical scores for all players
-  const playerScoresHistory = players.map(p => {
+  // 2. Cache historical rank and score for all players
+  const playerRankHistory = players.map(p => {
     const curr = processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
       name: p.name,
       zone: curr.zone,
-      rank: curr.rank,
-      scores: [0] // step 0 (start) = 0 points
+      ranks: [1], // start all players tied at rank 1 before any finished matches
+      scores: [0]
     };
   });
 
-  // Calculate scores step-by-step
+  // Calculate scores step-by-step and derive ranks
   const teamScores = {};
   TEAMS.forEach(team => {
     teamScores[team.name] = 0;
@@ -2933,17 +2950,33 @@ function renderScoreChart() {
     if (hTeam) teamScores[match.home] += (homeResPoints + h) * hTeam.multiplier;
     if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
 
-    playerScoresHistory.forEach(ph => {
+    const scoreBoard = playerRankHistory.map(ph => {
       const playerObj = players.find(p => p.name === ph.name);
       let teamsScore = 0;
       playerObj.teams.forEach(teamName => {
         teamsScore += teamScores[teamName] || 0;
       });
-
       const finalMatch = finishedMatches.slice(0, step).find(m => m.isFinal);
       const predictionScore = calculatePredictionPoints(playerObj, finalMatch);
-      const totalScore = parseFloat((teamsScore + predictionScore).toFixed(2));
-      ph.scores.push(totalScore);
+      return {
+        name: ph.name,
+        score: parseFloat((teamsScore + predictionScore).toFixed(2))
+      };
+    });
+
+    scoreBoard.sort((a, b) => b.score - a.score);
+    let currentRank = 1;
+    const rankMap = new Map();
+    scoreBoard.forEach((entry, idx) => {
+      if (idx > 0 && entry.score < scoreBoard[idx - 1].score) {
+        currentRank = idx + 1;
+      }
+      rankMap.set(entry.name, currentRank);
+    });
+
+    playerRankHistory.forEach(ph => {
+      ph.ranks.push(rankMap.get(ph.name));
+      ph.scores.push(scoreBoard.find(entry => entry.name === ph.name).score);
     });
   }
 
@@ -2963,17 +2996,14 @@ function renderScoreChart() {
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
 
-  // Get max score to set Y-axis scale
-  let maxScore = 0;
-  playerScoresHistory.forEach(ph => {
-    const m = Math.max(...ph.scores);
-    if (m > maxScore) maxScore = m;
-  });
-  maxScore = Math.ceil(maxScore * 1.05) || 10;
+  const maxRank = processedPlayers.length || 1;
 
-  // Scale functions
-  const xOf = i => stepsCount > 0 ? padL + (i / stepsCount) * chartW : padL + chartW / 2;
-  const yOf = s => padT + (1 - s / maxScore) * chartH;
+  // Scale functions (rank 1 at top, maxRank at bottom)
+  const xOf = i => stepsCount > 1 ? padL + (i / (stepsCount - 1)) * chartW : padL + chartW / 2;
+  const yOf = r => {
+    if (maxRank === 1) return padT + chartH / 2;
+    return padT + ((r - 1) / (maxRank - 1)) * chartH;
+  };
 
   // Colors
   const getPlayerColor = zone => {
@@ -2986,10 +3016,11 @@ function renderScoreChart() {
   const yTicks = 5; // slightly fewer ticks on mobile
   let yGridLines = '';
   for (let i = 0; i <= yTicks; i++) {
-    const val = (i / yTicks) * maxScore;
-    const y = yOf(val);
+    const rankValue = 1 + (i / yTicks) * (maxRank - 1);
+    const displayRank = Math.round(rankValue);
+    const y = yOf(rankValue);
     yGridLines += `<line x1="${padL - 4}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${val.toFixed(1)}</text>`;
+    yGridLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
   }
 
   // 5. Render X-axis labels
@@ -3015,17 +3046,17 @@ function renderScoreChart() {
   let labelsGroup = '';
   let hoverHelpers = '';
 
-  playerScoresHistory.forEach(ph => {
+  playerRankHistory.forEach(ph => {
     let pathPoints = [];
     for (let i = 0; i <= stepsCount; i++) {
       const x = xOf(i);
-      const y = yOf(ph.scores[i]);
+      const y = yOf(ph.ranks[i]);
       pathPoints.push(`${x},${y}`);
     }
     const pathD = `M ${pathPoints.join(' L ')}`;
     const color = getPlayerColor(ph.zone);
 
-    // Score line path
+    // Rank line path
     linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
     
     // Invisible thick path to make hover easier
@@ -3034,13 +3065,13 @@ function renderScoreChart() {
     // Trend dots
     for (let i = 0; i <= stepsCount; i++) {
       const x = xOf(i);
-      const y = yOf(ph.scores[i]);
-      dotsGroup += `<circle cx="${x}" cy="${y}" r="3.2" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
+      const y = yOf(ph.ranks[i]);
+      dotsGroup += `<circle cx="${x}" cy="${y}" r="3.2" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
     }
 
     // Label at the end of the line
     const lastX = xOf(stepsCount);
-    const lastY = yOf(ph.scores[stepsCount]);
+    const lastY = yOf(ph.ranks[stepsCount]);
     const isTop5 = ph.rank <= 5;
     // On mobile, hide all end labels by default (will be toggled on hover/highlight)
     const labelDisplay = (!isMobile && isTop5) ? 'block' : 'none';
@@ -3049,7 +3080,7 @@ function renderScoreChart() {
     const labelX = isMobile ? lastX - 8 : lastX + 8;
     const labelAnchor = isMobile ? 'end' : 'start';
 
-    labelsGroup += `<text x="${labelX}" y="${lastY + 3}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" fill-opacity="0.85" class="trend-end-label" data-player="${ph.name}" style="display: ${labelDisplay}; font-family: Inter,Sarabun,sans-serif; pointer-events: none; transition: fill-opacity 0.2s;">${ph.name} (${ph.scores[stepsCount].toFixed(1)})</text>`;
+    labelsGroup += `<text x="${labelX}" y="${lastY + 3}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" fill-opacity="0.85" class="trend-end-label" data-player="${ph.name}" style="display: ${labelDisplay}; font-family: Inter,Sarabun,sans-serif; pointer-events: none; transition: fill-opacity 0.2s;">${ph.name} (อันดับ ${ph.ranks[stepsCount]})</text>`;
   });
 
   // Setup SVG dimensions and viewBox
@@ -3113,6 +3144,7 @@ function renderScoreChart() {
       const pName = dot.getAttribute('data-player');
       const step = parseInt(dot.getAttribute('data-step'));
       const score = parseFloat(dot.getAttribute('data-score'));
+      const rank = parseInt(dot.getAttribute('data-rank'));
       
       const p = processedPlayers.find(x => x.name === pName) || {};
       let zoneLabel = '';
@@ -3127,7 +3159,7 @@ function renderScoreChart() {
         matchLabel = `<div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px;">แมตช์ที่ ${match.id}: ${match.home} vs ${match.away} (${match.homeScore}-${match.awayScore})</div>`;
       }
       
-      ttRank.innerHTML    = `อันดับปัจจุบัน: ${p.rank || '-'} <span style="margin-left:8px; color:rgba(255,255,255,0.45); font-size:10px;">(${dayLabel})</span>`;
+      ttRank.innerHTML    = `อันดับ: ${rank || p.rank || '-'} <span style="margin-left:8px; color:rgba(255,255,255,0.45); font-size:10px;">(${dayLabel})</span>`;
       ttName.textContent  = pName;
       ttScore.innerHTML   = `${score.toFixed(1)} <span style="font-size:12px; font-weight:normal; color:var(--text-secondary);">คะแนนสะสม</span>`;
       ttZone.innerHTML    = zoneLabel + matchLabel;
