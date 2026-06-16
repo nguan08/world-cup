@@ -47,7 +47,7 @@ const TEAMS = [
   { name: 'ซาอุดีอาระเบีย', zone: 'light-orange', multiplier: 2.5 },
   { name: 'ยูเครน', zone: 'light-orange', multiplier: 2.6 },
   { name: 'แอฟริกาใต้', zone: 'light-orange', multiplier: 2.6 },
-  { name: 'ตุรกี', zone: 'light-orange', multiplier: 2.5 },
+  { name: 'ตุรกี', zone: 'light-orange', multiplier: 1.7 },
 
   // RED-ORANGE ZONE
   { name: 'นิวซีแลนด์', zone: 'red-orange', multiplier: 2.7 },
@@ -57,7 +57,7 @@ const TEAMS = [
   { name: 'อุซเบกิสถาน', zone: 'red-orange', multiplier: 2.8 },
   { name: 'อิรัก', zone: 'red-orange', multiplier: 2.9 },
   { name: 'คูราเซา', zone: 'red-orange', multiplier: 2.9 },
-  { name: 'เคปเวิร์ด', zone: 'red-orange', multiplier: 2.9 },
+  { name: 'เคปเวิร์ด', zone: 'red-orange', multiplier: 3.0 },
   { name: 'คองโก', zone: 'red-orange', multiplier: 2.9 },
   { name: 'เฮติ', zone: 'red-orange', multiplier: 3.0 },
   { name: 'อิตาลี', zone: 'red-orange', multiplier: 3.0 }
