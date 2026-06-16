@@ -3468,13 +3468,15 @@ function renderLeaderboard() {
     
     const teamsPlayedCount = p.teams.filter(teamName => playCompletedTeams.has(teamName)).length;
     const rankLabel = p.rank === 1
-      ? `<span class="leader-rank leader-rank-first">👑 ${p.rank}</span>`
+      ? `<span class="leader-rank leader-rank-first">${p.rank}</span>`
       : p.rank === 2
         ? `<span class="leader-rank leader-rank-second">${p.rank}</span>`
         : `<strong>${p.rank}</strong>`;
     const nameLabel = p.rank === 1
-      ? `<span class="leader-name-first">${p.name} <span class="leader-crown">👑</span></span>`
-      : p.name;
+      ? `<span class="leader-name-first"><span class="leader-crown">👑</span>${p.name}</span>`
+      : p.rank === 2
+        ? `<span class="leader-name-second"><span class="leader-crown queen-crown">👸</span>${p.name}</span>`
+        : p.name;
 
     tr.innerHTML = `
       <td>${rankLabel}</td>

@@ -350,12 +350,20 @@ tr.leader-second-row {
   color: #e2e8f0;
 }
 
-.leader-name-first {
+.leader-name-first,
+.leader-name-second {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  color: #f8fafc;
+}
+
+.leader-name-first {
+  color: #fef08a;
+}
+
+.leader-name-second {
+  color: #cbd5e1;
 }
 
 .leader-crown {
@@ -364,6 +372,11 @@ tr.leader-second-row {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.queen-crown {
+  color: #f5d0fe;
+  transform: scale(1.05);
 }
 
 /* Badges and Indicators */
