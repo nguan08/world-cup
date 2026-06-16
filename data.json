@@ -134,9 +134,9 @@
     {
       "home": "สวีเดน",
       "away": "ตูนิเซีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-15",
       "id": 12
@@ -144,8 +144,8 @@
     {
       "home": "สเปน",
       "away": "เคปเวิร์ด",
-      "homeScore": 5,
-      "awayScore": 5,
+      "homeScore": 0,
+      "awayScore": 0,
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-15",
@@ -154,9 +154,9 @@
     {
       "home": "เบลเยียม",
       "away": "อียิปต์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-16",
       "id": 14
@@ -164,9 +164,9 @@
     {
       "home": "ซาอุดีอาระเบีย",
       "away": "อุรุกวัย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-16",
       "id": 15
@@ -174,9 +174,9 @@
     {
       "home": "อิหร่าน",
       "away": "นิวซีแลนด์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-16",
       "id": 16
@@ -730,12 +730,13 @@
     {
       "home": "แอลจีเรีย",
       "away": "ออสเตรีย",
-      "homeScore": 5,
-      "awayScore": 5,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 71
+      "id": 71,
+      "penaltyWinner": null
     },
     {
       "home": "จอร์แดน",
@@ -2113,5 +2114,6 @@
       "guess": 3,
       "targetScore": 10.5
     }
-  ]
+  ],
+  "eliminatedTeams": []
 }
