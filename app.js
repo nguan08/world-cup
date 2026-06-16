@@ -4377,9 +4377,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function exportLeaderboardImage() {
   const container = document.querySelector('#leaderboard .table-container');
   if (!container) return alert('ไม่พบตารางคะแนนเพื่อส่งออก');
+  // Ensure web fonts are loaded (prevents missing fonts in output)
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
 
-  // Use html2canvas to render with white background for readability
-  const canvas = await html2canvas(container, {backgroundColor: '#ffffff', scale: 2});
+  // Clone container so we can tweak visuals for export without modifying page
+  const clone = container.cloneNode(true);
+  // Preserve overall page background so exported image looks like site
+  clone.style.background = getComputedStyle(document.body).backgroundColor || 'transparent';
+  clone.style.padding = '18px';
+  clone.style.borderRadius = '8px';
+  // Remove interactive controls inside clone if any
+  clone.querySelectorAll('.search-bar, .input-group, #export-leaderboard-btn, #team-filter-menu').forEach(el => el.remove());
+  clone.style.maxWidth = Math.min(container.clientWidth, 1200) + 'px';
+  // Place clone offscreen to render
+  clone.style.position = 'fixed';
+  clone.style.left = '-9999px';
+  document.body.appendChild(clone);
+
+  // Use html2canvas to render; keep background (null) so dark theme preserved
+  const canvas = await html2canvas(clone, {backgroundColor: null, scale: 2, useCORS: true});
   const dataUrl = canvas.toDataURL('image/png');
 
   // Trigger download
@@ -4399,9 +4417,13 @@ async function exportLeaderboardImage() {
     img.style.maxWidth = '100%';
     img.style.display = 'block';
     img.style.margin = '12px auto';
-    w.document.body.style.background = '#fff';
+    // Keep same background as site for visual parity
+    w.document.body.style.background = getComputedStyle(document.body).backgroundColor || '#050b14';
+    w.document.body.style.color = getComputedStyle(document.body).color || '#fff';
     w.document.body.appendChild(img);
   }
+  // cleanup clone
+  clone.remove();
 }
   const closeLoginBtn = document.getElementById('close-login-btn');
   if (closeLoginBtn) {
