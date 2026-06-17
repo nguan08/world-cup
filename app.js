@@ -3861,21 +3861,35 @@ function renderMatches() {
     let matchMeta = match.isKnockout ? 'รอบน็อคเอาท์ ( Knockout )' : 'รอบแบ่งกลุ่ม';
     if (match.isFinal) matchMeta = '🏆 นัดชิงชนะเลิศ ( Final )';
 
-    // Compute base result points (3/2/1) for each team when finished
+    // Compute full game points using the real formula: (resultPoints + goals) * multiplier
     let pointsInfo = '';
     if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
-      let hPts = 1, aPts = 1;
+      const hMultiplier = hTeamObj ? hTeamObj.multiplier : 1;
+      const aMultiplier = aTeamObj ? aTeamObj.multiplier : 1;
+
+      let hResult = 1, aResult = 1;
       const hs = match.homeScore;
       const as = match.awayScore;
-      if (hs > as) { hPts = 3; aPts = 1; }
-      else if (hs < as) { hPts = 1; aPts = 3; }
-      else { hPts = 2; aPts = 2; }
+
+      if (hs > as) { hResult = 3; aResult = 1; }
+      else if (hs < as) { hResult = 1; aResult = 3; }
+      else { hResult = 2; aResult = 2; }
+
+      // Knockout penalty overrides the result points (winner gets 3, loser gets 1)
+      if (match.isKnockout && match.penaltyWinner) {
+        hResult = match.penaltyWinner === 'home' ? 3 : 1;
+        aResult = match.penaltyWinner === 'away' ? 3 : 1;
+      }
+
+      const hGamePts = (hResult + hs) * hMultiplier;
+      const aGamePts = (aResult + as) * aMultiplier;
+
       pointsInfo = `
         <div style="font-size:11px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); color:#94a3b8;">
-          ผลการแข่ง (คะแนนพื้นฐาน): 
-          <span style="color:#e2e8f0; font-weight:600;">${match.home} +${hPts}</span> 
+          เกมส์คะแนน: 
+          <span style="color:#34d399; font-weight:600;">${match.home} +${hGamePts.toFixed(1)}</span> 
           &nbsp;•&nbsp; 
-          <span style="color:#e2e8f0; font-weight:600;">${match.away} +${aPts}</span>
+          <span style="color:#f43f5e; font-weight:600;">${match.away} +${aGamePts.toFixed(1)}</span>
         </div>
       `;
     }
@@ -4772,7 +4786,7 @@ async function exportMatchesImage() {
     try { await document.fonts.ready; } catch (e) { /* ignore */ }
   }
 
-  // Clone the matches grid (only finished matches will look complete)
+  // Clone the entire grid first
   const clone = grid.cloneNode(true);
   clone.style.background = getComputedStyle(document.body).backgroundColor || 'transparent';
   clone.style.padding = '16px';
@@ -4783,6 +4797,74 @@ async function exportMatchesImage() {
   clone.style.left = '-9999px';
   document.body.appendChild(clone);
 
+  // === 1) Keep ONLY finished matches (those with scores) ===
+  // Remove cards that have no scores
+  clone.querySelectorAll('.match-card').forEach(card => {
+    const homeInput = card.querySelector('.home-score-input');
+    const awayInput = card.querySelector('.away-score-input');
+    const hVal = homeInput ? homeInput.value.trim() : '';
+    const aVal = awayInput ? awayInput.value.trim() : '';
+
+    if (hVal === '' || aVal === '') {
+      card.remove();
+    } else {
+      // === 2) Center the score numbers nicely for the exported image ===
+      // Replace the two inputs + VS with a clean centered score display
+      const body = card.querySelector('.match-body');
+      if (body) {
+        // Get the team names from the badges (they are still there)
+        const homeBadge = card.querySelector('.match-team .team-badge');
+        const awayBadge = card.querySelectorAll('.match-team .team-badge')[1] || null;
+
+        const homeName = homeBadge ? homeBadge.textContent : '';
+        const awayName = awayBadge ? awayBadge.textContent : '';
+
+        // Create a clean centered score row
+        const scoreRow = document.createElement('div');
+        scoreRow.style.display = 'flex';
+        scoreRow.style.alignItems = 'center';
+        scoreRow.style.justifyContent = 'center';
+        scoreRow.style.gap = '12px';
+        scoreRow.style.margin = '8px 0';
+        scoreRow.style.fontSize = '18px';
+        scoreRow.style.fontWeight = '700';
+        scoreRow.style.color = '#e2e8f0';
+
+        scoreRow.innerHTML = `
+          <span style="min-width: 140px; text-align: right; font-size: 13px; font-weight: 600; color: #cbd5e1;">${homeName}</span>
+          <span style="background: rgba(15,23,42,0.6); padding: 4px 14px; border-radius: 8px; min-width: 72px; text-align: center; font-size: 20px; font-weight: 800; letter-spacing: 1px;">
+            ${hVal} - ${aVal}
+          </span>
+          <span style="min-width: 140px; text-align: left; font-size: 13px; font-weight: 600; color: #cbd5e1;">${awayName}</span>
+        `;
+
+        // Remove old match-body content and put the clean score row
+        body.innerHTML = '';
+        body.appendChild(scoreRow);
+      }
+    }
+  });
+
+  // Clean up any date headers that now have no matches left under them
+  clone.querySelectorAll('.matches-date-header').forEach(header => {
+    const next = header.nextElementSibling;
+    if (!next || !next.classList.contains('match-card')) {
+      header.remove();
+    }
+  });
+
+  // If after filtering nothing is left, show a message
+  if (!clone.querySelector('.match-card')) {
+    const msg = document.createElement('div');
+    msg.style.padding = '20px';
+    msg.style.textAlign = 'center';
+    msg.style.color = '#94a3b8';
+    msg.style.fontSize = '14px';
+    msg.textContent = 'ยังไม่มีแมตช์ที่บันทึกผลการแข่งขัน';
+    clone.appendChild(msg);
+  }
+
+  // Render to canvas
   const canvas = await html2canvas(clone, { backgroundColor: null, scale: 2, useCORS: true });
 
   await new Promise((resolve) => {
