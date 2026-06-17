@@ -3810,6 +3810,40 @@ function deleteMatch(matchId) {
   });
 }
 
+// Helper: calculate the game points a specific team earned from ONE match
+// Uses the exact formula from the Rules page:
+//   คะแนน = (ผลการแข่งขัน + ประตูที่ยิงได้) × ตัวคูณของทีมนั้น
+//   ผลการแข่งขัน: ชนะ=3, เสมอ=2, แพ้=1
+// For knockout decided by penalties: result becomes 3/1, but we use the stored score (90+ET goals only — penalty goals are never counted)
+function getMatchGamePointsForTeam(match, teamName, multiplier) {
+  if (!match || match.status !== 'finished' || match.homeScore == null || match.awayScore == null) return 0;
+  if (!teamName) return 0;
+
+  const isHome = match.home === teamName;
+  const goals = isHome ? match.homeScore : match.awayScore;
+
+  const h = match.homeScore;
+  const a = match.awayScore;
+
+  let resultPoints = 1; // default = loss
+
+  if (h > a) {
+    resultPoints = isHome ? 3 : 1;
+  } else if (h < a) {
+    resultPoints = isHome ? 1 : 3;
+  } else {
+    // Draw after 90 or 120 minutes
+    if (match.isKnockout && match.penaltyWinner) {
+      // Penalty shootout decides winner/loser (3/1). Goals from PK are NOT added.
+      resultPoints = (match.penaltyWinner === (isHome ? 'home' : 'away')) ? 3 : 1;
+    } else {
+      resultPoints = 2;
+    }
+  }
+
+  return (resultPoints + goals) * (multiplier || 1);
+}
+
 // RENDERING - MATCHES
 function renderMatches() {
   const grid = document.getElementById('matches-grid');
@@ -3861,28 +3895,17 @@ function renderMatches() {
     let matchMeta = match.isKnockout ? 'รอบน็อคเอาท์ ( Knockout )' : 'รอบแบ่งกลุ่ม';
     if (match.isFinal) matchMeta = '🏆 นัดชิงชนะเลิศ ( Final )';
 
-    // Compute full game points using the real formula: (resultPoints + goals) * multiplier
+    // Compute full game points EXACTLY as per the Rules page:
+    // คะแนน = (ผลการแข่งขัน + ประตูที่ยิงได้) × ตัวคูณของทีมนั้น
+    // ผลการแข่งขัน: ชนะ=3, เสมอ=2, แพ้=1
+    // For knockout decided by penalties: result = 3 or 1, but goals from penalty shootout are NEVER counted.
     let pointsInfo = '';
     if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
       const hMultiplier = hTeamObj ? hTeamObj.multiplier : 1;
       const aMultiplier = aTeamObj ? aTeamObj.multiplier : 1;
 
-      let hResult = 1, aResult = 1;
-      const hs = match.homeScore;
-      const as = match.awayScore;
-
-      if (hs > as) { hResult = 3; aResult = 1; }
-      else if (hs < as) { hResult = 1; aResult = 3; }
-      else { hResult = 2; aResult = 2; }
-
-      // Knockout penalty overrides the result points (winner gets 3, loser gets 1)
-      if (match.isKnockout && match.penaltyWinner) {
-        hResult = match.penaltyWinner === 'home' ? 3 : 1;
-        aResult = match.penaltyWinner === 'away' ? 3 : 1;
-      }
-
-      const hGamePts = (hResult + hs) * hMultiplier;
-      const aGamePts = (aResult + as) * aMultiplier;
+      const hGamePts = getMatchGamePointsForTeam(match, match.home, hMultiplier);
+      const aGamePts = getMatchGamePointsForTeam(match, match.away, aMultiplier);
 
       pointsInfo = `
         <div style="font-size:11px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); color:#94a3b8;">
