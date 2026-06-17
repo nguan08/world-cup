@@ -285,8 +285,81 @@ h1 {
    They must fit the available width. */
 #leaderboard table,
 #top-leaders-table {
-  min-width: 0;
-  max-width: 100%;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  table-layout: fixed !important;   /* force columns to fit exactly the container width - this is the key to "fit to screen" */
+  box-sizing: border-box !important;
+}
+
+/* Nuclear safety: nothing inside the leaderboard tables can ever make the table wider than its parent.
+   Badges, names, numbers, icons etc. must respect the allocated column % width. */
+#leaderboard table,
+#leaderboard table *,
+#top-leaders-table,
+#top-leaders-table * {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Column widths that always sum to ~100%.
+   This guarantees BOTH the full leaderboard table and the Top-10 table
+   fit the screen width on every device (no horizontal scroll ever).
+   Applied globally; mobile rules below further compress padding/font. */
+#leaderboard th:nth-child(1), #top-leaders-table th:nth-child(1),
+#leaderboard td:nth-child(1), #top-leaders-table td:nth-child(1) {
+  width: 7% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#leaderboard th:nth-child(2), #top-leaders-table th:nth-child(2),
+#leaderboard td:nth-child(2), #top-leaders-table td:nth-child(2) {
+  width: 32% !important;
+  min-width: 0 !important;
+}
+
+#leaderboard th:nth-child(3), #top-leaders-table th:nth-child(3),
+#leaderboard td:nth-child(3), #top-leaders-table td:nth-child(3) {
+  width: 11% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#leaderboard th:nth-child(4), #top-leaders-table th:nth-child(4),
+#leaderboard td:nth-child(4), #top-leaders-table td:nth-child(4) {
+  width: 9% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#leaderboard th:nth-child(5), #top-leaders-table th:nth-child(5),
+#leaderboard td:nth-child(5), #top-leaders-table td:nth-child(5) {
+  width: 12% !important;
+  min-width: 0 !important;
+  text-align: right !important;
+}
+
+#leaderboard th:nth-child(6), #top-leaders-table th:nth-child(6),
+#leaderboard td:nth-child(6), #top-leaders-table td:nth-child(6) {
+  width: 11% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#leaderboard th:nth-child(7), #top-leaders-table th:nth-child(7),
+#leaderboard td:nth-child(7), #top-leaders-table td:nth-child(7) {
+  width: 10% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+/* 8th column = admin actions (only visible to admins) */
+#leaderboard th:nth-child(8), #top-leaders-table th:nth-child(8),
+#leaderboard td:nth-child(8), #top-leaders-table td:nth-child(8) {
+  width: 8% !important;
+  min-width: 0 !important;
 }
 
 #leaderboard th,
@@ -300,13 +373,18 @@ h1 {
   letter-spacing: 0.6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;   /* allow wrap so table never exceeds screen width */
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 #leaderboard td,
 #top-leaders-table td {
   padding: 13px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   vertical-align: middle;
   font-weight: 500;
   color: #e2e8f0;
@@ -542,7 +620,8 @@ h1 {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    table-layout: auto;
+    table-layout: fixed !important;   /* respect the % column widths above so it truly fits screen */
+    box-sizing: border-box !important;
   }
 
   #leaderboard thead,
@@ -567,6 +646,38 @@ h1 {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+  }
+
+  /* Reinforce that the % column widths from the global rule win on mobile too */
+  #leaderboard th, #leaderboard td,
+  #top-leaders-table th, #top-leaders-table td {
+    width: auto !important;   /* let the nth-child % rules control */
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  /* Kill any inline width/min-width that may still be on cells (from old HTML or JS) */
+  #leaderboard th, #leaderboard td,
+  #top-leaders-table th, #top-leaders-table td {
+    min-width: 0 !important;
+  }
+
+  /* Extra: every direct child inside cells (badges, spans, strongs, svgs, crowns) must not expand the table */
+  #leaderboard td > *,
+  #top-leaders-table td > *,
+  #leaderboard th > *,
+  #top-leaders-table th > * {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Final safety net: the two leaderboard tables and everything inside can never be wider than the viewport */
+  #leaderboard table,
+  #top-leaders-table,
+  #leaderboard table *,
+  #top-leaders-table table * {
+    max-width: 100vw !important;
   }
 
   #leaderboard th,
@@ -685,8 +796,14 @@ tr.leader-second-row {
 .leader-name-second {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   font-weight: 700;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;   /* allow name to wrap if column is narrow */
+  word-break: break-word;
 }
 
 .leader-name-first {
@@ -698,11 +815,12 @@ tr.leader-second-row {
 }
 
 .leader-crown {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .queen-crown {
@@ -737,7 +855,7 @@ tr.leader-second-row {
   color: var(--zone-red-orange);
 }
 
-/* Leaderboard + Top10 zone badges: force single line, compact, no wrap */
+/* Leaderboard + Top10 zone badges: compact, respect column width, never push table wider */
 #leaderboard .badge,
 #leaderboard .badge-blue,
 #leaderboard .badge-green,
@@ -746,11 +864,17 @@ tr.leader-second-row {
 #top-leaders-table .badge-blue,
 #top-leaders-table .badge-green,
 #top-leaders-table .badge-red {
-  white-space: nowrap;
-  display: inline-block;
-  padding: 2px 6px;
-  font-size: 11px;
-  line-height: 1.1;
+  white-space: nowrap;           /* badge text stays one line (short labels like "Blue") */
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 5px;
+  font-size: 10px;
+  line-height: 1;
+  max-width: 100% !important;    /* critical for fit-to-screen */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  flex-shrink: 1;
 }
 
 /* Center Zone header (6th) + payout header (7th) + payout cells for both tables */
