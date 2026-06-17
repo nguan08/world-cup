@@ -4801,100 +4801,115 @@ async function exportLeaderboardImage() {
 }
 
 async function exportMatchesImage() {
-  const grid = document.getElementById('matches-grid');
-  if (!grid) return alert('ไม่พบตารางการแข่งขัน');
+  // Get only finished matches that have scores
+  const finishedMatches = matches
+    .filter(m => m.status === 'finished' && m.homeScore != null && m.awayScore != null)
+    .sort((a, b) => {
+      const da = a.date || '9999-12-31';
+      const db = b.date || '9999-12-31';
+      if (da !== db) return da.localeCompare(db);
+      return a.id - b.id;
+    });
 
-  // Ensure fonts ready
+  if (!finishedMatches.length) {
+    return alert('ยังไม่มีแมตช์ที่บันทึกผลการแข่งขัน');
+  }
+
+  // Ensure fonts are ready for clean export
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch (e) { /* ignore */ }
   }
 
-  // Clone the entire grid first
-  const clone = grid.cloneNode(true);
-  clone.style.background = getComputedStyle(document.body).backgroundColor || 'transparent';
-  clone.style.padding = '16px';
-  clone.style.borderRadius = '8px';
-  clone.style.width = '100%';
-  clone.style.maxWidth = Math.min(grid.clientWidth || 1000, 1100) + 'px';
-  clone.style.position = 'fixed';
-  clone.style.left = '-9999px';
-  document.body.appendChild(clone);
+  // Create a clean table container (offscreen)
+  const container = document.createElement('div');
+  container.style.background = getComputedStyle(document.body).backgroundColor || '#050b14';
+  container.style.padding = '20px 24px';
+  container.style.borderRadius = '10px';
+  container.style.color = '#e2e8f0';
+  container.style.fontFamily = 'inherit';
+  container.style.width = 'max-content';
+  container.style.minWidth = '720px';
+  container.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
 
-  // === 1) Keep ONLY finished matches (those with scores) ===
-  // Remove cards that have no scores
-  clone.querySelectorAll('.match-card').forEach(card => {
-    const homeInput = card.querySelector('.home-score-input');
-    const awayInput = card.querySelector('.away-score-input');
-    const hVal = homeInput ? homeInput.value.trim() : '';
-    const aVal = awayInput ? awayInput.value.trim() : '';
+  // Title
+  const title = document.createElement('div');
+  title.style.fontSize = '16px';
+  title.style.fontWeight = '700';
+  title.style.marginBottom = '14px';
+  title.style.letterSpacing = '0.5px';
+  title.textContent = 'ผลการแข่งขันที่บันทึกแล้ว';
+  container.appendChild(title);
 
-    if (hVal === '' || aVal === '') {
-      card.remove();
-    } else {
-      // === 2) Center the score numbers nicely for the exported image ===
-      // Replace the two inputs + VS with a clean centered score display
-      const body = card.querySelector('.match-body');
-      if (body) {
-        // Get the team names from the badges (they are still there)
-        const homeBadge = card.querySelector('.match-team .team-badge');
-        const awayBadge = card.querySelectorAll('.match-team .team-badge')[1] || null;
+  // Create the table
+  const table = document.createElement('table');
+  table.style.width = '100%';
+  table.style.borderCollapse = 'collapse';
+  table.style.fontSize = '13px';
+  table.style.background = 'rgba(15,23,42,0.35)';
+  table.style.borderRadius = '6px';
+  table.style.overflow = 'hidden';
 
-        const homeName = homeBadge ? homeBadge.textContent : '';
-        const awayName = awayBadge ? awayBadge.textContent : '';
+  // Header
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr style="background:rgba(15,23,42,0.85);">
+      <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">วันที่</th>
+      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08); width:60px;">แมตช์</th>
+      <th style="padding:8px 12px; text-align:right; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเหย้า</th>
+      <th style="padding:8px 14px; text-align:center; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.5);">สกอร์</th>
+      <th style="padding:8px 12px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเยือน</th>
+      <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">เกมส์คะแนน</th>
+    </tr>
+  `;
+  table.appendChild(thead);
 
-        // Create a clean centered score row
-        const scoreRow = document.createElement('div');
-        scoreRow.style.display = 'flex';
-        scoreRow.style.alignItems = 'center';
-        scoreRow.style.justifyContent = 'center';
-        scoreRow.style.gap = '12px';
-        scoreRow.style.margin = '8px 0';
-        scoreRow.style.fontSize = '18px';
-        scoreRow.style.fontWeight = '700';
-        scoreRow.style.color = '#e2e8f0';
+  const tbody = document.createElement('tbody');
 
-        scoreRow.innerHTML = `
-          <span style="min-width: 140px; text-align: right; font-size: 13px; font-weight: 600; color: #cbd5e1;">${homeName}</span>
-          <span style="background: rgba(15,23,42,0.6); padding: 4px 14px; border-radius: 8px; min-width: 72px; text-align: center; font-size: 20px; font-weight: 800; letter-spacing: 1px;">
-            ${hVal} - ${aVal}
-          </span>
-          <span style="min-width: 140px; text-align: left; font-size: 13px; font-weight: 600; color: #cbd5e1;">${awayName}</span>
-        `;
+  finishedMatches.forEach(m => {
+    const hTeam = TEAMS.find(t => t.name === m.home);
+    const aTeam = TEAMS.find(t => t.name === m.away);
+    const hMult = hTeam ? hTeam.multiplier : 1;
+    const aMult = aTeam ? aTeam.multiplier : 1;
 
-        // Remove old match-body content and put the clean score row
-        body.innerHTML = '';
-        body.appendChild(scoreRow);
-      }
-    }
+    const hPts = getMatchGamePointsForTeam(m, m.home, hMult);
+    const aPts = getMatchGamePointsForTeam(m, m.away, aMult);
+
+    const dateStr = m.date ? formatThaiDate(m.date) : '-';
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+    tr.innerHTML = `
+      <td style="padding:6px 10px; white-space:nowrap; font-size:12px; color:#94a3b8;">${dateStr}</td>
+      <td style="padding:6px 10px; text-align:center; font-size:12px; color:#64748b;">${m.id}</td>
+      <td style="padding:6px 12px; text-align:right; font-weight:600;">${m.home}</td>
+      <td style="padding:6px 14px; text-align:center; font-weight:800; font-size:15px; background:rgba(15,23,42,0.45);">
+        ${m.homeScore} - ${m.awayScore}
+      </td>
+      <td style="padding:6px 12px; font-weight:600;">${m.away}</td>
+      <td style="padding:6px 10px; font-size:12px; line-height:1.3;">
+        <div><span style="color:#34d399;">${m.home} +${hPts.toFixed(1)}</span></div>
+        <div><span style="color:#f43f5e;">${m.away} +${aPts.toFixed(1)}</span></div>
+      </td>
+    `;
+    tbody.appendChild(tr);
   });
 
-  // Clean up any date headers that now have no matches left under them
-  clone.querySelectorAll('.matches-date-header').forEach(header => {
-    const next = header.nextElementSibling;
-    if (!next || !next.classList.contains('match-card')) {
-      header.remove();
-    }
-  });
+  table.appendChild(tbody);
+  container.appendChild(table);
 
-  // If after filtering nothing is left, show a message
-  if (!clone.querySelector('.match-card')) {
-    const msg = document.createElement('div');
-    msg.style.padding = '20px';
-    msg.style.textAlign = 'center';
-    msg.style.color = '#94a3b8';
-    msg.style.fontSize = '14px';
-    msg.textContent = 'ยังไม่มีแมตช์ที่บันทึกผลการแข่งขัน';
-    clone.appendChild(msg);
-  }
+  // Render offscreen
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  document.body.appendChild(container);
 
-  // Render to canvas
-  const canvas = await html2canvas(clone, { backgroundColor: null, scale: 2, useCORS: true });
+  const canvas = await html2canvas(container, { backgroundColor: null, scale: 2, useCORS: true });
 
   await new Promise((resolve) => {
     canvas.toBlob(async (blob) => {
       if (!blob) {
         alert('สร้างภาพล้มเหลว');
-        clone.remove();
+        container.remove();
         return resolve();
       }
       const url = URL.createObjectURL(blob);
@@ -4909,7 +4924,7 @@ async function exportMatchesImage() {
       }
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
-      clone.remove();
+      container.remove();
       resolve();
     }, 'image/jpeg', 0.85);
   });
