@@ -4898,6 +4898,14 @@ async function exportMatchesImage() {
     const hPts = getMatchGamePointsForTeam(m, m.home, hMult);
     const aPts = getMatchGamePointsForTeam(m, m.away, aMult);
 
+    // Determine result category for coloring (same logic as on-screen)
+    const hResult = getMatchResultForTeam(m, m.home); // 'win' | 'draw' | 'loss'
+    const aResult = getMatchResultForTeam(m, m.away);
+
+    // Exact same colors as the live Matches page
+    const hColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
+    const aColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
+
     const dateStr = m.date ? formatThaiDate(m.date) : '-';
 
     const tr = document.createElement('tr');
@@ -4912,8 +4920,8 @@ async function exportMatchesImage() {
       </td>
       <td style="padding:6px 12px; font-weight:600;">${m.away}</td>
       <td style="padding:6px 10px; font-size:12px; line-height:1.3;">
-        <div><span style="color:#34d399;">${m.home} +${hPts.toFixed(1)}</span></div>
-        <div><span style="color:#f43f5e;">${m.away} +${aPts.toFixed(1)}</span></div>
+        <div><span style="color:${hColor}; font-weight:600;">${m.home} +${hPts.toFixed(1)}</span></div>
+        <div><span style="color:${aColor}; font-weight:600;">${m.away} +${aPts.toFixed(1)}</span></div>
       </td>
     `;
     tbody.appendChild(tr);
