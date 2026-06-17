@@ -3844,6 +3844,24 @@ function getMatchGamePointsForTeam(match, teamName, multiplier) {
   return (resultPoints + goals) * (multiplier || 1);
 }
 
+// Helper: determine result category for a team in a finished match
+// Returns 'win' | 'draw' | 'loss'  (used for color coding the points)
+function getMatchResultForTeam(match, teamName) {
+  if (!match || match.status !== 'finished' || match.homeScore == null || match.awayScore == null) return 'loss';
+  const isHome = match.home === teamName;
+  const hs = match.homeScore;
+  const as = match.awayScore;
+
+  if (hs > as) return isHome ? 'win' : 'loss';
+  if (hs < as) return isHome ? 'loss' : 'win';
+
+  // Draw (normal time or after extra time)
+  if (match.isKnockout && match.penaltyWinner) {
+    return (match.penaltyWinner === (isHome ? 'home' : 'away')) ? 'win' : 'loss';
+  }
+  return 'draw';
+}
+
 // RENDERING - MATCHES
 function renderMatches() {
   const grid = document.getElementById('matches-grid');
@@ -3907,12 +3925,18 @@ function renderMatches() {
       const hGamePts = getMatchGamePointsForTeam(match, match.home, hMultiplier);
       const aGamePts = getMatchGamePointsForTeam(match, match.away, aMultiplier);
 
+      const hResult = getMatchResultForTeam(match, match.home); // 'win' | 'draw' | 'loss'
+      const aResult = getMatchResultForTeam(match, match.away);
+
+      const hColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
+      const aColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
+
       pointsInfo = `
         <div style="font-size:11px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); color:#94a3b8;">
           เกมส์คะแนน: 
-          <span style="color:#34d399; font-weight:600;">${match.home} +${hGamePts.toFixed(1)}</span> 
+          <span style="color:${hColor}; font-weight:600;">${match.home} +${hGamePts.toFixed(1)}</span> 
           &nbsp;•&nbsp; 
-          <span style="color:#f43f5e; font-weight:600;">${match.away} +${aGamePts.toFixed(1)}</span>
+          <span style="color:${aColor}; font-weight:600;">${match.away} +${aGamePts.toFixed(1)}</span>
         </div>
       `;
     }
