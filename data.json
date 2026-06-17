@@ -204,9 +204,9 @@
     {
       "home": "อาร์เจนตินา",
       "away": "แอลจีเรีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-17",
       "id": 19
