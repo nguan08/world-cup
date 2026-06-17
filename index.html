@@ -241,12 +241,13 @@
             <h1>บันทึกผลการแข่งขัน (Matches)</h1>
             <p class="page-description" style="margin-bottom:0;">อัปเดตผลการแข่งขันฟุตบอลโลกเพื่อคำนวณคะแนนทีมและคะแนนผู้เล่นใหม่โดยอัตโนมัติ</p>
           </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn btn-primary" id="open-add-match-btn" style="display: none; padding: 10px 16px;">➕ เพิ่มคู่แข่งขัน</button>
-            <button class="btn btn-secondary" id="reset-all-btn" style="background-color: rgba(244, 63, 94, 0.1); color: var(--accent); border-color: rgba(244, 63, 94, 0.2); padding: 10px 16px;">
-              รีเซ็ตผลการแข่งทั้งหมด
-            </button>
-          </div>
+           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+             <button class="btn btn-primary" id="open-add-match-btn" style="display: none; padding: 10px 16px;">➕ เพิ่มคู่แข่งขัน</button>
+             <button class="btn btn-secondary" id="reset-all-btn" style="background-color: rgba(244, 63, 94, 0.1); color: var(--accent); border-color: rgba(244, 63, 94, 0.2); padding: 10px 16px;">
+               รีเซ็ตผลการแข่งทั้งหมด
+             </button>
+             <button class="btn btn-secondary" id="export-matches-btn" style="padding:10px 14px; font-size:14px;">📤 บันทึกผลแข่ง (JPG)</button>
+           </div>
         </header>
         
         <div class="matches-grid" id="matches-grid">

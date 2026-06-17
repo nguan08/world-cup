@@ -3860,6 +3860,25 @@ function renderMatches() {
     
     let matchMeta = match.isKnockout ? 'รอบน็อคเอาท์ ( Knockout )' : 'รอบแบ่งกลุ่ม';
     if (match.isFinal) matchMeta = '🏆 นัดชิงชนะเลิศ ( Final )';
+
+    // Compute base result points (3/2/1) for each team when finished
+    let pointsInfo = '';
+    if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
+      let hPts = 1, aPts = 1;
+      const hs = match.homeScore;
+      const as = match.awayScore;
+      if (hs > as) { hPts = 3; aPts = 1; }
+      else if (hs < as) { hPts = 1; aPts = 3; }
+      else { hPts = 2; aPts = 2; }
+      pointsInfo = `
+        <div style="font-size:11px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); color:#94a3b8;">
+          ผลการแข่ง (คะแนนพื้นฐาน): 
+          <span style="color:#e2e8f0; font-weight:600;">${match.home} +${hPts}</span> 
+          &nbsp;•&nbsp; 
+          <span style="color:#e2e8f0; font-weight:600;">${match.away} +${aPts}</span>
+        </div>
+      `;
+    }
     
     // Knockout options (Penalty shootout)
     let knockoutExtraUI = '';
@@ -3900,6 +3919,8 @@ function renderMatches() {
       </div>
       
       ${knockoutExtraUI}
+      
+      ${pointsInfo}
       
       <div class="match-footer" style="margin-top: 8px;">
         <span class="badge ${match.status === 'finished' ? 'badge-green' : 'badge-red'}">${match.status === 'finished' ? 'แข่งเสร็จสิ้น' : 'รอการแข่งขัน'}</span>
@@ -4667,6 +4688,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // Export matches results to JPG (for finished matches summary)
+  const exportMatchesBtn = document.getElementById('export-matches-btn');
+  if (exportMatchesBtn) {
+    exportMatchesBtn.addEventListener('click', async () => {
+      try {
+        await exportMatchesImage();
+      } catch (err) {
+        console.error('Export matches failed', err);
+        alert('การส่งออกภาพล้มเหลว');
+      }
+    });
+  }
   // Close login modal
 
 async function exportLeaderboardImage() {
@@ -4721,6 +4755,53 @@ async function exportLeaderboardImage() {
         window.open(url, '_blank');
       }
 
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      clone.remove();
+      resolve();
+    }, 'image/jpeg', 0.85);
+  });
+}
+
+async function exportMatchesImage() {
+  const grid = document.getElementById('matches-grid');
+  if (!grid) return alert('ไม่พบตารางการแข่งขัน');
+
+  // Ensure fonts ready
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
+
+  // Clone the matches grid (only finished matches will look complete)
+  const clone = grid.cloneNode(true);
+  clone.style.background = getComputedStyle(document.body).backgroundColor || 'transparent';
+  clone.style.padding = '16px';
+  clone.style.borderRadius = '8px';
+  clone.style.width = '100%';
+  clone.style.maxWidth = Math.min(grid.clientWidth || 1000, 1100) + 'px';
+  clone.style.position = 'fixed';
+  clone.style.left = '-9999px';
+  document.body.appendChild(clone);
+
+  const canvas = await html2canvas(clone, { backgroundColor: null, scale: 2, useCORS: true });
+
+  await new Promise((resolve) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        alert('สร้างภาพล้มเหลว');
+        clone.remove();
+        return resolve();
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'matches-results.jpg';
+      document.body.appendChild(a);
+      const ok = a.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
+      if (!ok || !a.href) {
+        window.open(url, '_blank');
+      }
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       clone.remove();
