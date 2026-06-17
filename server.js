@@ -5,6 +5,8 @@ const path = require('path');
 const PORT = 8080;
 const PUBLIC_DIR = __dirname;
 
+const ADMIN_PASSWORD = '123456';
+
 const MIME_TYPES = {
   '.html': 'text/html',
   '.css': 'text/css',
@@ -47,6 +49,22 @@ const server = http.createServer((req, res) => {
         if (!payload.matches || !payload.players) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid payload: matches and players are required' }));
+          return;
+        }
+
+        // Server-side admin auth gate for /api/save to prevent unauthenticated tampering
+        const providedPw = payload.adminPassword || (req.headers['x-admin-password'] || '');
+        if (providedPw !== ADMIN_PASSWORD) {
+          console.warn(`[Server] Rejected /api/save from ${req.socket.remoteAddress} - invalid admin credentials`);
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized: admin credentials required for save' }));
+          return;
+        }
+
+        // Basic shape validation (arrays as expected)
+        if (!Array.isArray(payload.matches) || !Array.isArray(payload.players)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid payload shape: matches and players must be arrays' }));
           return;
         }
 

@@ -20,9 +20,9 @@ const TEAMS = [
   { name: 'โมร็อกโก', zone: 'green', multiplier: 1.5 },
   { name: 'นอร์เวย์', zone: 'green', multiplier: 1.6 },
   { name: 'โคลอมเบีย', zone: 'green', multiplier: 1.6 },
-  { name: 'ตูนิเซีย', zone: 'green', multiplier: 1.7 },
   { name: 'สาธารณรัฐเช็ก', zone: 'green', multiplier: 1.7 },
   { name: 'โครเอเชีย', zone: 'green', multiplier: 1.7 },
+  { name: 'ตุรกี', zone: 'green', multiplier: 1.7 },
 
   // YELLOW ZONE
   { name: 'แคนาดา', zone: 'yellow', multiplier: 1.8 },
@@ -37,17 +37,17 @@ const TEAMS = [
   { name: 'แอลจีเรีย', zone: 'yellow', multiplier: 2.1 },
 
   // LIGHT ORANGE ZONE
-  { name: 'ปารากวัย', zone: 'light-orange', multiplier: 2.2 },
-  { name: 'สวีเดน', zone: 'light-orange', multiplier: 2.2 },
-  { name: 'ฮอนดูรัส', zone: 'light-orange', multiplier: 2.3 },
-  { name: 'สกอตแลนด์', zone: 'light-orange', multiplier: 2.3 },
-  { name: 'เซเนกัล', zone: 'light-orange', multiplier: 2.4 },
-  { name: 'กานา', zone: 'light-orange', multiplier: 2.4 },
-  { name: 'ออสเตรเลีย', zone: 'light-orange', multiplier: 2.5 },
-  { name: 'ซาอุดีอาระเบีย', zone: 'light-orange', multiplier: 2.5 },
-  { name: 'ยูเครน', zone: 'light-orange', multiplier: 2.6 },
-  { name: 'แอฟริกาใต้', zone: 'light-orange', multiplier: 2.6 },
-  { name: 'ตุรกี', zone: 'light-orange', multiplier: 1.7 },
+  { name: 'ปารากวัย', zone: 'grey', multiplier: 2.2 },
+  { name: 'สวีเดน', zone: 'grey', multiplier: 2.2 },
+
+  { name: 'สกอตแลนด์', zone: 'grey', multiplier: 2.3 },
+  { name: 'เซเนกัล', zone: 'grey', multiplier: 2.4 },
+  { name: 'กานา', zone: 'grey', multiplier: 2.4 },
+  { name: 'ออสเตรเลีย', zone: 'grey', multiplier: 2.5 },
+  { name: 'ซาอุดีอาระเบีย', zone: 'grey', multiplier: 2.5 },
+
+  { name: 'แอฟริกาใต้', zone: 'grey', multiplier: 2.6 },
+  { name: 'ตูนิเซีย', zone: 'grey', multiplier: 2.6 },
 
   // RED-ORANGE ZONE
   { name: 'นิวซีแลนด์', zone: 'red-orange', multiplier: 2.7 },
@@ -58,9 +58,9 @@ const TEAMS = [
   { name: 'อิรัก', zone: 'red-orange', multiplier: 2.9 },
   { name: 'คูราเซา', zone: 'red-orange', multiplier: 2.9 },
   { name: 'เคปเวิร์ด', zone: 'red-orange', multiplier: 3.0 },
-  { name: 'คองโก', zone: 'red-orange', multiplier: 2.9 },
+  { name: 'คองโก', zone: 'grey', multiplier: 2.3 },
   { name: 'เฮติ', zone: 'red-orange', multiplier: 3.0 },
-  { name: 'อิตาลี', zone: 'red-orange', multiplier: 3.0 }
+
 ];
 
 const INITIAL_MATCHES = [
@@ -2180,6 +2180,18 @@ const INITIAL_PLAYERS = [
   }
 ];
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const ADMIN_PASSWORD = '123456';
+
 // State variables
 let matches = [];
 let players = [];
@@ -2234,7 +2246,7 @@ function updateAdminUI() {
     renderDashboard();
   }
   if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) {
-    renderLeaderboard();
+    renderLeaderboard({forceRecalc: false});
   }
   // Always update the admin column header visibility even if not on those tabs
   const lbAdminCol = document.getElementById('lb-admin-col');
@@ -2433,6 +2445,10 @@ async function saveToServer() {
       players: players,
       eliminatedTeams: Array.from(manualEliminatedTeams)
     };
+    // Include admin password token for server-side auth on mutations (only when isAdmin)
+    if (isAdmin) {
+      payload.adminPassword = ADMIN_PASSWORD;
+    }
     const response = await fetch('/api/save', {
       method: 'POST',
       headers: {
@@ -2442,6 +2458,9 @@ async function saveToServer() {
     });
     if (response.ok) {
       console.log('Successfully synced data to server data.json');
+    } else if (response.status === 401 || response.status === 403) {
+      console.warn('Server refused save (admin auth required):', response.status);
+      // Do not clear isAdmin here (UX); server enforces
     } else {
       console.warn('Server refused to save data:', response.statusText);
     }
@@ -2779,6 +2798,23 @@ function processPlayers(teamScores) {
 let teamPoints = {};
 let processedPlayers = [];
 let manualEliminatedTeams = new Set();
+let lastHighlightPlayer = "";
+let playCompletedTeams = new Set();
+let elCache = {};
+function getCachedEl(id) {
+  if (!elCache[id]) elCache[id] = document.getElementById(id);
+  return elCache[id];
+}
+function debounce(fn, delay = 120) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+function updatePlayCompletedTeams() {
+  playCompletedTeams = new Set(matches.filter(m => m.status === 'finished').flatMap(m => [m.home, m.away]));
+}
 
 // Load manual eliminated teams
 function loadEliminatedTeams() {
@@ -2828,6 +2864,7 @@ function isTeamEliminated(teamName) {
 function recalculateAll() {
   teamPoints = calculateTeamPoints();
   processedPlayers = processPlayers(teamPoints);
+  updatePlayCompletedTeams();
 }
 
 // NAVIGATION
@@ -2852,7 +2889,7 @@ function setupNavigation() {
       
       // Specific page triggers
       if (tab === 'dashboard') renderDashboard();
-      if (tab === 'leaderboard') renderLeaderboard();
+      if (tab === 'leaderboard') renderLeaderboard({forceRecalc: false});
       if (tab === 'matches') renderMatches();
       if (tab === 'players') renderPlayers();
       if (tab === 'teams') renderTeamsMatrix();
@@ -2906,59 +2943,361 @@ function setupNavigation() {
 function renderDashboard() {
   recalculateAll();
   
-  document.getElementById('stat-total-players').textContent = processedPlayers.length;
+  const totalEl = getCachedEl('stat-total-players');
+  if (totalEl) totalEl.textContent = processedPlayers.length;
   
   const leader = processedPlayers[0];
-  document.getElementById('stat-leader-score').textContent = leader ? leader.totalScore.toFixed(1) : '0.0';
+  const leaderEl = getCachedEl('stat-leader-score');
+  if (leaderEl) leaderEl.textContent = leader ? leader.totalScore.toFixed(1) : '0.0';
   
   const playedCount = matches.filter(m => m.status === 'finished').length;
-  document.getElementById('stat-played-matches').textContent = `${playedCount} / ${matches.length}`;
+  const playedEl = getCachedEl('stat-played-matches');
+  if (playedEl) playedEl.textContent = `${playedCount} / ${matches.length}`;
 
   // ── Score Distribution Line Chart ──────────────────────────
   renderScoreChart();
 
-  // ── Top 5 Leaders table ────────────────────────────────────
-  // Show/hide admin column header
-  const top5AdminCol = document.getElementById('top5-admin-col');
+  // ── Top 10 Leaders table ───────────────────────────────────
+  const top5AdminCol = getCachedEl('top5-admin-col');
   if (top5AdminCol) top5AdminCol.style.display = isAdmin ? 'table-cell' : 'none';
 
-  const top5 = processedPlayers.slice(0, 5);
-  const tbody = document.getElementById('top-leaders-tbody');
+  const tbody = getCachedEl('top-leaders-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
-  
-  top5.forEach(p => {
+
+  const fragment = document.createDocumentFragment();
+  const topPlayers = processedPlayers.slice(0, 10);
+  topPlayers.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
-    tr.addEventListener('click', () => openPlayerDetails(p.name));
-    
-    let zoneBadge = '';
-    if (p.zone === 'blue') zoneBadge = '<span class="badge badge-blue">Blue Zone</span>';
-    else if (p.zone === 'green') zoneBadge = '<span class="badge badge-green">Green Zone</span>';
-    else zoneBadge = '<span class="badge badge-red">Red Zone</span>';
-    
-    const editCell = isAdmin
-      ? `<td style="text-align:center;" onclick="event.stopPropagation()">
-           <button class="btn btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="openPlayerForm(players.find(pl=>pl.name==='${p.name.replace(/'/g, "\\'")}'))">✏️ แก้ไข</button>
-         </td>`
-      : '<td style="display:none"></td>';
 
-    tr.innerHTML = `
-      <td><strong>${p.rank}</strong></td>
-      <td>${p.name}</td>
-      <td style="text-align: center;">${p.guess}</td>
-      <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
-      <td>${zoneBadge}</td>
-      ${editCell}
-    `;
-    tbody.appendChild(tr);
+    if (p.rank === 1) {
+      tr.classList.add('leader-first-row');
+    } else if (p.rank === 2) {
+      tr.classList.add('leader-second-row');
+    } else if (p.zone === 'blue') {
+      tr.classList.add('zone-blue-row');
+    } else if (p.zone === 'green') {
+      tr.classList.add('zone-green-row');
+    } else if (p.zone === 'red') {
+      tr.classList.add('zone-red-row');
+    }
+
+    tr.addEventListener('click', () => openPlayerDetails(p.name));
+
+    const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
+
+    // Rank cell (safe static HTML for crowns) - always center
+    const rankTd = document.createElement('td');
+    rankTd.setAttribute('data-label', 'อันดับ');
+    rankTd.style.textAlign = 'center';
+    if (p.rank === 1) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-first">${p.rank}</span>`;
+    } else if (p.rank === 2) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-second">${p.rank}</span>`;
+    } else {
+      rankTd.innerHTML = `<strong>${p.rank}</strong>`;
+    }
+
+    // Name cell - SAFE: use textContent (no innerHTML with user data)
+    const nameTd = document.createElement('td');
+    nameTd.setAttribute('data-label', 'ชื่อผู้เล่น');
+    if (p.rank === 1) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-first';
+      const crown = document.createElement('span');
+      crown.className = 'leader-crown';
+      crown.textContent = '👑';
+      span.appendChild(crown);
+      const nameText = document.createTextNode(p.name);
+      span.appendChild(nameText);
+      nameTd.appendChild(span);
+    } else if (p.rank === 2) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-second';
+      const crown = document.createElement('span');
+      crown.className = 'leader-crown queen-crown';
+      crown.textContent = '👸';
+      span.appendChild(crown);
+      const nameText = document.createTextNode(p.name);
+      span.appendChild(nameText);
+      nameTd.appendChild(span);
+    } else {
+      nameTd.textContent = p.name;
+    }
+
+    const teamsTd = document.createElement('td');
+    teamsTd.setAttribute('data-label', 'จำนวนทีมที่เตะไปแล้ว');
+    teamsTd.style.textAlign = 'center';
+    teamsTd.textContent = teamsPlayedCount;
+
+    const guessTd = document.createElement('td');
+    guessTd.setAttribute('data-label', 'ทายชิง (xx)');
+    guessTd.style.textAlign = 'center';
+    const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
+    guessTd.textContent = guessText;
+
+    const scoreTd = document.createElement('td');
+    scoreTd.setAttribute('data-label', 'คะแนนรวม');
+    scoreTd.style.textAlign = 'right';
+    scoreTd.style.color = 'var(--primary)';
+    scoreTd.style.fontWeight = '700';
+    scoreTd.textContent = p.totalScore.toFixed(1);
+
+    // Zone badge (same as leaderboard) - centered
+    const zoneTd = document.createElement('td');
+    zoneTd.setAttribute('data-label', 'โซน');
+    zoneTd.style.textAlign = 'center';
+    if (p.zone === 'blue') {
+      zoneTd.innerHTML = '<span class="badge badge-blue">Blue Zone</span>';
+    } else if (p.zone === 'green') {
+      zoneTd.innerHTML = '<span class="badge badge-green">Green Zone</span>';
+    } else {
+      zoneTd.innerHTML = '<span class="badge badge-red">Red Zone</span>';
+    }
+
+    // Payout - pure number, centered, single line, small font (match leaderboard)
+    const payoutTd = document.createElement('td');
+    payoutTd.setAttribute('data-label', 'ค่าใช้จ่ายสังสรรค์ (บาท)');
+    const payoutVal = p.payout || 0;
+    payoutTd.textContent = payoutVal;
+    payoutTd.style.color = payoutVal > 0 ? '#f43f5e' : '#34d399';
+    payoutTd.style.fontWeight = '600';
+    payoutTd.style.fontSize = '12px';
+    payoutTd.style.whiteSpace = 'nowrap';
+    payoutTd.style.textAlign = 'center';
+
+    tr.appendChild(rankTd);
+    tr.appendChild(nameTd);
+    tr.appendChild(teamsTd);
+    tr.appendChild(guessTd);
+    tr.appendChild(scoreTd);
+    tr.appendChild(zoneTd);
+    tr.appendChild(payoutTd);
+
+    if (isAdmin) {
+      const editTd = document.createElement('td');
+      editTd.style.textAlign = 'center';
+      editTd.addEventListener('click', (e) => e.stopPropagation());
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-secondary';
+      editBtn.style.cssText = 'padding:4px 12px; font-size:12px; white-space:nowrap;';
+      editBtn.textContent = '✏️ แก้ไข';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const pl = players.find(pl => pl.name === p.name);
+        if (pl) openPlayerForm(pl);
+      });
+      editTd.appendChild(editBtn);
+      tr.appendChild(editTd);
+    } else {
+      const emptyTd = document.createElement('td');
+      emptyTd.style.display = 'none';
+      tr.appendChild(emptyTd);
+    }
+
+    fragment.appendChild(tr);
   });
+  tbody.appendChild(fragment);
 }
 
-// ── Render SVG Line Chart (X = Days, Y = Rank) ──────────────
-let lastHighlightPlayer = ""; // global variable to track selected player in chart
+// RENDERING - LEADERBOARD (full table + average footer)
+function renderLeaderboard(options = {}) {
+  const { forceRecalc = true } = options;
+  if (forceRecalc) recalculateAll();
 
+  const searchEl = getCachedEl('leaderboard-search');
+  const searchInput = (searchEl ? searchEl.value : '').toLowerCase().trim();
+
+  const checkboxes = document.querySelectorAll('.team-filter-checkbox');
+  const selectedTeams = [];
+  checkboxes.forEach(cb => { if (cb.checked) selectedTeams.push(cb.value); });
+
+  let filtered = processedPlayers || [];
+
+  if (searchInput) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchInput));
+  }
+  if (selectedTeams.length > 0) {
+    filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+  }
+
+  const tbody = getCachedEl('leaderboard-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const fragment = document.createDocumentFragment();
+
+  filtered.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.classList.add('hoverable');
+
+    if (p.rank === 1) {
+      tr.classList.add('leader-first-row');
+    } else if (p.rank === 2) {
+      tr.classList.add('leader-second-row');
+    } else if (p.zone === 'blue') {
+      tr.classList.add('zone-blue-row');
+    } else if (p.zone === 'green') {
+      tr.classList.add('zone-green-row');
+    } else if (p.zone === 'red') {
+      tr.classList.add('zone-red-row');
+    }
+
+    tr.addEventListener('click', () => openPlayerDetails(p.name));
+
+    const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
+    const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
+
+    // Rank with special styling for 1st/2nd (like target site) - always center
+    const rankTd = document.createElement('td');
+    rankTd.setAttribute('data-label', 'อันดับ');
+    rankTd.style.textAlign = 'center';
+    if (p.rank === 1) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-first">${p.rank}</span>`;
+    } else if (p.rank === 2) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-second">${p.rank}</span>`;
+    } else {
+      rankTd.textContent = p.rank;
+    }
+
+    // Name with crown for top 2 (like target site)
+    const nameTd = document.createElement('td');
+    nameTd.setAttribute('data-label', 'ผู้เล่น');
+    if (p.rank === 1) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-first';
+      const crown = document.createElement('span');
+      crown.className = 'leader-crown';
+      crown.textContent = '👑';
+      span.appendChild(crown);
+      span.appendChild(document.createTextNode(p.name));
+      nameTd.appendChild(span);
+    } else if (p.rank === 2) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-second';
+      const crown = document.createElement('span');
+      crown.className = 'leader-crown queen-crown';
+      crown.textContent = '👸';
+      span.appendChild(crown);
+      span.appendChild(document.createTextNode(p.name));
+      nameTd.appendChild(span);
+    } else {
+      nameTd.textContent = p.name;
+    }
+
+    // Teams played
+    const teamsTd = document.createElement('td');
+    teamsTd.setAttribute('data-label', 'จำนวนทีมที่เตะไปแล้ว');
+    teamsTd.style.textAlign = 'center';
+    teamsTd.textContent = teamsPlayedCount;
+
+    // Guess
+    const guessTd = document.createElement('td');
+    guessTd.setAttribute('data-label', 'ทายชิง (xx)');
+    guessTd.style.textAlign = 'center';
+    guessTd.textContent = guessText;
+
+    // Score
+    const scoreTd = document.createElement('td');
+    scoreTd.setAttribute('data-label', 'คะแนนรวม');
+    scoreTd.style.textAlign = 'right';
+    scoreTd.style.color = 'var(--primary)';
+    scoreTd.style.fontWeight = '700';
+    scoreTd.textContent = p.totalScore.toFixed(1);
+
+    // Zone (badge like target site) - centered
+    const zoneTd = document.createElement('td');
+    zoneTd.setAttribute('data-label', 'โซน');
+    zoneTd.style.textAlign = 'center';
+    if (p.zone === 'blue') {
+      zoneTd.innerHTML = '<span class="badge badge-blue">Blue Zone</span>';
+    } else if (p.zone === 'green') {
+      zoneTd.innerHTML = '<span class="badge badge-green">Green Zone</span>';
+    } else {
+      zoneTd.innerHTML = '<span class="badge badge-red">Red Zone</span>';
+    }
+
+    // Payout - pure number only (0 or 1000 etc.), smaller font, single line, centered
+    const payoutTd = document.createElement('td');
+    payoutTd.setAttribute('data-label', 'ค่าใช้จ่ายสังสรรค์ (บาท)');
+    const payoutVal = p.payout || 0;
+    payoutTd.textContent = payoutVal;
+    payoutTd.style.color = payoutVal > 0 ? '#f43f5e' : '#34d399';
+    payoutTd.style.fontWeight = '600';
+    payoutTd.style.fontSize = '12px';
+    payoutTd.style.whiteSpace = 'nowrap';
+    payoutTd.style.textAlign = 'center';
+
+    // Extra safeguard: mark every cell to never wrap (search/filter safety)
+    rankTd.style.whiteSpace = 'nowrap';
+    nameTd.style.whiteSpace = 'nowrap';
+    teamsTd.style.whiteSpace = 'nowrap';
+    guessTd.style.whiteSpace = 'nowrap';
+    scoreTd.style.whiteSpace = 'nowrap';
+    zoneTd.style.whiteSpace = 'nowrap';
+    payoutTd.style.whiteSpace = 'nowrap';
+
+    tr.appendChild(rankTd);
+    tr.appendChild(nameTd);
+    tr.appendChild(teamsTd);
+    tr.appendChild(guessTd);
+    tr.appendChild(scoreTd);
+    tr.appendChild(zoneTd);
+    tr.appendChild(payoutTd);
+
+    if (isAdmin) {
+      const editTd = document.createElement('td');
+      editTd.setAttribute('data-label', '');
+      editTd.style.textAlign = 'center';
+      editTd.addEventListener('click', (e) => e.stopPropagation());
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-secondary';
+      editBtn.style.cssText = 'padding:4px 12px; font-size:12px;';
+      editBtn.textContent = '✏️ แก้ไข';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const pl = players.find(pl => pl.name === p.name);
+        if (pl) openPlayerForm(pl);
+      });
+      editTd.appendChild(editBtn);
+      tr.appendChild(editTd);
+    } else {
+      const emptyTd = document.createElement('td');
+      emptyTd.style.display = 'none';
+      tr.appendChild(emptyTd);
+    }
+
+    fragment.appendChild(tr);
+  });
+  tbody.appendChild(fragment);
+
+  // === Global average summary moved OUTSIDE the table (below it), slightly larger ===
+  const fullPlayers = processedPlayers || [];
+  const avgNoteEl = getCachedEl('leaderboard-avg-note');
+  if (avgNoteEl) avgNoteEl.innerHTML = ''; // clear previous
+
+  if (fullPlayers.length > 0 && avgNoteEl) {
+    const overallAvg = fullPlayers.reduce((sum, p) => sum + p.totalScore, 0) / fullPlayers.length;
+    const greenPlayers = fullPlayers.filter(p => p.zone === 'green');
+    const greenAvg = greenPlayers.length ? (greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length) : 0;
+    const redPlayers = fullPlayers.filter(p => p.zone === 'red');
+    const redAvg = redPlayers.length ? (redPlayers.reduce((sum, p) => sum + p.totalScore, 0) / redPlayers.length) : 0;
+
+    avgNoteEl.innerHTML = `
+      <span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
+        หมายเหตุ: 
+        <span style="color:#f43f5e">ค่าเฉลี่ยทั้งหมด (ต้องจ่าย) ${overallAvg.toFixed(1)}</span> • 
+        <span style="color:#f43f5e">Green Zone (ต้องจ่าย) ${greenAvg.toFixed(1)}</span> • 
+        <span style="color:#34d399">Red Zone (ไม่ต้องจ่าย) ${redAvg.toFixed(1)}</span>
+      </span>
+    `;
+  }
+}
+
+// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished matches, matching github version)
 function renderScoreChart() {
-  const svgEl = document.getElementById('score-chart-svg');
+  const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !processedPlayers.length) return;
 
   // 1. Get finished matches sorted chronologically
@@ -3163,7 +3502,8 @@ function renderScoreChart() {
     // Label at the end of the line
     const lastX = xOf(stepsCount);
     const lastY = yOf(ph.ranks[stepsCount]);
-    const isTop5 = ph.rank <= 5;
+    const lastRank = ph.ranks[stepsCount] || 99;
+    const isTop5 = lastRank <= 5;
     // On mobile, hide all end labels by default (will be toggled on hover/highlight)
     const labelDisplay = (!isMobile && isTop5) ? 'block' : 'none';
     
@@ -3171,7 +3511,7 @@ function renderScoreChart() {
     const labelX = isMobile ? lastX - 8 : lastX + 8;
     const labelAnchor = isMobile ? 'end' : 'start';
 
-    labelsGroup += `<text x="${labelX}" y="${lastY + 3}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" fill-opacity="0.85" class="trend-end-label" data-player="${ph.name}" style="display: ${labelDisplay}; font-family: Inter,Sarabun,sans-serif; pointer-events: none; transition: fill-opacity 0.2s;">${ph.name} (อันดับ ${ph.ranks[stepsCount]})</text>`;
+    labelsGroup += `<text x="${labelX}" y="${lastY + 3}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" fill-opacity="0.85" class="trend-end-label" data-player="${ph.name}" style="display: ${labelDisplay}; font-family: Inter,Sarabun,sans-serif; pointer-events: none; transition: fill-opacity 0.2s;">${ph.name} (อันดับ ${lastRank})</text>`;
   });
 
   // Setup SVG dimensions and viewBox
@@ -3289,7 +3629,7 @@ function renderScoreChart() {
   }
 }
 
-// Global highlight controller
+// Global highlight controller (full version from github)
 function highlightPlayerInChart(playerName) {
   const svgEl = document.getElementById('score-chart-svg');
   if (!svgEl) return;
@@ -3315,7 +3655,8 @@ function highlightPlayerInChart(playerName) {
       const pName = label.getAttribute('data-player');
       const pObj = processedPlayers.find(p => p.name === pName);
       const isMobileLabel = label.getAttribute('text-anchor') === 'end';
-      if (pObj && pObj.rank <= 5 && !isMobileLabel) {
+      const lastR = pObj ? pObj.rank : 99;
+      if (pObj && lastR <= 5 && !isMobileLabel) {
         label.style.display = 'block';
         label.setAttribute('fill-opacity', '0.85');
         label.removeAttribute('font-weight');
@@ -3399,96 +3740,6 @@ function highlightPlayerInChart(playerName) {
     textLabel.textContent = rank;
     
     dot.parentElement.appendChild(textLabel);
-  });
-}
-
-
-// RENDERING - LEADERBOARD
-function renderLeaderboard() {
-  recalculateAll();
-  const searchInput = document.getElementById('leaderboard-search').value.toLowerCase();
-  
-  // Get checked team names
-  const checkedBoxes = document.querySelectorAll('.team-filter-checkbox:checked');
-  const selectedTeams = Array.from(checkedBoxes).map(cb => cb.value);
-  
-  // Update button text
-  const btnText = document.getElementById('team-filter-btn-text');
-  if (btnText) {
-    if (selectedTeams.length === 0) {
-      btnText.textContent = '🔍 กรองตามทีมที่เลือก (ทั้งหมด)';
-    } else {
-      btnText.textContent = `🔍 กรองตามทีมที่เลือก (${selectedTeams.length} ทีม)`;
-    }
-  }
-  
-  const tbody = document.getElementById('leaderboard-tbody');
-  tbody.innerHTML = '';
-  
-  const playCompletedTeams = new Set(matches.filter(m => m.status === 'finished').flatMap(m => [m.home, m.away]));
-  const filtered = processedPlayers.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchInput);
-    const matchesTeam = selectedTeams.length === 0 || selectedTeams.every(team => p.teams.includes(team));
-    return matchesSearch && matchesTeam;
-  });
-  
-  // Show/hide admin column header in leaderboard
-  const lbAdminCol = document.getElementById('lb-admin-col');
-  if (lbAdminCol) lbAdminCol.style.display = isAdmin ? 'table-cell' : 'none';
-
-  filtered.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.classList.add('hoverable');
-    
-    // Assign zone rows
-    if (p.rank === 1) {
-      tr.classList.add('leader-first-row');
-    } else if (p.rank === 2) {
-      tr.classList.add('leader-second-row');
-    } else if (p.zone === 'blue') {
-      tr.classList.add('zone-blue-row');
-    } else if (p.zone === 'green') {
-      tr.classList.add('zone-green-row');
-    } else if (p.zone === 'red') {
-      tr.classList.add('zone-red-row');
-    }
-    
-    tr.addEventListener('click', () => openPlayerDetails(p.name));
-    
-    let zoneBadge = '';
-    if (p.zone === 'blue') zoneBadge = '<span class="badge badge-blue">Blue Zone</span>';
-    else if (p.zone === 'green') zoneBadge = '<span class="badge badge-green">Green Zone</span>';
-    else zoneBadge = '<span class="badge badge-red">Red Zone</span>';
-
-    const editCell = isAdmin
-      ? `<td style="text-align:center;" onclick="event.stopPropagation()">
-           <button class="btn btn-secondary" style="padding:4px 12px; font-size:12px; white-space:nowrap;" onclick="openPlayerForm(players.find(pl=>pl.name==='${p.name.replace(/'/g, "\\'")}'))">✏️ แก้ไข</button>
-         </td>`
-      : '<td style="display:none"></td>';
-    
-    const teamsPlayedCount = p.teams.filter(teamName => playCompletedTeams.has(teamName)).length;
-    const rankLabel = p.rank === 1
-      ? `<span class="leader-rank leader-rank-first">${p.rank}</span>`
-      : p.rank === 2
-        ? `<span class="leader-rank leader-rank-second">${p.rank}</span>`
-        : `<strong>${p.rank}</strong>`;
-    const nameLabel = p.rank === 1
-      ? `<span class="leader-name-first"><span class="leader-crown">👑</span>${p.name}</span>`
-      : p.rank === 2
-        ? `<span class="leader-name-second"><span class="leader-crown queen-crown">👸</span>${p.name}</span>`
-        : p.name;
-
-    tr.innerHTML = `
-      <td>${rankLabel}</td>
-      <td>${nameLabel}</td>
-      <td style="text-align: center;">${teamsPlayedCount}</td>
-      <td style="text-align: center;">${p.guess}</td>
-      <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
-      <td>${zoneBadge}</td>
-      <td style="text-align: right; color: ${p.payout > 0 ? 'var(--zone-red-orange)' : 'var(--zone-green)'}; font-weight: 700;">${p.payout}</td>
-      ${editCell}
-    `;
-    tbody.appendChild(tr);
   });
 }
 
@@ -3805,21 +4056,46 @@ function renderPlayers() {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
     
-    // Build list of team badges
-    const teamBadges = p.teamBreakdown.map(tb => {
-      return `<span class="team-badge team-${tb.zone}" style="padding: 2px 6px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;">${tb.name} (${tb.points.toFixed(1)})</span>`;
-    }).join(' ');
-    
     tr.addEventListener('click', () => openPlayerDetails(p.name));
     
-    tr.innerHTML = `
-      <td><strong>${p.name}</strong></td>
-      <td style="max-width: 400px; overflow-wrap: break-word; line-height: 2;">${teamBadges}</td>
-      <td style="text-align: right; color:var(--primary); font-weight:700;">${p.totalScore.toFixed(1)}</td>
-      <td>
-        <button class="btn btn-secondary" style="padding: 6px 12px; font-size:12px;">รายละเอียด</button>
-      </td>
-    `;
+    // Name cell - SAFE textContent
+    const nameTd = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = p.name;
+    nameTd.appendChild(strong);
+    
+    // Team badges - build safely with createElement (team names from TEAMS are trusted but use textContent anyway)
+    const teamsTd = document.createElement('td');
+    teamsTd.style.maxWidth = '400px';
+    teamsTd.style.overflowWrap = 'break-word';
+    teamsTd.style.lineHeight = '2';
+    p.teamBreakdown.forEach(tb => {
+      const badge = document.createElement('span');
+      badge.className = `team-badge team-${tb.zone}`;
+      badge.style.cssText = 'padding: 2px 6px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;';
+      badge.textContent = `${tb.name} (${tb.points.toFixed(1)})`;
+      teamsTd.appendChild(badge);
+    });
+    
+    const scoreTd = document.createElement('td');
+    scoreTd.style.textAlign = 'right';
+    scoreTd.style.color = 'var(--primary)';
+    scoreTd.style.fontWeight = '700';
+    scoreTd.textContent = p.totalScore.toFixed(1);
+    
+    const actionTd = document.createElement('td');
+    const detailBtn = document.createElement('button');
+    detailBtn.className = 'btn btn-secondary';
+    detailBtn.style.cssText = 'padding: 6px 12px; font-size:12px;';
+    detailBtn.textContent = 'รายละเอียด';
+    // detail button click will bubble to row handler, no need to attach here (matches prior behavior)
+    actionTd.appendChild(detailBtn);
+    
+    tr.appendChild(nameTd);
+    tr.appendChild(teamsTd);
+    tr.appendChild(scoreTd);
+    tr.appendChild(actionTd);
+    
     tbody.appendChild(tr);
   });
 }
@@ -3833,7 +4109,7 @@ function renderTeamsMatrix() {
     { key: 'blue', name: 'Blue Zone (ตัวคูณ 1.0 - 1.3)', class: 'team-blue' },
     { key: 'green', name: 'Green Zone (ตัวคูณ 1.4 - 1.7)', class: 'team-green' },
     { key: 'yellow', name: 'Yellow Zone (ตัวคูณ 1.8 - 2.1)', class: 'team-yellow' },
-    { key: 'light-orange', name: 'Light Orange Zone (ตัวคูณ 2.2 - 2.6)', class: 'team-light-orange' },
+    { key: 'grey', name: 'Grey Zone (ตัวคูณ 2.2 - 2.6)', class: 'team-light-orange' },
     { key: 'red-orange', name: 'Red-Orange Zone (ตัวคูณ 2.7 - 3.0)', class: 'team-red-orange' }
   ];
   
@@ -4095,7 +4371,7 @@ function openPlayerDetails(name) {
       recalculateAll();
       openPlayerDetails(name); // Refresh view
       renderDashboard();
-      if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard();
+      if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
       if (document.getElementById('players').classList.contains('active')) renderPlayers();
     });
   });
@@ -4162,7 +4438,7 @@ function openPlayerForm(player = null) {
     { key: 'blue', name: 'Blue Zone (สูงสุด 4 ทีม)', class: 'team-blue' },
     { key: 'green', name: 'Green Zone (สูงสุด 4 ทีม)', class: 'team-green' },
     { key: 'yellow', name: 'Yellow Zone (สูงสุด 4 ทีม)', class: 'team-yellow' },
-    { key: 'light-orange', name: 'Light Orange Zone (สูงสุด 4 ทีม)', class: 'team-light-orange' },
+    { key: 'grey', name: 'Grey Zone (สูงสุด 4 ทีม)', class: 'team-light-orange' },
     { key: 'red-orange', name: 'Red-Orange Zone (สูงสุด 4 ทีม)', class: 'team-red-orange' }
   ];
   
@@ -4209,7 +4485,7 @@ function updateFormValidation() {
   const saveBtn = document.getElementById('save-player-btn');
   
   let checkedCount = 0;
-  const zoneCounts = { blue: 0, green: 0, yellow: 0, 'light-orange': 0, 'red-orange': 0 };
+  const zoneCounts = { blue: 0, green: 0, yellow: 0, 'grey': 0, 'red-orange': 0 };
   
   checkboxes.forEach(cb => {
     if (cb.checked) {
@@ -4364,7 +4640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           recalculateAll();
           // rerender current active view
           if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
-          if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard();
+          if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
           if (document.getElementById('matches').classList.contains('active')) renderMatches();
           if (document.getElementById('players').classList.contains('active')) renderPlayers();
           alert('ออกจากระบบแอดมินเรียบร้อย');
@@ -4467,7 +4743,7 @@ async function exportLeaderboardImage() {
       const password = document.getElementById('admin-password-input').value;
       const errorMsg = document.getElementById('login-error-msg');
       
-      if (password === '123456') {
+      if (password === ADMIN_PASSWORD) {
         isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
         updateAdminUI();
@@ -4477,7 +4753,7 @@ async function exportLeaderboardImage() {
         recalculateAll();
         // rerender current active view
         if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
-        if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard();
+        if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
         if (document.getElementById('matches').classList.contains('active')) renderMatches();
         if (document.getElementById('players').classList.contains('active')) renderPlayers();
         
@@ -4490,8 +4766,10 @@ async function exportLeaderboardImage() {
     });
   }
   
-  // Search listeners
-  document.getElementById('leaderboard-search').addEventListener('input', renderLeaderboard);
+  // Search listeners (debounced for leaderboard)
+  const debouncedLeaderboardSearch = debounce(renderLeaderboard, 80);
+  const leaderboardSearchEl = document.getElementById('leaderboard-search');
+  if (leaderboardSearchEl) leaderboardSearchEl.addEventListener('input', debouncedLeaderboardSearch);
   document.getElementById('players-search').addEventListener('input', renderPlayers);
   
   // Populate leaderboard team filter dropdown (multi checkbox)
@@ -4513,7 +4791,7 @@ async function exportLeaderboardImage() {
       blue: 'Blue Zone (x1.0 - x1.3)',
       green: 'Green Zone (x1.4 - x1.7)',
       yellow: 'Yellow Zone (x1.8 - x2.1)',
-      'light-orange': 'Light Orange (x2.2 - x2.6)',
+      'grey': 'Grey (x2.2 - x2.6)',
       'red-orange': 'Red-Orange (x2.7 - x3.0)'
     };
     
@@ -4565,14 +4843,16 @@ async function exportLeaderboardImage() {
     });
     
     // Close dropdown clicking outside
-    document.addEventListener('click', () => {
-      filterMenu.style.display = 'none';
+    document.addEventListener('click', (e) => {
+      if (filterDropdownContainer && !filterDropdownContainer.contains(e.target)) {
+        filterMenu.style.display = 'none';
+      }
     });
     
-    // Listen to changes on checkboxes to trigger renderLeaderboard
+    // Listen to changes on checkboxes to trigger renderLeaderboard (no recalc needed, pure filter)
     checkboxesContainer.addEventListener('change', (e) => {
       if (e.target && e.target.classList.contains('team-filter-checkbox')) {
-        renderLeaderboard();
+        renderLeaderboard({forceRecalc: false});
       }
     });
     
@@ -4582,7 +4862,7 @@ async function exportLeaderboardImage() {
       clearBtn.addEventListener('click', () => {
         const checkboxes = checkboxesContainer.querySelectorAll('.team-filter-checkbox');
         checkboxes.forEach(cb => cb.checked = false);
-        renderLeaderboard();
+        renderLeaderboard({forceRecalc: false});
       });
     }
   }
@@ -4599,6 +4879,16 @@ async function exportLeaderboardImage() {
   document.getElementById('close-detail-btn').addEventListener('click', () => {
     document.getElementById('player-details-drawer-overlay').classList.remove('active');
   });
+  
+  // Close player details drawer when clicking on the backdrop (outside the drawer)
+  const playerDetailsOverlay = document.getElementById('player-details-drawer-overlay');
+  if (playerDetailsOverlay) {
+    playerDetailsOverlay.addEventListener('click', (e) => {
+      if (e.target === playerDetailsOverlay) {
+        playerDetailsOverlay.classList.remove('active');
+      }
+    });
+  }
   
   document.getElementById('close-form-btn').addEventListener('click', () => {
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
@@ -4637,7 +4927,7 @@ async function exportLeaderboardImage() {
         await saveToServer();
         recalculateAll();
         if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
-        if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard();
+        if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
         if (document.getElementById('matches').classList.contains('active')) renderMatches();
         if (document.getElementById('players').classList.contains('active')) renderPlayers();
         alert('รีเซ็ตผลการแข่งขันทั้งหมดเรียบร้อยแล้ว!');
@@ -4717,15 +5007,12 @@ async function exportLeaderboardImage() {
   renderDashboard();
 });
 
-// Handle window resize to update chart responsiveness
-let resizeTimeout;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(() => {
-    const dashboardPage = document.getElementById('dashboard');
-    if (dashboardPage && dashboardPage.classList.contains('active')) {
-      renderScoreChart();
-    }
-  }, 200);
-});
+// Handle window resize to update chart responsiveness (debounced + guarded)
+const debouncedResize = debounce(() => {
+  const dashboardPage = getCachedEl('dashboard');
+  if (dashboardPage && dashboardPage.classList.contains('active')) {
+    renderScoreChart();
+  }
+}, 160);
+window.addEventListener('resize', debouncedResize);
 

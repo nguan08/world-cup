@@ -184,9 +184,9 @@
     {
       "home": "ฝรั่งเศส",
       "away": "เซเนกัล",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-17",
       "id": 17
@@ -194,9 +194,9 @@
     {
       "home": "อิรัก",
       "away": "นอร์เวย์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 4,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-17",
       "id": 18
@@ -2115,5 +2115,6 @@
       "targetScore": 10.5
     }
   ],
-  "eliminatedTeams": []
+  "eliminatedTeams": [],
+  "adminPassword": "123456"
 }
