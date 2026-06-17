@@ -1044,6 +1044,101 @@ tr.leader-second-row {
   font-size: 24px;
 }
 
+/* === PLAYER STATS DRAWER: Always-visible top-right close button (×) ===
+   This guarantees the red × button in .drawer-header is present and tappable
+   on both desktop and mobile. Uses the flex layout of .drawer-header (space-between). */
+#player-details-drawer-overlay .drawer-header .close-btn,
+#player-details-drawer-overlay #close-detail-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  font-size: 34px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.25) !important;
+  border: 2px solid rgba(244, 63, 94, 0.7) !important;
+  border-radius: 10px !important;
+  margin: 0 0 0 12px !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0 !important;
+}
+
+#player-details-drawer-overlay .drawer-header .close-btn:active,
+#player-details-drawer-overlay #close-detail-btn:active {
+  background: rgba(244, 63, 94, 0.45) !important;
+  transform: scale(0.92);
+}
+
+/* Make sure the header itself uses flex so the button goes to the right */
+#player-details-drawer-overlay .drawer-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* === NUCLEAR OVERRIDE: Player drawer top-right close button MUST be visible ===
+   Placed at the end of the file so it wins over all previous rules.
+   Forces a large, bright red × button with background and border, using flex inside .drawer-header.
+   Works for both desktop and mobile. No absolute positioning to avoid edge clipping. */
+#player-details-drawer-overlay .drawer-header .close-btn,
+#player-details-drawer-overlay #close-detail-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  font-size: 36px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.30) !important;
+  border: 3px solid rgba(244, 63, 94, 0.85) !important;
+  border-radius: 10px !important;
+  margin-left: 12px !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center !important;
+}
+
+#player-details-drawer-overlay .drawer-header .close-btn:active,
+#player-details-drawer-overlay #close-detail-btn:active {
+  background: rgba(244, 63, 94, 0.55) !important;
+  transform: scale(0.9);
+}
+
+/* On mobile, make the close button even bigger and the header more compact */
+@media (max-width: 640px) {
+  #player-details-drawer-overlay .drawer-header {
+    min-height: 52px !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  #player-details-drawer-overlay .drawer-header .close-btn,
+  #player-details-drawer-overlay #close-detail-btn {
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 40px !important;
+    background: rgba(244, 63, 94, 0.35) !important;
+    border-width: 3px !important;
+  }
+}
+
 /* Team Grid Rules reference */
 .teams-matrix {
   display: grid;
@@ -1230,6 +1325,8 @@ tr.leader-second-row {
     box-sizing: border-box;
   }
 
+  /* (removed blanket drawer padding-top; now handled per-drawer type to avoid breaking bottom sheets) */
+
   /* Match grid to 2 columns */
   .matches-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1408,15 +1505,24 @@ tr.leader-second-row {
     max-width: 100% !important;
     border-radius: 0 !important;
     padding: 24px 16px;
+    /* Note: player-details drawer now uses its own overlay top-offset, so general drawers keep normal padding.
+       Bottom-sheet drawers (match form etc.) are unaffected. */
   }
 
   .drawer-header h2 {
     font-size: 18px;
   }
 
-  /* Player detail drawer */
+  /* Player detail drawer - prevent overlap with fixed mobile topbar */
+  #player-details-drawer-overlay {
+    top: 68px !important;                    /* start below the fixed .mobile-header */
+    height: calc(100vh - 68px) !important;   /* fill remaining height */
+  }
+
   #player-details-drawer-overlay .drawer {
     width: 100% !important;
+    height: 100% !important;   /* fill the offset overlay */
+    padding-top: 16px !important; /* normal inner padding now that container is shifted below header */
   }
 
   /* Very prominent, easy-to-tap close button at the very bottom of the player stats drawer on mobile */
@@ -1440,58 +1546,76 @@ tr.leader-second-row {
     transform: scale(0.97);
   }
 
-  /* Ensure the drawer itself has enough top space on mobile (below mobile header) */
+  /* Ensure the drawer itself has enough top space on mobile (below fixed mobile header ~56px + padding) */
   #player-details-drawer-overlay .drawer {
-    padding-top: 20px !important;
+    padding-top: 72px !important;
   }
 
-  /* === FIX: Make the top-right close button (×) clearly visible on mobile for player stats popup and NEVER fall off the right edge on tiny screens === */
-  /* Strong positioning + reserved space so the button stays inside the drawer bounds even on very small phones */
+  /* === CLEAN MOBILE PLAYER DRAWER CLOSE BUTTON (flex, inside .drawer-header) ===
+     Large red × always visible on the top-right of the player stats drawer.
+     No absolute positioning. Relies on .drawer-header {display:flex; justify-content:space-between} */
   #player-details-drawer-overlay .drawer-header {
-    margin-bottom: 12px !important;
-    min-height: 44px;
-    position: relative !important;      /* allow absolute positioning of the close button */
-    padding-right: 60px !important;     /* guaranteed space on the right so × cannot be cut off or fall off the edge */
     display: flex !important;
     align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 48px !important;
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+    position: static !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
   }
 
   #player-details-drawer-overlay .drawer-header h2 {
+    margin: 0 !important;
+    font-size: 17px !important;
+    line-height: 1.2 !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    margin: 0 !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding-right: 8px;
   }
 
   #player-details-drawer-overlay .drawer-header .close-btn,
-  #player-details-drawer-overlay .close-btn {
-    position: absolute !important;   /* pin it to the right edge safely */
-    top: 50% !important;
-    right: 8px !important;           /* safe inset from the drawer edge */
-    transform: translateY(-50%) !important;
-    font-size: 32px !important;
-    line-height: 1 !important;
-    color: #f43f5e !important;
-    background: rgba(244, 63, 94, 0.12) !important;
-    border-radius: 999px !important;
-    padding: 6px 12px !important;
-    margin: 0 !important;
-    min-width: 44px;
-    min-height: 44px;
+  #player-details-drawer-overlay #close-detail-btn {
     display: flex !important;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    z-index: 999;                    /* above everything inside the drawer */
-    white-space: nowrap;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    margin: 0 0 0 12px !important;
+    padding: 0 !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    font-size: 36px !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+    color: #f43f5e !important;
+    background: rgba(244, 63, 94, 0.28) !important;
+    border: 2px solid rgba(244, 63, 94, 0.75) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.55) !important;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  #player-details-drawer-overlay .drawer-header .close-btn:active {
-    background: rgba(244, 63, 94, 0.25) !important;
-    transform: translateY(-50%) scale(0.94);
+  #player-details-drawer-overlay .drawer-header .close-btn:active,
+  #player-details-drawer-overlay #close-detail-btn:active {
+    background: rgba(244, 63, 94, 0.5) !important;
+    transform: scale(0.9);
+  }
+
+  /* Extra large on tiny phones */
+  @media (max-width: 480px) {
+    #player-details-drawer-overlay .drawer-header .close-btn,
+    #player-details-drawer-overlay #close-detail-btn {
+      width: 52px !important;
+      height: 52px !important;
+      font-size: 40px !important;
+      background: rgba(244, 63, 94, 0.32) !important;
+      border-color: rgba(244, 63, 94, 0.85) !important;
+    }
   }
 
   /* Player form drawer */

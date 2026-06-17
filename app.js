@@ -4374,18 +4374,9 @@ function openPlayerDetails(name) {
   if (statsContainer) statsContainer.innerHTML = '';
   if (grid) grid.innerHTML = '';
 
-  // Clear the prominent top name area too (so no stale name on re-open)
-  const topNameEl = document.getElementById('detail-player-name-top');
-  if (topNameEl) topNameEl.textContent = '';
-
-  // === IMPORTANT: Show player name at the very top IMMEDIATELY ===
-  // When the popup opens, put the name in both the header (h2) and the big prominent area below the header.
-  // This makes the player's name visible right away at the top of the popup content.
+  // === IMPORTANT: Show player name at the very top IMMEDIATELY in the header ===
   const immediateName = (name || '').trim();
   setText('detail-player-name', immediateName);
-  if (topNameEl) {
-    topNameEl.textContent = immediateName;
-  }
 
   try {
     recalculateAll();
@@ -4397,12 +4388,10 @@ function openPlayerDetails(name) {
       player = processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
     }
 
-    if (!player) {
+      if (!player) {
       console.warn('[openPlayerDetails] player not found for name:', name);
       // Still keep the drawer open, but show a clear message
       setText('detail-player-name', lookupName || 'ไม่พบผู้เล่น');
-      const topNameFail = document.getElementById('detail-player-name-top');
-      if (topNameFail) topNameFail.textContent = lookupName || 'ไม่พบผู้เล่น';
       setText('detail-teams-score', '0.00');
       setText('detail-prediction-score', '0.00');
       setText('detail-prediction-guess', '-');
@@ -4413,18 +4402,12 @@ function openPlayerDetails(name) {
       return;
     }
 
-    // Populate header numbers
+    // Populate header numbers (name goes only into the h2 in the drawer header)
     setText('detail-player-name', player.name);
     setText('detail-teams-score', (player.teamsScore || 0).toFixed(2));
     setText('detail-prediction-score', (player.predictionScore || 0).toFixed(2));
     setText('detail-prediction-guess', player.guess);
     setText('detail-total-score', (player.totalScore || 0).toFixed(2));
-
-    // NEW: put the player name also in the big prominent area right below the header
-    const topNameEl = document.getElementById('detail-player-name-top');
-    if (topNameEl) {
-      topNameEl.textContent = player.name;
-    }
 
     // === Now build the detailed sections (stats + per-team list) ===
     // Wrapped so that even if this part throws, the drawer is already visible.
