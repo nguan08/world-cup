@@ -2965,6 +2965,37 @@ function setupNavigation() {
       if (tab === 'teams') renderTeamsMatrix();
     });
   });
+
+  // === Top-left brand logo (icon + text) acts as "Home" button ===
+  // Clicking the logo in sidebar (desktop) or mobile header goes back to Dashboard (main page)
+  const brandLogos = document.querySelectorAll('.brand-logo');
+  brandLogos.forEach(logo => {
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => {
+      // Close player stats drawer if open (same behavior as top nav)
+      closePlayerDetailsIfOpen();
+
+      // Update nav active states
+      navItems.forEach(nav => nav.classList.remove('active'));
+      const dashboardNav = document.querySelector('.nav-item[data-tab="dashboard"]');
+      if (dashboardNav) dashboardNav.classList.add('active');
+
+      // Switch to dashboard page
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      const dashboardPage = document.getElementById('dashboard');
+      if (dashboardPage) dashboardPage.classList.add('active');
+
+      // Close mobile sidebar if it was open
+      const sidebar = document.getElementById('sidebar');
+      const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar) sidebar.classList.remove('active');
+      if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+      document.body.style.overflow = '';
+
+      // Render the main dashboard
+      renderDashboard();
+    });
+  });
   
   // Mobile Hamburger menu
   const menuBtn = document.getElementById('menu-toggle-btn');
