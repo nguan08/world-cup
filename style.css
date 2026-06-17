@@ -1445,34 +1445,53 @@ tr.leader-second-row {
     padding-top: 20px !important;
   }
 
-  /* === FIX: Make the top-right close button (×) clearly visible on mobile for player stats popup === */
-  /* It was "หาย" (disappearing / too faint) because of muted color and insufficient size on small screens */
+  /* === FIX: Make the top-right close button (×) clearly visible on mobile for player stats popup and NEVER fall off the right edge on tiny screens === */
+  /* Strong positioning + reserved space so the button stays inside the drawer bounds even on very small phones */
   #player-details-drawer-overlay .drawer-header {
-    margin-bottom: 12px !important;   /* tighter on mobile */
+    margin-bottom: 12px !important;
     min-height: 44px;
+    position: relative !important;      /* allow absolute positioning of the close button */
+    padding-right: 60px !important;     /* guaranteed space on the right so × cannot be cut off or fall off the edge */
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  #player-details-drawer-overlay .drawer-header h2 {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 8px;
   }
 
   #player-details-drawer-overlay .drawer-header .close-btn,
   #player-details-drawer-overlay .close-btn {
+    position: absolute !important;   /* pin it to the right edge safely */
+    top: 50% !important;
+    right: 8px !important;           /* safe inset from the drawer edge */
+    transform: translateY(-50%) !important;
     font-size: 32px !important;
     line-height: 1 !important;
-    color: #f43f5e !important;         /* strong red, high contrast */
+    color: #f43f5e !important;
     background: rgba(244, 63, 94, 0.12) !important;
     border-radius: 999px !important;
-    padding: 4px 10px !important;
-    margin: -4px -8px -4px 0 !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
     min-width: 44px;
     min-height: 44px;
     display: flex !important;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    z-index: 10;
+    z-index: 999;                    /* above everything inside the drawer */
+    white-space: nowrap;
   }
 
   #player-details-drawer-overlay .drawer-header .close-btn:active {
     background: rgba(244, 63, 94, 0.25) !important;
-    transform: scale(0.94);
+    transform: translateY(-50%) scale(0.94);
   }
 
   /* Player form drawer */

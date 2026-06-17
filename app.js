@@ -4541,10 +4541,33 @@ function openPlayerDetails(name) {
       }
 
       // ── Per-team list with match history ────────────────────────────
+      // Sort teams by the date they first played (เรียงตามวันที่เตะ) — oldest first.
+      // Teams with no finished matches go to the end.
       const grid = document.getElementById('detail-teams-grid');
       if (grid) {
         grid.innerHTML = '';
-        const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
+        let tbList = Array.isArray(player.teamBreakdown) ? [...player.teamBreakdown] : [];
+
+        // Pre-compute earliest play date for each team for stable sorting
+        const teamEarliestDate = {};
+        tbList.forEach(tb => {
+          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          if (teamMatches.length > 0) {
+            const dates = teamMatches
+              .map(m => m.date ? new Date(m.date).getTime() : Infinity)
+              .filter(d => isFinite(d));
+            teamEarliestDate[tb.name] = dates.length ? Math.min(...dates) : Infinity;
+          } else {
+            teamEarliestDate[tb.name] = Infinity;
+          }
+        });
+
+        tbList.sort((a, b) => {
+          const da = teamEarliestDate[a.name] ?? Infinity;
+          const db = teamEarliestDate[b.name] ?? Infinity;
+          if (da === db) return 0;
+          return da - db;
+        });
         
         tbList.forEach(tb => {
           const item = document.createElement('div');
