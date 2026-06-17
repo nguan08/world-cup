@@ -433,6 +433,12 @@
           <button class="btn btn-secondary" id="edit-player-selections-btn" style="flex:1;">แก้ไขการเลือกทีม</button>
           <button class="btn btn-secondary" id="delete-player-btn" style="background-color:rgba(244,63,94,0.1); color:var(--accent); border-color:rgba(244,63,94,0.2); flex:1;">ลบผู้เล่น</button>
         </div>
+
+        <!-- Very obvious close button for mobile (always at the bottom, full width, easy to tap) -->
+        <button class="btn btn-secondary player-detail-close-btn" id="player-detail-bottom-close-btn" 
+                style="margin: 28px 0 12px 0; width:100%; padding:18px 20px; font-size:17px; font-weight:700; background:rgba(244,63,94,0.22); border:3px solid rgba(244,63,94,0.65); color:#f43f5e; border-radius:12px;">
+          ✕ ปิดหน้าต่างสถิติ (ปิด)
+        </button>
       </div>
     </div>
 
@@ -448,31 +454,31 @@
           <input type="hidden" id="form-match-id">
           
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเหย้า (Home Team)</label>
+            <label for="form-match-home" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเหย้า (Home Team)</label>
             <select id="form-match-home" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
               <!-- JS will load options -->
             </select>
           </div>
           
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเยือน (Away Team)</label>
+            <label for="form-match-away" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเยือน (Away Team)</label>
             <select id="form-match-away" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
               <!-- JS will load options -->
             </select>
           </div>
           
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">วันที่แข่ง (Match Date)</label>
+            <label for="form-match-date" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">วันที่แข่ง (Match Date)</label>
             <input type="date" id="form-match-date" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; color-scheme:dark;">
           </div>
           
-          <div style="margin-bottom: 24px; display: flex; gap: 24px;">
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
+           <div style="margin-bottom: 24px; display: flex; gap: 24px;">
+            <label for="form-match-knockout" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
               <input type="checkbox" id="form-match-knockout" style="width: 16px; height: 16px; accent-color: var(--primary);">
               รอบน็อคเอาท์ (Knockout)
             </label>
             
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
+            <label for="form-match-final" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
               <input type="checkbox" id="form-match-final" style="width: 16px; height: 16px; accent-color: var(--primary);">
               นัดชิงชนะเลิศ (Final)
             </label>
@@ -495,18 +501,18 @@
           <input type="hidden" id="form-player-id">
           
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ชื่อผู้เล่น</label>
+            <label for="form-player-name" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ชื่อผู้เล่น</label>
             <input type="text" id="form-player-name" required placeholder="เช่น สุรเชษฐ์ เจริญสุข" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">จำนวนประตูรวมนัดชิงฯ ที่ทำนาย (0-9 ประตู)</label>
+            <label for="form-player-guess" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">จำนวนประตูรวมนัดชิงฯ ที่ทำนาย (0-9 ประตู)</label>
             <input type="number" id="form-player-guess" required min="0" max="9" placeholder="เช่น 3" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           
           <div style="margin-bottom: 24px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <label style="font-size:13px; font-weight:600; color:var(--text-secondary)">เลือกทีม 15 ทีม (เลือกได้ตามเงื่อนไขข้อจำกัดสี)</label>
+              <div style="font-size:13px; font-weight:600; color:var(--text-secondary)" id="form-team-selector-label">เลือกทีม 15 ทีม (เลือกได้ตามเงื่อนไขข้อจำกัดสี)</div>
               <span id="form-selection-counter" style="font-size:12px; font-weight:700; color:var(--primary)">0 / 15 ทีม</span>
             </div>
             
@@ -514,10 +520,10 @@
               แจ้งเตือนข้อกำหนด
             </div>
 
-            <!-- Team selector container -->
-            <div id="form-team-selector" style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-              <!-- JS will build collapsible color zone grids here -->
-            </div>
+             <!-- Team selector container -->
+             <div id="form-team-selector" aria-labelledby="form-team-selector-label" style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+               <!-- JS will build collapsible color zone grids here -->
+             </div>
           </div>
           
           <button type="submit" class="btn btn-primary" id="save-player-btn" style="width:100%; padding:14px;">บันทึกข้อมูล</button>
@@ -534,12 +540,12 @@
         </div>
         <form id="admin-login-form" onsubmit="event.preventDefault();">
           <div style="margin-bottom: 16px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
+            <label for="admin-password-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
             <input type="password" id="admin-password-input" required placeholder="กรอกรหัสผ่าน..." style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
             <div id="login-error-msg" style="display:none; color: var(--accent); font-size: 12px; margin-top: 8px; font-weight: 600;">รหัสผ่านไม่ถูกต้อง!</div>
           </div>
           <div style="margin-bottom: 20px;">
-            <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">GitHub Personal Access Token (ป้อนเพื่อซิงค์ข้อมูลลง GitHub ตรงๆ)</label>
+            <label for="admin-github-token-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">GitHub Personal Access Token (ป้อนเพื่อซิงค์ข้อมูลลง GitHub ตรงๆ)</label>
             <input type="password" id="admin-github-token-input" placeholder="ป้อน GitHub Token (ไม่บังคับ)..." style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">เข้าสู่ระบบ</button>

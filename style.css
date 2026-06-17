@@ -1003,6 +1003,26 @@ tr.leader-second-row {
   overflow-y: auto;
 }
 
+/* Desktop: prevent the player details drawer from overlapping the top bar / header area */
+#player-details-drawer-overlay .drawer {
+  margin-top: 0;
+  max-height: calc(100vh - 0px);
+}
+
+/* PC / wide screens: give breathing room so the player stats drawer does not overlap the top bar or page header */
+@media (min-width: 641px) {
+  #player-details-drawer-overlay .drawer {
+    padding-top: 72px !important;     /* safe distance below top bar / header area */
+    max-height: calc(100vh - 72px);
+    box-sizing: border-box;
+  }
+
+  /* Make the drawer content start clearly below the top area on desktop */
+  #player-details-drawer-overlay .drawer .drawer-header {
+    margin-top: 8px;
+  }
+}
+
 .drawer-overlay.active .drawer {
   transform: translateX(0);
 }
@@ -1397,6 +1417,32 @@ tr.leader-second-row {
   /* Player detail drawer */
   #player-details-drawer-overlay .drawer {
     width: 100% !important;
+  }
+
+  /* Very prominent, easy-to-tap close button at the very bottom of the player stats drawer on mobile */
+  .player-detail-close-btn {
+    display: block !important;
+    width: 100% !important;
+    padding: 20px 24px !important;
+    font-size: 18px !important;
+    margin: 24px 0 16px 0 !important;
+    background: rgba(244, 63, 94, 0.22) !important;
+    border: 3px solid rgba(244, 63, 94, 0.6) !important;
+    color: #f43f5e !important;
+    font-weight: 800 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 6px 16px rgba(244, 63, 94, 0.25);
+    min-height: 56px; /* good tap target */
+  }
+
+  .player-detail-close-btn:active {
+    background: rgba(244, 63, 94, 0.35) !important;
+    transform: scale(0.97);
+  }
+
+  /* Ensure the drawer itself has enough top space on mobile (below mobile header) */
+  #player-details-drawer-overlay .drawer {
+    padding-top: 20px !important;
   }
 
   /* Player form drawer */

@@ -2867,11 +2867,81 @@ function recalculateAll() {
   updatePlayCompletedTeams();
 }
 
+// Helper to close player stats drawer (used on mobile + when switching views / tapping elsewhere)
+function closePlayerDetailsIfOpen() {
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+// This function is kept for compatibility but its old aggressive handlers have been replaced
+// by safer protected listeners directly in the initialization code below.
+// We intentionally do nothing harmful here now.
+function attachOutsideCloseForPlayerDrawer() {
+  // No-op: safe outside-close logic is attached directly after DOMContentLoaded
+  // to properly protect clicks that are meant to open the player details.
+}
+
+// === Robust delegated handlers for opening player details drawer ===
+// We attach to the three stable <tbody> elements + a document-level fallback.
+// This is the most reliable across desktop + mobile, survives re-renders (innerHTML on tbody),
+// and cannot be blocked by per-row stopPropagation or timing issues.
+function attachPlayerRowOpenHandlers() {
+  // 1) Direct delegation on the tbodies (preferred, contained)
+  const tbodies = [
+    document.getElementById('top-leaders-tbody'),
+    document.getElementById('leaderboard-tbody'),
+    document.getElementById('players-tbody')
+  ];
+  tbodies.forEach(tbody => {
+    if (!tbody || tbody._playerOpenBound) return;
+    tbody.addEventListener('click', (e) => {
+      const row = e.target.closest('tr.hoverable[data-player-name]');
+      if (!row) return;
+      const overlay = document.getElementById('player-details-drawer-overlay');
+      if (overlay && overlay.classList.contains('active')) return;
+
+      e.stopPropagation();
+      const name = row.dataset.playerName;
+      if (name) {
+        console.log('[player-open] tbody-delegated click for:', name);
+        openPlayerDetails(name);
+      }
+    }, { passive: true });
+    tbody._playerOpenBound = true;
+  });
+
+  // 2) Document-level fallback (bubbling phase, very last resort)
+  //    This catches clicks even if the tbody delegation somehow didn't see it
+  //    (e.g. very deep nesting, shadow DOM in future, or browser quirks on mobile).
+  if (!document._playerRowDocOpenBound) {
+    document.addEventListener('click', (e) => {
+      const row = e.target.closest('tr.hoverable[data-player-name]');
+      if (!row) return;
+
+      const overlay = document.getElementById('player-details-drawer-overlay');
+      if (overlay && overlay.classList.contains('active')) return;
+
+      // Only act if this click was not already handled by a tbody listener above.
+      // We still call open here as a safety net.
+      const name = row.dataset.playerName;
+      if (name) {
+        console.log('[player-open] document-fallback click for:', name);
+        openPlayerDetails(name);
+      }
+    }, false); // bubbling, not capture
+    document._playerRowDocOpenBound = true;
+  }
+}
+
 // NAVIGATION
 function setupNavigation() {
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
     item.addEventListener('click', () => {
+      // === IMPORTANT for mobile UX ===
+      // When user taps any top menu item (or switches page), immediately close the player statistics drawer.
+      closePlayerDetailsIfOpen();
+
       navItems.forEach(nav => nav.classList.remove('active'));
       item.classList.add('active');
       
@@ -2970,6 +3040,8 @@ function renderDashboard() {
   topPlayers.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
+    tr.dataset.playerName = p.name;
+    tr.style.cursor = 'pointer';
 
     if (p.rank === 1) {
       tr.classList.add('leader-first-row');
@@ -2983,7 +3055,13 @@ function renderDashboard() {
       tr.classList.add('zone-red-row');
     }
 
-    tr.addEventListener('click', () => openPlayerDetails(p.name));
+    // === Direct onclick fallback (bulletproof) ===
+    // This guarantees the drawer opens even if delegated listeners have any timing/ordering issues.
+    // We still keep the delegated ones for cleanliness.
+    tr.onclick = (e) => {
+      e.stopPropagation();
+      openPlayerDetails(p.name);
+    };
 
     const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
 
@@ -3131,6 +3209,8 @@ function renderLeaderboard(options = {}) {
   filtered.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
+    tr.dataset.playerName = p.name;
+    tr.style.cursor = 'pointer';
 
     if (p.rank === 1) {
       tr.classList.add('leader-first-row');
@@ -3144,7 +3224,11 @@ function renderLeaderboard(options = {}) {
       tr.classList.add('zone-red-row');
     }
 
-    tr.addEventListener('click', () => openPlayerDetails(p.name));
+    // === Direct onclick fallback (bulletproof) ===
+    tr.onclick = (e) => {
+      e.stopPropagation();
+      openPlayerDetails(p.name);
+    };
 
     const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
     const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
@@ -4137,8 +4221,14 @@ function renderPlayers() {
   filtered.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
+    tr.dataset.playerName = p.name;
+    tr.style.cursor = 'pointer';
     
-    tr.addEventListener('click', () => openPlayerDetails(p.name));
+    // === Direct onclick fallback (bulletproof) ===
+    tr.onclick = (e) => {
+      e.stopPropagation();
+      openPlayerDetails(p.name);
+    };
     
     // Name cell - SAFE textContent
     const nameTd = document.createElement('td');
@@ -4230,270 +4320,329 @@ function renderTeamsMatrix() {
 
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
+  // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
+  // This is the key fix: we open the popup immediately on any row click.
+  // Even if later lookup or content building has issues, the user will see the drawer.
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  if (overlay) {
+    overlay.classList.add('active');
+  } else {
+    console.error('[openPlayerDetails] overlay element not found in DOM');
+    return;
+  }
+
+  // Safe setter
+  const setText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (val != null ? val : '');
+  };
+
+  // Clear dynamic areas so we don't show stale content if we have to early-return
+  const statsContainer = document.getElementById('detail-team-stats-container');
+  const grid = document.getElementById('detail-teams-grid');
+  if (statsContainer) statsContainer.innerHTML = '';
+  if (grid) grid.innerHTML = '';
+
   try {
     recalculateAll();
-    const player = processedPlayers.find(p => p.name === name);
-    if (!player) return;
-  
-  document.getElementById('detail-player-name').textContent = player.name;
-  document.getElementById('detail-teams-score').textContent = player.teamsScore.toFixed(2);
-  document.getElementById('detail-prediction-score').textContent = `${player.predictionScore.toFixed(2)}`;
-  document.getElementById('detail-prediction-guess').textContent = player.guess;
-  document.getElementById('detail-total-score').textContent = player.totalScore.toFixed(2);
-  
-  // ── Team Stats Summary ────────────────────────────
-  const statsContainer = document.getElementById('detail-team-stats-container');
-  if (statsContainer) {
-    let statsHTML = `
-      <button class="team-stats-toggle" id="toggle-team-stats-btn">
-        📊 ดูสถิติทีมที่เลือกย้อนหลัง (Team Stats Summary)
-        <span style="margin-left:auto; font-size:16px; transition:transform 0.2s;" id="toggle-stats-arrow">▼</span>
-      </button>
-      <div id="team-stats-table-wrapper" style="display:none; margin-top:12px; overflow-x:auto; border:1px solid rgba(255,255,255,0.05); border-radius:12px; background-color:rgba(15,23,42,0.3);">
-        <table class="team-stats-summary">
-          <thead>
-            <tr>
-              <th style="text-align:left;">ทีม</th>
-              <th>โซน</th>
-              <th>เล่น</th>
-              <th>ชนะ</th>
-              <th>เสมอ</th>
-              <th>แพ้</th>
-              <th>ประตู</th>
-              <th>แต้มสะสม</th>
-              <th>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
-    player.teamBreakdown.forEach(tb => {
-      const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
-      let wins = 0, draws = 0, losses = 0, goalsFor = 0;
-      
-      teamMatches.forEach(m => {
-        if (m.home === tb.name) {
-          goalsFor += m.homeScore;
-          if (m.homeScore > m.awayScore) wins++;
-          else if (m.homeScore < m.awayScore) losses++;
-          else {
-            if (m.isKnockout && m.penaltyWinner) {
-              if (m.penaltyWinner === 'home') wins++; else losses++;
-            } else draws++;
-          }
-        } else {
-          goalsFor += m.awayScore;
-          if (m.awayScore > m.homeScore) wins++;
-          else if (m.awayScore < m.homeScore) losses++;
-          else {
-            if (m.isKnockout && m.penaltyWinner) {
-              if (m.penaltyWinner === 'away') wins++; else losses++;
-            } else draws++;
-          }
-        }
-      });
-      
-      totalPts += tb.points; totalPlayed += teamMatches.length;
-      totalW += wins; totalD += draws; totalL += losses; totalGF += goalsFor;
-      
-      const eliminated = isTeamEliminated(tb.name);
-      const statusBadge = eliminated 
-        ? '<span style="color:#f43f5e; font-weight:600; font-size:11px;">ตกรอบ</span>'
-        : '<span style="color:#34d399; font-weight:600; font-size:11px;">ยังอยู่</span>';
-      
-      statsHTML += `
-        <tr style="border-left: 3px solid var(--zone-${tb.zone});">
-          <td>${tb.name}</td>
-          <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${tb.zone.toUpperCase()}</span></td>
-          <td>${teamMatches.length}</td>
-          <td style="color:#34d399;">${wins}</td>
-          <td style="color:var(--zone-yellow);">${draws}</td>
-          <td style="color:#f43f5e;">${losses}</td>
-          <td>${goalsFor}</td>
-          <td style="font-weight:700; color:var(--primary);">${tb.points.toFixed(1)}</td>
-          <td>${statusBadge}</td>
-        </tr>
-      `;
-    });
-    
-    statsHTML += `
-          </tbody>
-          <tfoot>
-            <tr style="background-color:rgba(255,255,255,0.03); font-weight:700;">
-              <td>รวมทั้งหมด</td>
-              <td></td>
-              <td>${totalPlayed}</td>
-              <td style="color:#34d399;">${totalW}</td>
-              <td style="color:var(--zone-yellow);">${totalD}</td>
-              <td style="color:#f43f5e;">${totalL}</td>
-              <td>${totalGF}</td>
-              <td style="color:var(--primary);">${totalPts.toFixed(1)}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    `;
-    
-    statsContainer.innerHTML = statsHTML;
-    
-    // Toggle stats visibility
-    const toggleBtn = document.getElementById('toggle-team-stats-btn');
-    const tableWrapper = document.getElementById('team-stats-table-wrapper');
-    const arrow = document.getElementById('toggle-stats-arrow');
-    if (toggleBtn && tableWrapper) {
-      toggleBtn.addEventListener('click', () => {
-        const isHidden = tableWrapper.style.display === 'none';
-        tableWrapper.style.display = isHidden ? 'block' : 'none';
-        arrow.textContent = isHidden ? '▲' : '▼';
-        arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(0deg)';
-      });
-    }
-  }
-  
-  const grid = document.getElementById('detail-teams-grid');
-  grid.innerHTML = '';
-  
-  player.teamBreakdown.forEach(tb => {
-    const item = document.createElement('div');
-    
-    const eliminated = isTeamEliminated(tb.name);
-    const elimBadge = eliminated 
-      ? '<span class="badge badge-red" style="font-size:9.5px; padding:2px 6px;">ตกรอบแล้ว</span>' 
-      : '<span class="badge badge-green" style="font-size:9.5px; padding:2px 6px;">ยังอยู่ในเส้นทาง</span>';
-      
-    const elimToggleBtn = isAdmin
-      ? `<button class="btn btn-secondary toggle-elim-btn" data-team="${tb.name.replace(/'/g, "\\'")}" style="padding: 2px 8px; font-size: 10px; height: auto; margin-left: 8px; background-color: rgba(255,255,255,0.03);">
-           ${eliminated ? '✔️ คืนสิทธิ์' : '❌ ตกรอบ'}
-         </button>`
-      : '';
 
-    // Query matches played by this team
-    const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
-    let matchHistoryHTML = '';
-    
-    if (teamMatches.length > 0) {
-      matchHistoryHTML = '<div style="margin-top: 8px; font-size: 11px; padding: 8px 12px; border-radius: 8px; background-color: rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 6px; border-left: 2px solid rgba(255,255,255,0.08);">';
-      teamMatches.forEach(m => {
-        let resultPoints = 0;
-        let goals = 0;
+    // Lenient name lookup (trim + case-insensitive fallback for robustness)
+    const lookupName = (name || '').trim();
+    let player = processedPlayers.find(p => p.name === lookupName);
+    if (!player) {
+      player = processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
+    }
+
+    if (!player) {
+      console.warn('[openPlayerDetails] player not found for name:', name);
+      // Still keep the drawer open, but show a clear message
+      setText('detail-player-name', lookupName || 'ไม่พบผู้เล่น');
+      setText('detail-teams-score', '0.00');
+      setText('detail-prediction-score', '0.00');
+      setText('detail-prediction-guess', '-');
+      setText('detail-total-score', '0.00');
+      if (grid) {
+        grid.innerHTML = '<div style="padding:20px; color:#f43f5e; font-weight:600;">ไม่พบข้อมูลผู้เล่นนี้ในระบบ (อาจเพิ่งถูกลบ หรือชื่อไม่ตรง)</div>';
+      }
+      return;
+    }
+
+    // Populate header numbers
+    setText('detail-player-name', player.name);
+    setText('detail-teams-score', (player.teamsScore || 0).toFixed(2));
+    setText('detail-prediction-score', (player.predictionScore || 0).toFixed(2));
+    setText('detail-prediction-guess', player.guess);
+    setText('detail-total-score', (player.totalScore || 0).toFixed(2));
+
+    // === Now build the detailed sections (stats + per-team list) ===
+    // Wrapped so that even if this part throws, the drawer is already visible.
+    try {
+      // ── Team Stats Summary (optional section) ────────────────────────────
+      const statsContainer = document.getElementById('detail-team-stats-container');
+      if (statsContainer) {
+        const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
+        let statsHTML = `
+          <button class="team-stats-toggle" id="toggle-team-stats-btn">
+            📊 ดูสถิติทีมที่เลือกย้อนหลัง (Team Stats Summary)
+            <span style="margin-left:auto; font-size:16px; transition:transform 0.2s;" id="toggle-stats-arrow">▼</span>
+          </button>
+          <div id="team-stats-table-wrapper" style="display:none; margin-top:12px; overflow-x:auto; border:1px solid rgba(255,255,255,0.05); border-radius:12px; background-color:rgba(15,23,42,0.3);">
+            <table class="team-stats-summary">
+              <thead>
+                <tr>
+                  <th style="text-align:left;">ทีม</th>
+                  <th>โซน</th>
+                  <th>เล่น</th>
+                  <th>ชนะ</th>
+                  <th>เสมอ</th>
+                  <th>แพ้</th>
+                  <th>ประตู</th>
+                  <th>แต้มสะสม</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
         
-        if (m.home === tb.name) {
-          goals = m.homeScore;
-          if (m.homeScore > m.awayScore) resultPoints = 3;
-          else if (m.homeScore < m.awayScore) resultPoints = 1;
-          else {
-            if (m.isKnockout && m.penaltyWinner) {
-              resultPoints = m.penaltyWinner === 'home' ? 3 : 1;
+        let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
+        tbList.forEach(tb => {
+          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          let wins = 0, draws = 0, losses = 0, goalsFor = 0;
+          
+          teamMatches.forEach(m => {
+            if (m.home === tb.name) {
+              goalsFor += m.homeScore;
+              if (m.homeScore > m.awayScore) wins++;
+              else if (m.homeScore < m.awayScore) losses++;
+              else {
+                if (m.isKnockout && m.penaltyWinner) {
+                  if (m.penaltyWinner === 'home') wins++; else losses++;
+                } else draws++;
+              }
             } else {
-              resultPoints = 2;
+              goalsFor += m.awayScore;
+              if (m.awayScore > m.homeScore) wins++;
+              else if (m.awayScore < m.homeScore) losses++;
+              else {
+                if (m.isKnockout && m.penaltyWinner) {
+                  if (m.penaltyWinner === 'away') wins++; else losses++;
+                } else draws++;
+              }
             }
-          }
-        } else {
-          goals = m.awayScore;
-          if (m.awayScore > m.homeScore) resultPoints = 3;
-          else if (m.awayScore < m.homeScore) resultPoints = 1;
-          else {
-            if (m.isKnockout && m.penaltyWinner) {
-              resultPoints = m.penaltyWinner === 'away' ? 3 : 1;
-            } else {
-              resultPoints = 2;
-            }
-          }
-        }
+          });
+          
+          totalPts += (tb.points || 0); totalPlayed += teamMatches.length;
+          totalW += wins; totalD += draws; totalL += losses; totalGF += goalsFor;
+          
+          const eliminated = isTeamEliminated(tb.name);
+          const statusBadge = eliminated 
+            ? '<span style="color:#f43f5e; font-weight:600; font-size:11px;">ตกรอบ</span>'
+            : '<span style="color:#34d399; font-weight:600; font-size:11px;">ยังอยู่</span>';
+          
+          statsHTML += `
+            <tr style="border-left: 3px solid var(--zone-${tb.zone});">
+              <td>${tb.name}</td>
+              <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${tb.zone.toUpperCase()}</span></td>
+              <td>${teamMatches.length}</td>
+              <td style="color:#34d399;">${wins}</td>
+              <td style="color:var(--zone-yellow);">${draws}</td>
+              <td style="color:#f43f5e;">${losses}</td>
+              <td>${goalsFor}</td>
+              <td style="font-weight:700; color:var(--primary);">${(tb.points || 0).toFixed(1)}</td>
+              <td>${statusBadge}</td>
+            </tr>
+          `;
+        });
         
-        const matchPts = (resultPoints + goals) * tb.multiplier;
-        const resText = resultPoints === 3 
-          ? '<span style="color:var(--zone-green)">ชนะ</span>' 
-          : (resultPoints === 2 ? '<span style="color:var(--zone-yellow)">เสมอ</span>' : '<span style="color:var(--zone-red-orange)">แพ้</span>');
-        
-        matchHistoryHTML += `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>แมตช์ที่ ${m.id}: ${m.home} ${m.homeScore} - ${m.awayScore} ${m.away} (${resText})</span>
-            <span style="font-weight: 600; color: rgba(255,255,255,0.6)">+${matchPts.toFixed(1)} แต้ม</span>
+        statsHTML += `
+              </tbody>
+              <tfoot>
+                <tr style="background-color:rgba(255,255,255,0.03); font-weight:700;">
+                  <td>รวมทั้งหมด</td>
+                  <td></td>
+                  <td>${totalPlayed}</td>
+                  <td style="color:#34d399;">${totalW}</td>
+                  <td style="color:var(--zone-yellow);">${totalD}</td>
+                  <td style="color:#f43f5e;">${totalL}</td>
+                  <td>${totalGF}</td>
+                  <td style="color:var(--primary);">${totalPts.toFixed(1)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         `;
-      });
-      matchHistoryHTML += '</div>';
-    } else {
-      matchHistoryHTML = '<div style="margin-top: 6px; font-size: 11px; color: var(--text-muted); font-style: italic; padding-left: 12px;">ยังไม่มีการแข่งขัน</div>';
+        
+        statsContainer.innerHTML = statsHTML;
+        
+        // Toggle stats visibility
+        const toggleBtn = document.getElementById('toggle-team-stats-btn');
+        const tableWrapper = document.getElementById('team-stats-table-wrapper');
+        const arrow = document.getElementById('toggle-stats-arrow');
+        if (toggleBtn && tableWrapper) {
+          toggleBtn.addEventListener('click', () => {
+            const isHidden = tableWrapper.style.display === 'none';
+            tableWrapper.style.display = isHidden ? 'block' : 'none';
+            if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+          });
+        }
+      }
+
+      // ── Per-team list with match history ────────────────────────────
+      const grid = document.getElementById('detail-teams-grid');
+      if (grid) {
+        grid.innerHTML = '';
+        const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
+        
+        tbList.forEach(tb => {
+          const item = document.createElement('div');
+          
+          const eliminated = isTeamEliminated(tb.name);
+          const elimBadge = eliminated 
+            ? '<span class="badge badge-red" style="font-size:9.5px; padding:2px 6px;">ตกรอบแล้ว</span>' 
+            : '<span class="badge badge-green" style="font-size:9.5px; padding:2px 6px;">ยังอยู่ในเส้นทาง</span>';
+            
+          const elimToggleBtn = isAdmin
+            ? `<button class="btn btn-secondary toggle-elim-btn" data-team="${(tb.name || '').replace(/'/g, "\\'")}" style="padding: 2px 8px; font-size: 10px; height: auto; margin-left: 8px; background-color: rgba(255,255,255,0.03);">
+                 ${eliminated ? '✔️ คืนสิทธิ์' : '❌ ตกรอบ'}
+               </button>`
+            : '';
+
+          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          let matchHistoryHTML = '';
+          
+          if (teamMatches.length > 0) {
+            matchHistoryHTML = '<div style="margin-top: 8px; font-size: 11px; padding: 8px 12px; border-radius: 8px; background-color: rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 6px; border-left: 2px solid rgba(255,255,255,0.08);">';
+            teamMatches.forEach(m => {
+              let resultPoints = 0;
+              let goals = 0;
+              
+              if (m.home === tb.name) {
+                goals = m.homeScore;
+                if (m.homeScore > m.awayScore) resultPoints = 3;
+                else if (m.homeScore < m.awayScore) resultPoints = 1;
+                else {
+                  if (m.isKnockout && m.penaltyWinner) {
+                    resultPoints = m.penaltyWinner === 'home' ? 3 : 1;
+                  } else {
+                    resultPoints = 2;
+                  }
+                }
+              } else {
+                goals = m.awayScore;
+                if (m.awayScore > m.homeScore) resultPoints = 3;
+                else if (m.awayScore < m.homeScore) resultPoints = 1;
+                else {
+                  if (m.isKnockout && m.penaltyWinner) {
+                    resultPoints = m.penaltyWinner === 'away' ? 3 : 1;
+                  } else {
+                    resultPoints = 2;
+                  }
+                }
+              }
+              
+              const matchPts = (resultPoints + goals) * (tb.multiplier || 1);
+              const resText = resultPoints === 3 
+                ? '<span style="color:var(--zone-green)">ชนะ</span>' 
+                : (resultPoints === 2 ? '<span style="color:var(--zone-yellow)">เสมอ</span>' : '<span style="color:var(--zone-red-orange)">แพ้</span>');
+              
+              matchHistoryHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>แมตช์ที่ ${m.id}: ${m.home} ${m.homeScore} - ${m.awayScore} ${m.away} (${resText})</span>
+                  <span style="font-weight: 600; color: rgba(255,255,255,0.6)">+${matchPts.toFixed(1)} แต้ม</span>
+                </div>
+              `;
+            });
+            matchHistoryHTML += '</div>';
+          } else {
+            matchHistoryHTML = '<div style="margin-top: 6px; font-size: 11px; color: var(--text-muted); font-style: italic; padding-left: 12px;">ยังไม่มีการแข่งขัน</div>';
+          }
+
+          item.classList.add('player-team-item');
+          item.style.cssText = `background-color: rgba(30, 41, 59, 0.3); padding: 14px; border-radius: 12px; border-left: 4px solid var(--zone-${tb.zone}); border-top: 1px solid rgba(255,255,255,0.02); display: flex; flex-direction: column; gap: 4px;`;
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <strong style="font-size: 14px;">${tb.name}</strong>
+                <span style="font-size:10px; color:var(--text-secondary);">โซน: ${tb.zone.toUpperCase()} (x${tb.multiplier || 1})</span>
+                ${elimBadge}
+                ${elimToggleBtn}
+              </div>
+              <div style="text-align: right;">
+                <strong style="color:var(--primary); font-size: 15px;">${(tb.points || 0).toFixed(2)} แต้ม</strong>
+              </div>
+            </div>
+            ${matchHistoryHTML}
+          `;
+          grid.appendChild(item);
+        });
+        
+        // Toggle-elim buttons (admin)
+        grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const team = btn.getAttribute('data-team');
+            if (manualEliminatedTeams.has(team)) {
+              manualEliminatedTeams.delete(team);
+            } else {
+              manualEliminatedTeams.add(team);
+            }
+            await saveEliminatedTeams();
+            recalculateAll();
+            openPlayerDetails(name);
+            renderDashboard();
+            if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
+            if (document.getElementById('players') && document.getElementById('players').classList.contains('active')) renderPlayers();
+          });
+        });
+      }
+
+      // Admin buttons (delete / edit)
+      const deleteBtn = document.getElementById('delete-player-btn');
+      const editBtn = document.getElementById('edit-player-selections-btn');
+      
+      if (deleteBtn) {
+        deleteBtn.onclick = () => {
+          showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
+            players = players.filter(p => p.name !== name);
+            localStorage.setItem('worldcup_players', JSON.stringify(players));
+            if (isSyncEnabled) {
+              await saveToServer();
+            }
+            const ov = document.getElementById('player-details-drawer-overlay');
+            if (ov) ov.classList.remove('active');
+            recalculateAll();
+            renderDashboard();
+            renderLeaderboard();
+            renderPlayers();
+          });
+        };
+      }
+      
+      if (editBtn) {
+        editBtn.onclick = () => {
+          const ov = document.getElementById('player-details-drawer-overlay');
+          if (ov) ov.classList.remove('active');
+          openPlayerForm(player);
+        };
+      }
+      
+      if (deleteBtn && editBtn) {
+        if (isAdmin) {
+          deleteBtn.style.display = 'block';
+          editBtn.style.display = 'block';
+        } else {
+          deleteBtn.style.display = 'none';
+          editBtn.style.display = 'none';
+        }
+      }
+    } catch (innerErr) {
+      console.error('[openPlayerDetails] error while building details content (drawer is already visible):', innerErr);
     }
 
-    item.classList.add('player-team-item');
-    item.style.cssText = `background-color: rgba(30, 41, 59, 0.3); padding: 14px; border-radius: 12px; border-left: 4px solid var(--zone-${tb.zone}); border-top: 1px solid rgba(255,255,255,0.02); display: flex; flex-direction: column; gap: 4px;`;
-    item.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-          <strong style="font-size: 14px;">${tb.name}</strong>
-          <span style="font-size:10px; color:var(--text-secondary);">โซน: ${tb.zone.toUpperCase()} (x${tb.multiplier})</span>
-          ${elimBadge}
-          ${elimToggleBtn}
-        </div>
-        <div style="text-align: right;">
-          <strong style="color:var(--primary); font-size: 15px;">${tb.points.toFixed(2)} แต้ม</strong>
-        </div>
-      </div>
-      ${matchHistoryHTML}
-    `;
-    grid.appendChild(item);
-  });
-  
-  // Set toggle handler listeners
-  grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const team = btn.getAttribute('data-team');
-      if (manualEliminatedTeams.has(team)) {
-        manualEliminatedTeams.delete(team);
-      } else {
-        manualEliminatedTeams.add(team);
-      }
-      await saveEliminatedTeams();
-      recalculateAll();
-      openPlayerDetails(name); // Refresh view
-      renderDashboard();
-      if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
-      if (document.getElementById('players').classList.contains('active')) renderPlayers();
-    });
-  });
-  
-  // Set delete handler
-  const deleteBtn = document.getElementById('delete-player-btn');
-  deleteBtn.onclick = () => {
-    showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
-      players = players.filter(p => p.name !== name);
-      localStorage.setItem('worldcup_players', JSON.stringify(players));
-      if (isSyncEnabled) {
-        await saveToServer();
-      }
-      document.getElementById('player-details-drawer-overlay').classList.remove('active');
-      recalculateAll();
-      renderDashboard();
-      renderLeaderboard();
-      renderPlayers();
-    });
-  };
-  
-  // Set edit handler
-  const editBtn = document.getElementById('edit-player-selections-btn');
-  editBtn.onclick = () => {
-    document.getElementById('player-details-drawer-overlay').classList.remove('active');
-    openPlayerForm(player);
-  };
-  
-  if (isAdmin) {
-    deleteBtn.style.display = 'block';
-    editBtn.style.display = 'block';
-  } else {
-    deleteBtn.style.display = 'none';
-    editBtn.style.display = 'none';
-  }
-  
-  const overlay = document.getElementById('player-details-drawer-overlay');
-  overlay.classList.add('active');
   } catch (err) {
     console.error('Error in openPlayerDetails:', err);
+    // Drawer is already open from the top of the function; nothing else to do here.
   }
 }
 
@@ -4542,10 +4691,13 @@ function openPlayerForm(player = null) {
       label.style.cssText = 'display:flex; align-items:center; gap:8px; background-color:rgba(15,23,42,0.2); padding:10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;';
       
       const isChecked = selectedTeamsSet.has(t.name) ? 'checked' : '';
+      // Unique id + explicit for= to satisfy a11y (no "label not associated" warning)
+      const safeId = `form-team-${t.zone}-${t.name.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
       label.innerHTML = `
-        <input type="checkbox" class="form-team-checkbox" data-zone="${t.zone}" value="${t.name}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
+        <input type="checkbox" id="${safeId}" class="form-team-checkbox" data-zone="${t.zone}" value="${t.name}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
         ${t.name}
       `;
+      label.setAttribute('for', safeId);
       zoneGrid.appendChild(label);
     });
     
@@ -4705,6 +4857,8 @@ async function handleMatchFormSubmit() {
 document.addEventListener('DOMContentLoaded', async () => {
   await initData();
   setupNavigation();
+  attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
+  attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
   
   // Initialize admin status
   initAdminState();
@@ -4889,22 +5043,36 @@ async function exportMatchesImage() {
 
   const tbody = document.createElement('tbody');
 
+  // Zone colors (matching the live site badges)
+  const zoneColors = {
+    blue: '#38bdf8',
+    green: '#22c55e',
+    yellow: '#facc15',
+    'light-orange': '#fb923c',
+    'red-orange': '#f87171'
+  };
+
   finishedMatches.forEach(m => {
     const hTeam = TEAMS.find(t => t.name === m.home);
     const aTeam = TEAMS.find(t => t.name === m.away);
     const hMult = hTeam ? hTeam.multiplier : 1;
     const aMult = aTeam ? aTeam.multiplier : 1;
+    const hZone = hTeam ? hTeam.zone : 'blue';
+    const aZone = aTeam ? aTeam.zone : 'blue';
 
     const hPts = getMatchGamePointsForTeam(m, m.home, hMult);
     const aPts = getMatchGamePointsForTeam(m, m.away, aMult);
 
-    // Determine result category for coloring (same logic as on-screen)
-    const hResult = getMatchResultForTeam(m, m.home); // 'win' | 'draw' | 'loss'
+    // Result-based colors for the POINTS only (win/draw/loss)
+    const hResult = getMatchResultForTeam(m, m.home);
     const aResult = getMatchResultForTeam(m, m.away);
 
-    // Exact same colors as the live Matches page
-    const hColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
-    const aColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
+    const hPtsColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
+    const aPtsColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
+
+    // Zone colors for the TEAM NAMES (restore original behavior)
+    const hNameColor = zoneColors[hZone] || '#e2e8f0';
+    const aNameColor = zoneColors[aZone] || '#e2e8f0';
 
     const dateStr = m.date ? formatThaiDate(m.date) : '-';
 
@@ -4914,14 +5082,14 @@ async function exportMatchesImage() {
     tr.innerHTML = `
       <td style="padding:6px 10px; white-space:nowrap; font-size:12px; color:#94a3b8;">${dateStr}</td>
       <td style="padding:6px 10px; text-align:center; font-size:12px; color:#64748b;">${m.id}</td>
-      <td style="padding:6px 12px; text-align:right; font-weight:600;">${m.home}</td>
+      <td style="padding:6px 12px; text-align:right; font-weight:600; color:${hNameColor};">${m.home}</td>
       <td style="padding:6px 14px; text-align:center; font-weight:800; font-size:15px; background:rgba(15,23,42,0.45);">
         ${m.homeScore} - ${m.awayScore}
       </td>
-      <td style="padding:6px 12px; font-weight:600;">${m.away}</td>
+      <td style="padding:6px 12px; font-weight:600; color:${aNameColor};">${m.away}</td>
       <td style="padding:6px 10px; font-size:12px; line-height:1.3;">
-        <div><span style="color:${hColor}; font-weight:600;">${m.home} +${hPts.toFixed(1)}</span></div>
-        <div><span style="color:${aColor}; font-weight:600;">${m.away} +${aPts.toFixed(1)}</span></div>
+        <div><span style="color:${hPtsColor}; font-weight:600;">${m.home} +${hPts.toFixed(1)}</span></div>
+        <div><span style="color:${aPtsColor}; font-weight:600;">${m.away} +${aPts.toFixed(1)}</span></div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -5122,6 +5290,58 @@ async function exportMatchesImage() {
       }
     });
   }
+
+  // Bottom close button inside player details (very easy to tap on mobile)
+  const bottomCloseBtn = document.getElementById('player-detail-bottom-close-btn');
+  if (bottomCloseBtn) {
+    bottomCloseBtn.addEventListener('click', () => {
+      const overlay = document.getElementById('player-details-drawer-overlay');
+      if (overlay) overlay.classList.remove('active');
+    });
+  }
+
+  // === Safe outside-close for player stats drawer (mobile friendly) ===
+  // We ONLY auto-close the player stats drawer in these explicit safe cases:
+  // - Backdrop click (the dedicated listener below that checks e.target === overlay)
+  // - Explicit close buttons (× in header + big red button at bottom)
+  // - Top navigation clicks (setupNavigation calls closePlayerDetailsIfOpen)
+  // - Mobile header taps (brand/hamburger)
+  // - Main content clicks that are NOT coming from a player row (.hoverable)
+
+  // Mobile header tap → close stats drawer (safe)
+  const mobileHeader = document.getElementById('mobile-header');
+  if (mobileHeader) {
+    mobileHeader.addEventListener('click', () => {
+      const overlay = document.getElementById('player-details-drawer-overlay');
+      if (overlay && overlay.classList.contains('active')) {
+        setTimeout(() => overlay.classList.remove('active'), 0);
+      }
+    });
+  }
+
+  // Main content clicks: close only if NOT on a player row.
+  // Player rows (.hoverable) are the openers — we must never swallow their click here.
+  const mainContentArea = document.getElementById('main-content');
+  if (mainContentArea) {
+    mainContentArea.addEventListener('click', (e) => {
+      const overlay = document.getElementById('player-details-drawer-overlay');
+      if (!overlay || !overlay.classList.contains('active')) return;
+
+      // Do not close if the click originated from a player row (the thing that opens the drawer)
+      if (e.target.closest('.hoverable')) return;
+
+      const drawer = overlay.querySelector('.drawer');
+      if (drawer && !drawer.contains(e.target)) {
+        setTimeout(() => {
+          if (overlay.classList.contains('active')) overlay.classList.remove('active');
+        }, 0);
+      }
+    });
+  }
+
+  // We removed all previous blanket document capture listeners (click + touchstart with capture:true)
+  // because they were firing before the row click handlers and closing the drawer immediately after (or before) it opened.
+  // That was the root cause of "pop up ไม่เด้งขึ้นมา".
   
   document.getElementById('close-form-btn').addEventListener('click', () => {
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
