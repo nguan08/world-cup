@@ -2198,6 +2198,9 @@ let players = [];
 let isAdmin = false;
 let isSyncEnabled = false;
 
+// Simulation state (local only, not saved to server/localStorage)
+let simulationScores = {};
+
 function initAdminState() {
   isAdmin = sessionStorage.getItem('worldcup_isAdmin') === 'true';
   updateAdminUI();
@@ -2471,7 +2474,7 @@ async function saveToServer() {
 }
 
 // Calculate team points from matches
-function calculateTeamPoints() {
+function calculateTeamPoints(targetMatches = matches) {
   const teamScores = {};
   
   // Initialize all teams with 0 points
@@ -2488,12 +2491,15 @@ function calculateTeamPoints() {
   });
   
   // Compute match points
-  matches.forEach(match => {
-    if (match.status !== 'finished') return;
+  targetMatches.forEach(match => {
+    const isSimulated = simulationScores[match.id];
+    if (match.status !== 'finished' && !isSimulated) return;
     
-    const h = match.homeScore;
-    const a = match.awayScore;
+    const h = isSimulated ? isSimulated.homeScore : match.homeScore;
+    const a = isSimulated ? isSimulated.awayScore : match.awayScore;
     
+    if (h === null || a === null) return;
+
     // Add stats to teams
     if (teamScores[match.home]) {
       teamScores[match.home].played++;
@@ -3040,6 +3046,31 @@ function setupNavigation() {
   });
 }
 
+function handleSimulationScoreChange(matchId, isHome, val) {
+  const score = val === '' ? null : parseInt(val);
+  if (!simulationScores[matchId]) {
+    const m = matches.find(x => x.id == matchId);
+    simulationScores[matchId] = {
+      homeScore: m.homeScore,
+      awayScore: m.awayScore
+    };
+  }
+  if (isHome) simulationScores[matchId].homeScore = score;
+  else simulationScores[matchId].awayScore = score;
+
+  // If both scores are null, remove simulation for this match
+  if (simulationScores[matchId].homeScore === null && simulationScores[matchId].awayScore === null) {
+    delete simulationScores[matchId];
+  }
+
+  // Trigger re-calculation and re-render of dashboard components
+  // We use a slight delay for better input feel
+  if (window._simTimeout) clearTimeout(window._simTimeout);
+  window._simTimeout = setTimeout(() => {
+    renderDashboard();
+  }, 300);
+}
+
 // RENDERING - DASHBOARD
 function renderRecentMatches() {
   const container = getCachedEl('recent-matches-container');
@@ -3074,8 +3105,11 @@ function renderRecentMatches() {
     
     const isToday = m.date === todayStr;
     const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
-    const statusClass = m.status === 'finished' ? 'badge-green' : 'badge-red';
-    const statusLabel = m.status === 'finished' ? 'จบการแข่งขัน' : 'รอการแข่งขัน';
+    const isSimulated = simulationScores[m.id];
+    const isFinished = m.status === 'finished';
+    
+    const statusClass = isFinished ? 'badge-green' : (isSimulated ? 'badge-yellow' : 'badge-red');
+    const statusLabel = isFinished ? 'จบการแข่งขัน' : (isSimulated ? 'กำลังจำลองผล' : 'รอการแข่งขัน');
 
     const hTeamObj = TEAMS.find(t => t.name === m.home);
     const aTeamObj = TEAMS.find(t => t.name === m.away);
@@ -3084,11 +3118,31 @@ function renderRecentMatches() {
     const hMult = hTeamObj ? hTeamObj.multiplier : 1;
     const aMult = aTeamObj ? aTeamObj.multiplier : 1;
 
-    const hScore = m.homeScore !== null ? m.homeScore : '-';
-    const aScore = m.awayScore !== null ? m.awayScore : '-';
+    let hScore, aScore;
+    if (isFinished) {
+      hScore = m.homeScore;
+      aScore = m.awayScore;
+    } else {
+      hScore = isSimulated ? isSimulated.homeScore : null;
+      aScore = isSimulated ? isSimulated.awayScore : null;
+    }
 
-    const hPts = m.status === 'finished' ? getMatchGamePointsForTeam(m, m.home, hMult).toFixed(1) : null;
-    const aPts = m.status === 'finished' ? getMatchGamePointsForTeam(m, m.away, aMult).toFixed(1) : null;
+    const hPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.home, hMult).toFixed(1) : null;
+    const aPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.away, aMult).toFixed(1) : null;
+
+    const scoreDisplay = isFinished ? `
+      <div class="recent-match-score" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); padding: 5px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);">
+        <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${hScore}</span>
+        <span style="font-size: 12px; color: var(--text-muted); opacity: 0.5;">:</span>
+        <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${aScore}</span>
+      </div>
+    ` : `
+      <div class="recent-match-score-sim" style="display: flex; align-items: center; gap: 4px;">
+        <input type="number" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" style="width: 34px; height: 34px; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-weight: 800; font-size: 16px;">
+        <span style="font-size: 12px; color: var(--text-muted);">:</span>
+        <input type="number" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" style="width: 34px; height: 34px; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-weight: 800; font-size: 16px;">
+      </div>
+    `;
 
     card.innerHTML = `
       <div class="match-header" style="font-size: 10px; margin-bottom: 12px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
@@ -3102,11 +3156,7 @@ function renderRecentMatches() {
         </div>
         
         <div style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
-          <div class="recent-match-score" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); padding: 5px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);">
-            <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${hScore}</span>
-            <span style="font-size: 12px; color: var(--text-muted); opacity: 0.5;">:</span>
-            <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${aScore}</span>
-          </div>
+          ${scoreDisplay}
           ${hPts !== null ? `
             <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 6px; padding: 0 2px;">
               <span style="font-size: 10px; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);">+${hPts}</span>
@@ -3120,6 +3170,7 @@ function renderRecentMatches() {
           <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">x${aMult}</div>
         </div>
       </div>
+      ${!isFinished ? `<div style="font-size: 9px; color: var(--text-muted); margin-top: 8px; text-align: center; opacity: 0.6;">ลองกรอกคะแนนเพื่อจำลองอันดับ</div>` : ''}
     `;
     fragment.appendChild(card);
   });
@@ -3779,7 +3830,7 @@ function renderScoreChart() {
     const currentVal = highlightSelect.value || lastHighlightPlayer;
     highlightSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
     
-    const sortedForSelect = [...processedPlayers].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    const sortedForSelect = [...processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
     sortedForSelect.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.name;

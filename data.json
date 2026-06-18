@@ -88,17 +88,6 @@
       "penaltyWinner": null
     },
     {
-      "id": 100,
-      "home": "เยอรมนี",
-      "away": "โครเอเชีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
-      "isKnockout": true,
-      "isFinal": true,
-      "date": "2026-07-19"
-    },
-    {
       "home": "เยอรมนี",
       "away": "คูราเซา",
       "homeScore": 7,
