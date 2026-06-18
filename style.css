@@ -217,7 +217,7 @@ body {
   justify-content: flex-end;
 }
 
-.recent-match-score {
+.recent-match-score { white-space: nowrap !important; flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -237,7 +237,7 @@ body {
 }
 
 @media (max-width: 576px) {
-  .recent-match-score {
+  .recent-match-score { white-space: nowrap !important; flex-shrink: 0;
     font-size: 16px;
     padding: 4px 8px;
     min-width: 60px;
@@ -262,11 +262,11 @@ body {
   background: linear-gradient(145deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.5)) !important;
 }
 
-.dashboard-match-card .recent-match-score {
+.dashboard-match-card .recent-match-score { white-space: nowrap !important; flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
-.dashboard-match-card:hover .recent-match-score {
+.dashboard-match-card:hover .recent-match-score { white-space: nowrap !important; flex-shrink: 0;
   background: rgba(99, 102, 241, 0.1) !important;
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
@@ -2161,4 +2161,332 @@ tr.leader-second-row {
 
 .team-stats-summary tr:hover td {
   background-color: rgba(255,255,255,0.02);
+}
+
+/* Team Popularity Highlighting */
+.team-highlight-p1 { background-color: rgba(34, 197, 94, 0.1) !important; border-radius: 4px; padding: 0 4px; }
+.team-highlight-p2 { background-color: rgba(34, 197, 94, 0.2) !important; border-radius: 4px; padding: 0 4px; }
+.team-highlight-p3 { background-color: rgba(34, 197, 94, 0.3) !important; border-radius: 4px; padding: 0 4px; }
+.team-highlight-p4 { background-color: rgba(34, 197, 94, 0.4) !important; border-radius: 4px; padding: 0 4px; }
+.team-highlight-p5 { background-color: rgba(34, 197, 94, 0.6) !important; border-radius: 4px; padding: 0 4px; }
+
+.team-clickable { cursor: pointer; text-decoration: underline dotted rgba(255,255,255,0.3); }
+.team-clickable:hover { text-decoration-style: solid; color: var(--primary); }
+
+/* Team Players Popup */
+.team-players-popup {
+  position: fixed;
+  z-index: 9999;
+  background-color: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  max-width: 250px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+.team-players-popup h4 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--primary);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 4px;
+}
+
+.team-players-list-small {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-players-list-small li {
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+
+/* Team Popularity Progress Bar by Zone */
+.team-badge {
+  /* Ensure a base background if --pop-percent is 0 */
+  background-size: 100% 100%;
+}
+
+.match-team-col .team-blue {
+  background: linear-gradient(to right, rgba(56, 189, 248, 0.45) var(--pop-percent, 0%), rgba(56, 189, 248, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-blue);
+  border-left-color: var(--zone-blue);
+}
+.match-team-col .team-green {
+  background: linear-gradient(to right, rgba(34, 197, 94, 0.45) var(--pop-percent, 0%), rgba(34, 197, 94, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-green);
+  border-left-color: var(--zone-green);
+}
+.match-team-col .team-yellow {
+  background: linear-gradient(to right, rgba(250, 204, 21, 0.45) var(--pop-percent, 0%), rgba(250, 204, 21, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-yellow);
+  border-left-color: var(--zone-yellow);
+}
+.match-team-col .team-light-orange {
+  background: linear-gradient(to right, rgba(251, 146, 60, 0.45) var(--pop-percent, 0%), rgba(251, 146, 60, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-light-orange);
+  border-left-color: var(--zone-light-orange);
+}
+.match-team-col .team-red-orange {
+  background: linear-gradient(to right, rgba(248, 113, 113, 0.45) var(--pop-percent, 0%), rgba(248, 113, 113, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-red-orange);
+  border-left-color: var(--zone-red-orange);
+}
+.match-team-col .team-grey {
+  background: linear-gradient(to right, rgba(148, 163, 184, 0.45) var(--pop-percent, 0%), rgba(148, 163, 184, 0.05) var(--pop-percent, 0%)) !important;
+  color: var(--zone-grey);
+  border-left-color: #000;
+}
+
+/* Selection Popup Styles */
+.selection-popup {
+  position: absolute;
+  z-index: 1000;
+  background-color: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  min-width: 150px;
+  max-width: 250px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.selection-popup h4 {
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 4px;
+  color: var(--primary);
+  font-size: 13px;
+}
+
+.selection-popup ul {
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.selection-popup li {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+/* =========================================
+   GRID-BASED LAYOUT FOR MATCH ROWS
+   ========================================= */
+
+.match-body-grid {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.match-team-col {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.match-team-col.align-right {
+  align-items: center !important;
+}
+
+.team-mult-label {
+  font-size: 9px !important;
+  color: var(--text-muted) !important;
+  margin-top: 2px !important;
+  font-weight: 500 !important;
+}
+
+.match-center-col {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 80px !important;
+}
+
+.match-score-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+.score-num {
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  color: #fff !important;
+  line-height: 1 !important;
+}
+
+.score-divider {
+  font-size: 12px !important;
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+}
+
+.score-sim-input {
+  width: 34px !important;
+  height: 34px !important;
+  text-align: center !important;
+  background: rgba(0,0,0,0.4) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 6px !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  padding: 0 !important;
+}
+
+.match-pts-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin-top: 4px !important;
+  padding: 0 4px !important;
+}
+
+.pts-label {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: var(--primary) !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4) !important;
+}
+
+/* Badge override for stability */
+.team-badge {
+  font-size: 11px !important;
+  padding: 4px 6px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+  .match-body-grid {
+    gap: 5px !important;
+  }
+  .match-center-col {
+    min-width: 70px !important;
+  }
+  .score-sim-input {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+  .team-badge {
+    font-size: 10px !important;
+    padding: 3px 4px !important;
+  }
+  .pts-label {
+    font-size: 9px !important;
+  }
+}
+
+/* =========================================
+   MODERN SCROLLBAR & INPUT CENTERING
+   ========================================= */
+
+/* Custom Scrollbar for Chrome, Safari and newer Edge */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 10px;
+  border: 2px solid var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.5);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.3) var(--bg-primary);
+}
+
+/* Centering text in Simulation and Score Inputs */
+.score-sim-input, 
+.score-input, 
+.home-score-input, 
+.away-score-input {
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  line-height: normal !important;
+}
+
+/* Ensure number inputs don't have default browser padding/styles that break centering */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Adjust score divider centering */
+.score-divider {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+/* =========================================
+   PROGRESS BAR GRADIENTS (Restored)
+   ========================================= */
+.team-blue {
+  background: linear-gradient(to right, rgba(56, 189, 248, 0.4) var(--pop-percent, 0%), rgba(56, 189, 248, 0.05) var(--pop-percent, 0%)) !important;
+}
+.team-green {
+  background: linear-gradient(to right, rgba(34, 197, 94, 0.4) var(--pop-percent, 0%), rgba(34, 197, 94, 0.05) var(--pop-percent, 0%)) !important;
+}
+.team-yellow {
+  background: linear-gradient(to right, rgba(250, 204, 21, 0.4) var(--pop-percent, 0%), rgba(250, 204, 21, 0.05) var(--pop-percent, 0%)) !important;
+}
+.team-light-orange {
+  background: linear-gradient(to right, rgba(251, 146, 60, 0.4) var(--pop-percent, 0%), rgba(251, 146, 60, 0.05) var(--pop-percent, 0%)) !important;
+}
+.team-red-orange {
+  background: linear-gradient(to right, rgba(248, 113, 113, 0.4) var(--pop-percent, 0%), rgba(248, 113, 113, 0.05) var(--pop-percent, 0%)) !important;
+}
+.team-grey {
+  background: linear-gradient(to right, rgba(148, 163, 184, 0.4) var(--pop-percent, 0%), rgba(148, 163, 184, 0.05) var(--pop-percent, 0%)) !important;
 }

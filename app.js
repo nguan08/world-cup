@@ -2300,8 +2300,12 @@ async function initData() {
 
   const hasServerData = serverData.matches && serverData.matches.length > 0;
   if (hasServerData) {
-    console.log('[Sync] Server data available; clearing stale local cache to ensure current scores');
-    clearCachedData();
+    const localMatchesStr = localStorage.getItem('worldcup_matches');
+    const serverMatchesStr = JSON.stringify(serverData.matches || []);
+    if (localMatchesStr !== serverMatchesStr) {
+      console.log('[Sync] Server data available; clearing stale local cache to ensure current scores');
+      clearCachedData();
+    }
   }
 
   // 3. Load database state
@@ -2653,7 +2657,7 @@ function processPlayers(teamScores) {
   // Green: 25 players
   // Red: bottom (the rest)
   const total = processed.length;
-  const blueCount = Math.floor(total * 0.20); 
+  const blueCount = 12; 
   const greenCount = 25; 
   
   // Rough indexes for boundaries
@@ -2684,15 +2688,14 @@ function processPlayers(teamScores) {
   // If a Green player has the same score as the cutoff of Red, demote them to Red!
   processed.forEach(p => {
     if (p.zone === 'blue' && p.totalScore === blueCutoffScore) {
-      // Check if there is someone in the green zone with this score
       const hasGreenWithSameScore = processed.some(x => x.zone === 'green' && x.totalScore === p.totalScore);
-      if (hasGreenWithSameScore || p.rank > blueCount) {
+      if (hasGreenWithSameScore && p.rank > blueCount) {
         p.zone = 'green';
       }
     }
     if (p.zone === 'green' && p.totalScore === greenCutoffScore) {
       const hasRedWithSameScore = processed.some(x => x.zone === 'red' && x.totalScore === p.totalScore);
-      if (hasRedWithSameScore || p.rank > (blueCount + greenCount)) {
+      if (hasRedWithSameScore && p.rank > (blueCount + greenCount)) {
         p.zone = 'red';
       }
     }
@@ -2967,6 +2970,7 @@ function setupNavigation() {
       if (tab === 'dashboard') renderDashboard();
       if (tab === 'leaderboard') renderLeaderboard({forceRecalc: false});
       if (tab === 'matches') renderMatches();
+      if (tab === 'statistics') renderStatistics();
       if (tab === 'players') renderPlayers();
       if (tab === 'teams') renderTeamsMatrix();
     });
@@ -3145,32 +3149,51 @@ function renderRecentMatches() {
     `;
 
     card.innerHTML = `
-      <div class="match-header" style="font-size: 10px; margin-bottom: 12px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
+      <div class="match-header" style="font-size: 10px; margin-bottom: 8px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-weight: 600; color: var(--text-secondary);">${dateLabel} · ${m.date}</span>
         <span class="badge ${statusClass}" style="font-size: 8px; padding: 1px 6px; border-radius: 4px;">${statusLabel}</span>
       </div>
-      <div class="match-body" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-        <div class="match-team" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 0;">
-          <div class="team-badge team-${hZone}" style="font-size: 11px; padding: 4px 0; width: 100%; justify-content: center; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 6px;">${m.home}</div>
-          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">x${hMult}</div>
+      
+      <div class="match-body-grid">
+        <!-- Home Team -->
+        <div class="match-team-col">
+          <div class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${m.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.home)}%;">${m.home}</div>
+          <div class="team-mult-label">x${hMult}</div>
         </div>
-        
-        <div style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
-          ${scoreDisplay}
+
+        <!-- Center: Scores and Points -->
+        <div class="match-center-col">
+          ${isFinished ? `
+            <div class="match-score-row">
+              <span class="score-num">${hScore}</span>
+              <span class="score-divider">:</span>
+              <span class="score-num">${aScore}</span>
+            </div>
+          ` : `
+            <div class="match-score-row">
+              <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
+              <span class="score-divider">:</span>
+              <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
+            </div>
+          `}
+          
           ${hPts !== null ? `
-            <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 6px; padding: 0 2px;">
-              <span style="font-size: 10px; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);">+${hPts}</span>
-              <span style="font-size: 10px; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);">+${aPts}</span>
+            <div class="match-pts-row">
+              <span class="pts-label">${hPts > 0 ? '+' : ''}${hPts}</span>
+              <div style="width: 10px;"></div> <!-- space for colon area -->
+              <span class="pts-label">${aPts > 0 ? '+' : ''}${aPts}</span>
             </div>
           ` : ''}
         </div>
 
-        <div class="match-team" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 0;">
-          <div class="team-badge team-${aZone}" style="font-size: 11px; padding: 4px 0; width: 100%; justify-content: center; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 6px;">${m.away}</div>
-          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">x${aMult}</div>
+        <!-- Away Team -->
+        <div class="match-team-col align-right">
+          <div class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${m.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.away)}%;">${m.away}</div>
+          <div class="team-mult-label">x${aMult}</div>
         </div>
       </div>
-      ${!isFinished ? `<div style="font-size: 9px; color: var(--text-muted); margin-top: 8px; text-align: center; opacity: 0.6;">ลองกรอกคะแนนเพื่อจำลองอันดับ</div>` : ''}
+      
+      ${!isFinished ? `<div style="font-size: 8px; color: var(--text-muted); margin-top: 4px; text-align: center; opacity: 0.6;">ทดลองกรอกคะแนนเพื่อจำลองผล</div>` : ''}
     `;
     fragment.appendChild(card);
   });
@@ -3351,6 +3374,95 @@ function renderDashboard() {
 }
 
 // RENDERING - LEADERBOARD (full table + average footer)
+// Helper to group teams by zone and build filter menu HTML
+function buildTeamFilterHTML() {
+  const teamsByZone = {};
+  TEAMS.forEach(t => {
+    if (!teamsByZone[t.zone]) teamsByZone[t.zone] = [];
+    teamsByZone[t.zone].push(t);
+  });
+
+  const zoneLabels = {
+    blue: 'Blue Zone (x1.0 - x1.3)',
+    green: 'Green Zone (x1.4 - x1.7)',
+    yellow: 'Yellow Zone (x1.8 - x2.1)',
+    'grey': 'Grey (x2.2 - x2.6)',
+    'red-orange': 'Red-Orange (x2.7 - x3.0)'
+  };
+
+  let html = '';
+  Object.keys(zoneLabels).forEach(zoneKey => {
+    const zoneTeams = teamsByZone[zoneKey] || [];
+    if (zoneTeams.length === 0) return;
+
+    html += `
+      <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 8px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--zone-${zoneKey}); text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--zone-${zoneKey});"></span>
+          ${zoneLabels[zoneKey]}
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px;">
+    `;
+
+    const sortedZoneTeams = [...zoneTeams].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    sortedZoneTeams.forEach(t => {
+      html += `
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
+          <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
+          <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} (x${t.multiplier})</span>
+        </label>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+
+// Global initialization of team filters for any page
+function initTeamFilter(config) {
+  const { containerId, btnId, menuId, checkboxesContainerId, clearBtnId, onFilterChange } = config;
+  const container = document.getElementById(containerId);
+  const btn = document.getElementById(btnId);
+  const menu = document.getElementById(menuId);
+  const checkboxesContainer = document.getElementById(checkboxesContainerId);
+  const clearBtn = document.getElementById(clearBtnId);
+
+  if (btn && menu && checkboxesContainer) {
+    checkboxesContainer.innerHTML = buildTeamFilterHTML();
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = menu.style.display === 'none';
+      menu.style.display = isHidden ? 'block' : 'none';
+    });
+
+    menu.addEventListener('click', (e) => e.stopPropagation());
+
+    document.addEventListener('click', (e) => {
+      if (container && !container.contains(e.target)) {
+        menu.style.display = 'none';
+      }
+    });
+
+    checkboxesContainer.addEventListener('change', (e) => {
+      if (e.target && e.target.classList.contains('team-filter-checkbox')) {
+        onFilterChange();
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        checkboxesContainer.querySelectorAll('.team-filter-checkbox').forEach(cb => cb.checked = false);
+        onFilterChange();
+      });
+    }
+  }
+}
+
 function renderLeaderboard(options = {}) {
   const { forceRecalc = true } = options;
   if (forceRecalc) recalculateAll();
@@ -3358,9 +3470,11 @@ function renderLeaderboard(options = {}) {
   const searchEl = getCachedEl('leaderboard-search');
   const searchInput = (searchEl ? searchEl.value : '').toLowerCase().trim();
 
-  const checkboxes = document.querySelectorAll('.team-filter-checkbox');
+  // Get selected teams from filter
   const selectedTeams = [];
-  checkboxes.forEach(cb => { if (cb.checked) selectedTeams.push(cb.value); });
+  document.querySelectorAll('#team-filter-checkboxes-container .team-filter-checkbox').forEach(cb => {
+    if (cb.checked) selectedTeams.push(cb.value);
+  });
 
   let filtered = processedPlayers || [];
 
@@ -3369,6 +3483,13 @@ function renderLeaderboard(options = {}) {
   }
   if (selectedTeams.length > 0) {
     filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+  }
+
+  const btnText = document.getElementById('team-filter-btn-text');
+  if (btnText) {
+    btnText.textContent = selectedTeams.length > 0 
+      ? `🔍 กรองทีม: ${selectedTeams.length} ทีม` 
+      : '🔍 กรองตามทีมที่เลือก (ทั้งหมด)';
   }
 
   const tbody = getCachedEl('leaderboard-tbody');
@@ -4240,32 +4361,36 @@ function renderMatches() {
         <span>${matchMeta}</span>
       </div>
       
-      <div class="match-body">
-        <div class="match-team">
-          <span class="team-badge team-${hZone}">${match.home} (${hTeamObj ? hTeamObj.multiplier : 1})</span>
+      <div class="match-body-grid">
+        <!-- Home Team -->
+        <div class="match-team-col">
+          <span class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${match.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(match.home)}%;">${match.home} (${hTeamObj ? hTeamObj.multiplier : 1})</span>
         </div>
-        
-        <div class="match-score-inputs">
-          <input type="number" class="score-input home-score-input" data-match-id="${match.id}" value="${homeScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}>
-          <span class="match-vs">VS</span>
-          <input type="number" class="score-input away-score-input" data-match-id="${match.id}" value="${awayScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}>
+
+        <!-- Center: Scores -->
+        <div class="match-center-col">
+          <div class="match-score-row">
+            <input type="number" id="score-home-${match.id}" name="score-home-${match.id}" class="score-input home-score-input" data-match-id="${match.id}" value="${homeScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}> 
+            <span class="score-divider">VS</span>
+            <input type="number" id="score-away-${match.id}" name="score-away-${match.id}" class="score-input away-score-input" data-match-id="${match.id}" value="${awayScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}> 
+          </div>
         </div>
-        
-        <div class="match-team">
-          <span class="team-badge team-${aZone}">${match.away} (${aTeamObj ? aTeamObj.multiplier : 1})</span>
+
+        <!-- Away Team -->
+        <div class="match-team-col align-right">
+          <span class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${match.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(match.away)}%;">${match.away} (${aTeamObj ? aTeamObj.multiplier : 1})</span>
         </div>
       </div>
-      
+
       ${knockoutExtraUI}
-      
+
       ${pointsInfo}
-      
+
       <div class="match-footer" style="margin-top: 8px;">
         <span class="badge ${match.status === 'finished' ? 'badge-green' : 'badge-red'}">${match.status === 'finished' ? 'แข่งเสร็จสิ้น' : 'รอการแข่งขัน'}</span>
         <div style="display:${isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-secondary save-match-btn" data-match-id="${match.id}" style="padding: 6px 12px; font-size:12px;">บันทึกผล</button>
           <button class="btn btn-secondary clear-match-btn" data-match-id="${match.id}" style="padding: 6px 12px; font-size:12px; background-color: rgba(244,63,94,0.05); color: var(--accent); border-color: rgba(244,63,94,0.1)">ล้างผล</button>
-          <button class="btn btn-secondary delete-match-btn" data-match-id="${match.id}" style="padding: 6px 12px; font-size:12px; background-color: rgba(244,63,94,0.12); color: var(--accent); border-color: rgba(244,63,94,0.2)">🗑️ ลบคู่</button>
         </div>
       </div>
     `;
@@ -4404,63 +4529,187 @@ function renderMatches() {
 // RENDERING - PLAYERS
 function renderPlayers() {
   recalculateAll();
-  const searchInput = document.getElementById('players-search').value.toLowerCase();
+  const searchInput = document.getElementById('players-search').value.toLowerCase().trim();
   
+  // Get selected teams from filter
+  const selectedTeams = [];
+  document.querySelectorAll('#players-team-filter-checkboxes-container .team-filter-checkbox').forEach(cb => {
+    if (cb.checked) selectedTeams.push(cb.value);
+  });
+
+  // Update filter button text
+  const btnText = document.getElementById('players-team-filter-btn-text');
+  if (btnText) {
+    if (selectedTeams.length === 0) {
+      btnText.textContent = '🔍 กรองตามทีมที่เลือก (ทั้งหมด)';
+    } else {
+      btnText.textContent = `🔍 กรองอยู่ (${selectedTeams.length} ทีม)`;
+    }
+  }
+
   const tbody = document.getElementById('players-tbody');
   tbody.innerHTML = '';
-  
-  const filtered = processedPlayers.filter(p => p.name.toLowerCase().includes(searchInput));
-  
+
+  let filtered = processedPlayers || [];
+
+  // Filter by name
+  if (searchInput) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchInput));
+  }
+
+  // Filter by teams
+  if (selectedTeams.length > 0) {
+    filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+  }
+
   filtered.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
     tr.dataset.playerName = p.name;
     tr.style.cursor = 'pointer';
-    
-    // === Direct onclick fallback (bulletproof) ===
+
     tr.onclick = (e) => {
       e.stopPropagation();
       openPlayerDetails(p.name);
     };
-    
-    // Name cell - SAFE textContent
+
+    // Name cell
     const nameTd = document.createElement('td');
-    const strong = document.createElement('strong');
-    strong.textContent = p.name;
-    nameTd.appendChild(strong);
+    const nameStrong = document.createElement('strong');
+    nameStrong.textContent = p.name;
+    nameTd.appendChild(nameStrong);
     
-    // Team badges - build safely with createElement (team names from TEAMS are trusted but use textContent anyway)
+    // Team badges - COMPACT LAYOUT
     const teamsTd = document.createElement('td');
-    teamsTd.style.maxWidth = '400px';
-    teamsTd.style.overflowWrap = 'break-word';
-    teamsTd.style.lineHeight = '2';
+    teamsTd.style.cssText = 'padding: 6px 8px; vertical-align: middle;';
+    
+    const badgesWrapper = document.createElement('div');
+    badgesWrapper.style.cssText = 'display: flex; flex-wrap: wrap; gap: 4px; max-width: 480px;';
+    
     p.teamBreakdown.forEach(tb => {
       const badge = document.createElement('span');
       badge.className = `team-badge team-${tb.zone}`;
-      badge.style.cssText = 'padding: 2px 6px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;';
+      badge.style.cssText = 'padding: 2px 5px; font-size: 10px; border-radius: 4px; white-space: nowrap; margin: 0;';
       badge.textContent = `${tb.name} (${tb.points.toFixed(1)})`;
-      teamsTd.appendChild(badge);
+      badgesWrapper.appendChild(badge);
     });
-    
+    teamsTd.appendChild(badgesWrapper);
+
     const scoreTd = document.createElement('td');
-    scoreTd.style.textAlign = 'right';
-    scoreTd.style.color = 'var(--primary)';
-    scoreTd.style.fontWeight = '700';
+    scoreTd.style.cssText = 'text-align: right; color: var(--primary); font-weight: 700;';
     scoreTd.textContent = p.totalScore.toFixed(1);
-    
+
     const actionTd = document.createElement('td');
+    actionTd.style.textAlign = 'center';
     const detailBtn = document.createElement('button');
     detailBtn.className = 'btn btn-secondary';
-    detailBtn.style.cssText = 'padding: 6px 12px; font-size:12px;';
+    detailBtn.style.cssText = 'padding: 4px 8px; font-size: 10px;';
     detailBtn.textContent = 'รายละเอียด';
-    // detail button click will bubble to row handler, no need to attach here (matches prior behavior)
     actionTd.appendChild(detailBtn);
-    
+
     tr.appendChild(nameTd);
     tr.appendChild(teamsTd);
     tr.appendChild(scoreTd);
     tr.appendChild(actionTd);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderStatistics() {
+  const tbody = document.getElementById('statistics-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const teamScores = calculateTeamPoints();
+  
+  // Convert to array and sort
+  const statsArray = TEAMS.map(t => {
+    const s = teamScores[t.name] || { points: 0, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0 };
+    return {
+      name: t.name,
+      zone: t.zone,
+      multiplier: t.multiplier,
+      ...s
+    };
+  });
+
+  // Sort by points DESC, then by goalsFor DESC
+  statsArray.sort((a, b) => b.points - a.points || b.goalsFor - a.goalsFor);
+
+  statsArray.forEach((s, idx) => {
+    const tr = document.createElement('tr');
     
+    // Rank
+    const rankTd = document.createElement('td');
+    rankTd.style.textAlign = 'center';
+    rankTd.innerHTML = `<strong>${idx + 1}</strong>`;
+    
+    // Team Name
+    const nameTd = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `team-badge team-${s.zone}`;
+    badge.style.cssText = 'padding: 2px 8px; font-size: 12px;';
+    badge.textContent = s.name;
+    nameTd.appendChild(badge);
+
+    // Zone
+    const zoneTd = document.createElement('td');
+    zoneTd.style.textAlign = 'center';
+    const zoneClass = s.zone === 'red-orange' ? 'red' : (s.zone === 'grey' ? 'grey' : s.zone);
+    zoneTd.innerHTML = `<span class="badge badge-${zoneClass}">${s.zone}</span>`;
+
+    // Played
+    const playedTd = document.createElement('td');
+    playedTd.style.textAlign = 'center';
+    playedTd.textContent = s.played;
+
+    // Won
+    const wonTd = document.createElement('td');
+    wonTd.style.textAlign = 'center';
+    wonTd.style.color = 'var(--zone-green)';
+    wonTd.textContent = s.wins;
+
+    // Drawn
+    const drawnTd = document.createElement('td');
+    drawnTd.style.textAlign = 'center';
+    drawnTd.style.color = 'var(--zone-yellow)';
+    drawnTd.textContent = s.draws;
+
+    // Lost
+    const lostTd = document.createElement('td');
+    lostTd.style.textAlign = 'center';
+    lostTd.style.color = '#ff4444';
+    lostTd.textContent = s.losses;
+
+    // Goals
+    const goalsTd = document.createElement('td');
+    goalsTd.style.textAlign = 'center';
+    goalsTd.textContent = s.goalsFor;
+
+    // Multiplier
+    const multTd = document.createElement('td');
+    multTd.style.textAlign = 'center';
+    multTd.textContent = 'x' + s.multiplier.toFixed(1);
+
+    // Points
+    const pointsTd = document.createElement('td');
+    pointsTd.style.textAlign = 'right';
+    pointsTd.style.fontWeight = '700';
+    pointsTd.style.color = 'var(--primary)';
+    pointsTd.textContent = s.points.toFixed(1);
+
+    tr.appendChild(rankTd);
+    tr.appendChild(nameTd);
+    tr.appendChild(zoneTd);
+    tr.appendChild(playedTd);
+    tr.appendChild(wonTd);
+    tr.appendChild(drawnTd);
+    tr.appendChild(lostTd);
+    tr.appendChild(goalsTd);
+    tr.appendChild(multTd);
+    tr.appendChild(pointsTd);
+
     tbody.appendChild(tr);
   });
 }
@@ -5099,6 +5348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
           if (document.getElementById('matches').classList.contains('active')) renderMatches();
           if (document.getElementById('players').classList.contains('active')) renderPlayers();
+        if (document.getElementById('statistics') && document.getElementById('statistics').classList.contains('active')) renderStatistics();
           alert('ออกจากระบบแอดมินเรียบร้อย');
         });
       } else {
@@ -5377,6 +5627,7 @@ async function exportMatchesImage() {
         if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
         if (document.getElementById('matches').classList.contains('active')) renderMatches();
         if (document.getElementById('players').classList.contains('active')) renderPlayers();
+        if (document.getElementById('statistics') && document.getElementById('statistics').classList.contains('active')) renderStatistics();
         
         alert('เข้าสู่ระบบแอดมินสำเร็จ!');
       } else {
@@ -5394,100 +5645,26 @@ async function exportMatchesImage() {
   document.getElementById('players-search').addEventListener('input', renderPlayers);
   
   // Populate leaderboard team filter dropdown (multi checkbox)
-  const filterDropdownContainer = document.getElementById('team-filter-dropdown-container');
-  const filterBtn = document.getElementById('team-filter-btn');
-  const filterMenu = document.getElementById('team-filter-menu');
-  const checkboxesContainer = document.getElementById('team-filter-checkboxes-container');
   
-  if (filterBtn && filterMenu && checkboxesContainer) {
-    // Group teams by zone
-    const teamsByZone = {};
-    TEAMS.forEach(t => {
-      if (!teamsByZone[t.zone]) teamsByZone[t.zone] = [];
-      teamsByZone[t.zone].push(t);
-    });
-    
-    // Zone styling helper
-    const zoneLabels = {
-      blue: 'Blue Zone (x1.0 - x1.3)',
-      green: 'Green Zone (x1.4 - x1.7)',
-      yellow: 'Yellow Zone (x1.8 - x2.1)',
-      'grey': 'Grey (x2.2 - x2.6)',
-      'red-orange': 'Red-Orange (x2.7 - x3.0)'
-    };
-    
-    let containerHTML = '';
-    
-    // Sort zones and build checkboxes inside columns
-    Object.keys(zoneLabels).forEach(zoneKey => {
-      const zoneTeams = teamsByZone[zoneKey] || [];
-      if (zoneTeams.length === 0) return;
-      
-      containerHTML += `
-        <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 8px;">
-          <div style="font-size: 11px; font-weight: 700; color: var(--zone-${zoneKey}); text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--zone-${zoneKey});"></span>
-            ${zoneLabels[zoneKey]}
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px;">
-      `;
-      
-      // Sort teams in zone alphabetically
-      const sortedZoneTeams = [...zoneTeams].sort((a, b) => a.name.localeCompare(b.name, 'th'));
-      sortedZoneTeams.forEach(t => {
-        containerHTML += `
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
-            <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
-            <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} (x${t.multiplier})</span>
-          </label>
-        `;
-      });
-      
-      containerHTML += `
-          </div>
-        </div>
-      `;
-    });
-    
-    checkboxesContainer.innerHTML = containerHTML;
-    
-    // Toggle dropdown visibility
-    filterBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isHidden = filterMenu.style.display === 'none';
-      filterMenu.style.display = isHidden ? 'block' : 'none';
-    });
-    
-    // Prevent dropdown click from closing itself
-    filterMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-    
-    // Close dropdown clicking outside
-    document.addEventListener('click', (e) => {
-      if (filterDropdownContainer && !filterDropdownContainer.contains(e.target)) {
-        filterMenu.style.display = 'none';
-      }
-    });
-    
-    // Listen to changes on checkboxes to trigger renderLeaderboard (no recalc needed, pure filter)
-    checkboxesContainer.addEventListener('change', (e) => {
-      if (e.target && e.target.classList.contains('team-filter-checkbox')) {
-        renderLeaderboard({forceRecalc: false});
-      }
-    });
-    
-    // Reset selections button
-    const clearBtn = document.getElementById('clear-team-filter-btn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        const checkboxes = checkboxesContainer.querySelectorAll('.team-filter-checkbox');
-        checkboxes.forEach(cb => cb.checked = false);
-        renderLeaderboard({forceRecalc: false});
-      });
-    }
-  }
-  
+  // Initialize Team Filters
+  initTeamFilter({
+    containerId: 'team-filter-dropdown-container',
+    btnId: 'team-filter-btn',
+    menuId: 'team-filter-menu',
+    checkboxesContainerId: 'team-filter-checkboxes-container',
+    clearBtnId: 'clear-team-filter-btn',
+    onFilterChange: () => renderLeaderboard({forceRecalc: false})
+  });
+
+  initTeamFilter({
+    containerId: 'players-team-filter-dropdown-container',
+    btnId: 'players-team-filter-btn',
+    menuId: 'players-team-filter-menu',
+    checkboxesContainerId: 'players-team-filter-checkboxes-container',
+    clearBtnId: 'players-clear-team-filter-btn',
+    onFilterChange: () => renderPlayers()
+  });
+
   // Chart highlight dropdown listener
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
   if (chartHighlightSelect) {
@@ -5603,6 +5780,7 @@ async function exportMatchesImage() {
         if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
         if (document.getElementById('matches').classList.contains('active')) renderMatches();
         if (document.getElementById('players').classList.contains('active')) renderPlayers();
+        if (document.getElementById('statistics') && document.getElementById('statistics').classList.contains('active')) renderStatistics();
         alert('รีเซ็ตผลการแข่งขันทั้งหมดเรียบร้อยแล้ว!');
       });
     });
@@ -5689,3 +5867,81 @@ const debouncedResize = debounce(() => {
 }, 160);
 window.addEventListener('resize', debouncedResize);
 
+
+
+// ==========================================
+// Added Features: Popularity & Popup (Progress Bar version)
+// ==========================================
+
+function getTeamPopularity(teamName) {
+  let count = 0;
+  for (const p of players) {
+    if (p.teams && p.teams.includes(teamName)) count++;
+  }
+  return count;
+}
+
+let _maxPopularityCache = null;
+function getMaxPopularity() {
+  if (_maxPopularityCache !== null) return _maxPopularityCache;
+  let max = 1; // avoid div by zero
+  TEAMS.forEach(t => {
+    max = Math.max(max, getTeamPopularity(t.name));
+  });
+  _maxPopularityCache = max;
+  return max;
+}
+
+function getTeamPopularityPercent(teamName) {
+  const count = getTeamPopularity(teamName);
+  const max = getMaxPopularity();
+  // Ensure a minimum 5% width so colors show up even for 1-vote teams if max is huge
+  if (count === 0) return 0;
+  const percent = (count / max) * 100;
+  return Math.max(5, percent).toFixed(1);
+}
+
+// Reset cache when players update
+const originalRenderPlayers = renderPlayers;
+renderPlayers = function() {
+  _maxPopularityCache = null; 
+  if (typeof originalRenderPlayers === 'function') {
+    originalRenderPlayers.apply(this, arguments);
+  }
+}
+
+window.showTeamSelectionPopup = function(teamName, event) {
+  event.stopPropagation();
+  const existing = document.getElementById('team-selection-popup');
+  if (existing) existing.remove();
+  const selectedBy = players.filter(p => p.teams && p.teams.includes(teamName)).map(p => p.name);
+  const popup = document.createElement('div');
+  popup.id = 'team-selection-popup';
+  popup.className = 'selection-popup';
+  popup.style.left = event.pageX + 'px';
+  popup.style.top = event.pageY + 'px';
+  let html = '<h4>ผู้เลือก ' + teamName + ' (' + selectedBy.length + ' คน)</h4>';
+  if (selectedBy.length === 0) {
+    html += '<div>ไม่มีผู้เลือก</div>';
+  } else {
+    html += '<ul>' + selectedBy.map(n => '<li>' + escapeHtml(n) + '</li>').join('') + '</ul>';
+  }
+  popup.innerHTML = html;
+  document.body.appendChild(popup);
+  const rect = popup.getBoundingClientRect();
+  if (rect.right > window.innerWidth) popup.style.left = (window.innerWidth - rect.width - 10) + 'px';
+  if (rect.bottom > window.innerHeight) popup.style.top = (window.innerHeight - rect.height - 10) + 'px';
+  setTimeout(() => {
+    document.addEventListener('click', function closePopup(e) {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', closePopup);
+      }
+    });
+  }, 0);
+};
+
+// Hover effect for badges
+const badgeStyle = document.createElement('style');
+badgeStyle.innerHTML = '.team-badge { cursor: pointer !important; transition: filter 0.2s; } .team-badge:hover { filter: brightness(1.2); }';
+document.head.appendChild(badgeStyle);

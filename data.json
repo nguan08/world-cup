@@ -243,9 +243,9 @@
     {
       "home": "อุซเบกิสถาน",
       "away": "โคลอมเบีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-18",
       "id": 24
