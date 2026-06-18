@@ -56,9 +56,9 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(34, 197, 94, 0.06) 0px, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(255, 75, 96, 0.05) 0px, transparent 50%);
+    radial-gradient(circle at 100% 100%, rgba(201, 160, 34, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 0% 0%, rgba(0, 71, 225, 0.1) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 86c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm66 3c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-46-45c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm54 24c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM57 6c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM13 30c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm71 42c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-36 24c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-31-46c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM10 0h2v2h-2V0zm20 30h2v2h-2v-2zM80 70h2v2h-2v-2zM30 60h2v2h-2v-2zm60 40h2v2h-2v-2zM0 20h2v2H0v-2zm20 80h2v2h-2v-2zm70-80h2v2h-2v-2zm-30 80h2v2h-2v-2zM90 10h2v2h-2v-2zM20 10h2v2h-2v-2zM5h2v2H5V5zm85 0h2v2h-2V5zm-45 52h2v2h-2v-2zm50-12h2v2h-2v-2zM30 50h2v2h-2v-2zm66 10h2v2h-2v-2zM10 80h2v2h-2v-2zm80-20h2v2h-2v-2zm20 10h2v2h-2v-2zM10 30h2v2h-2v-2zm20-20h2v2h-2v-2zm50 20h2v2h-2v-2zm40 40h2v2h-2v-2zM30 60h2v2h-2v-2zM0 80h2v2H0v-2zm100-10h2v2h-2v-2zm-10-10h2v2h-2v-2zm-40 40h2v2h-2v-2zM10 10h2v2h-2v-2zm80-10h2v2h-2v-2zm-40 20h2v2h-2v-2zm20 20h2v2h-2v-2zm10 50h2v2h-2v-2zm-10-10h2v2h-2v-2zm-40 40h2v2h-2v-2z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -71,11 +71,8 @@ body {
 
 /* Sidebar Navigation */
 .sidebar {
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: 100vh;
   width: 280px;
-  background-color: rgba(30, 41, 59, 0.8);
+  background-color: rgba(2, 8, 23, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -96,12 +93,15 @@ body {
 }
 
 .brand-logo {
-  font-size: 28px;
-  background: linear-gradient(135deg, #6366f1, #a855f7, #f43f5e);
+  font-size: 26px;
+  background: linear-gradient(to bottom, #ffffff 0%, #ffffff 40%, var(--primary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: -0.5px;
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+  text-shadow: 0 10px 20px rgba(0,0,0,0.5);
 }
 
 .nav-links {
@@ -113,7 +113,7 @@ body {
 
 .nav-item button {
   width: 100%;
-  padding: 14px 18px;
+  padding: 12px 18px;
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -133,6 +133,18 @@ body {
   background-color: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
   transform: translateX(4px);
+}
+
+.nav-item.active button::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 4px;
+  background: var(--primary);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 15px var(--primary);
 }
 
 .nav-item.active button {
@@ -302,6 +314,11 @@ h1, h2, h3, h4 {
   font-weight: 700;
 }
 
+h1, h2, h3 {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.5px;
+  font-weight: 800;
+}
 h1 {
   font-size: 32px;
   margin-bottom: 8px;
@@ -318,6 +335,27 @@ h1 {
 
 /* Glassmorphism Cards */
 .card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  border-color: rgba(201, 160, 34, 0.2);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(201, 160, 34, 0.3), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.card:hover::before { opacity: 1; }
+.card {
+  background: linear-gradient(135deg, rgba(12, 24, 51, 0.7) 0%, rgba(8, 16, 38, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   background-color: rgba(12, 21, 36, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1206,9 +1244,11 @@ tr.leader-second-row {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
-  color: #fff;
-  box-shadow: 0 4px 15px var(--primary-glow);
+  background: linear-gradient(135deg, var(--primary) 0%, #b8860b 100%);
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(201, 160, 34, 0.3);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .btn-primary:hover {
