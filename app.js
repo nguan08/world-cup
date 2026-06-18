@@ -3070,9 +3070,7 @@ function renderRecentMatches() {
   const fragment = document.createDocumentFragment();
   recent.forEach(m => {
     const card = document.createElement('div');
-    card.className = 'match-card'; // Reuse match-card for consistency
-    card.style.padding = '16px';
-    card.style.margin = '0';
+    card.className = 'match-card dashboard-match-card';
     
     const isToday = m.date === todayStr;
     const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
@@ -3083,26 +3081,43 @@ function renderRecentMatches() {
     const aTeamObj = TEAMS.find(t => t.name === m.away);
     const hZone = hTeamObj ? hTeamObj.zone : 'blue';
     const aZone = aTeamObj ? aTeamObj.zone : 'blue';
+    const hMult = hTeamObj ? hTeamObj.multiplier : 1;
+    const aMult = aTeamObj ? aTeamObj.multiplier : 1;
 
     const hScore = m.homeScore !== null ? m.homeScore : '-';
     const aScore = m.awayScore !== null ? m.awayScore : '-';
 
+    const hPts = m.status === 'finished' ? getMatchGamePointsForTeam(m, m.home, hMult).toFixed(1) : null;
+    const aPts = m.status === 'finished' ? getMatchGamePointsForTeam(m, m.away, aMult).toFixed(1) : null;
+
     card.innerHTML = `
-      <div class="match-header" style="font-size: 11px; margin-bottom: 12px;">
-        <span style="color: var(--primary); font-weight: 700;">${dateLabel} · ${m.date}</span>
-        <span class="badge ${statusClass}" style="font-size: 9px; padding: 2px 6px;">${statusLabel}</span>
+      <div class="match-header" style="font-size: 10px; margin-bottom: 12px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 600; color: var(--text-secondary);">${dateLabel} · ${m.date}</span>
+        <span class="badge ${statusClass}" style="font-size: 8px; padding: 1px 6px; border-radius: 4px;">${statusLabel}</span>
       </div>
-      <div class="match-body">
-        <div class="match-team">
-          <span class="team-badge team-${hZone}" style="font-size: 11px; padding: 4px 8px;">${m.home}</span>
+      <div class="match-body" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div class="match-team" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 0;">
+          <div class="team-badge team-${hZone}" style="font-size: 11px; padding: 4px 0; width: 100%; justify-content: center; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 6px;">${m.home}</div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">x${hMult}</div>
         </div>
-        <div class="recent-match-score" style="background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-          <span style="font-size: 18px; font-weight: 800; color: #fff;">${hScore}</span>
-          <span style="font-size: 12px; color: var(--text-muted); margin: 0 8px;">:</span>
-          <span style="font-size: 18px; font-weight: 800; color: #fff;">${aScore}</span>
+        
+        <div style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
+          <div class="recent-match-score" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); padding: 5px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);">
+            <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${hScore}</span>
+            <span style="font-size: 12px; color: var(--text-muted); opacity: 0.5;">:</span>
+            <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${aScore}</span>
+          </div>
+          ${hPts !== null ? `
+            <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 6px; padding: 0 2px;">
+              <span style="font-size: 10px; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);">+${hPts}</span>
+              <span style="font-size: 10px; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);">+${aPts}</span>
+            </div>
+          ` : ''}
         </div>
-        <div class="match-team">
-          <span class="team-badge team-${aZone}" style="font-size: 11px; padding: 4px 8px;">${m.away}</span>
+
+        <div class="match-team" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 0;">
+          <div class="team-badge team-${aZone}" style="font-size: 11px; padding: 4px 0; width: 100%; justify-content: center; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 6px;">${m.away}</div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">x${aMult}</div>
         </div>
       </div>
     `;
