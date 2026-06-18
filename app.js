@@ -3041,6 +3041,77 @@ function setupNavigation() {
 }
 
 // RENDERING - DASHBOARD
+function renderRecentMatches() {
+  const container = getCachedEl('recent-matches-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Get current date and tomorrow's date (local time)
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  // Filter matches for today and tomorrow
+  const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
+
+  if (recent.length === 0) {
+    container.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.05);">ไม่มีการแข่งขันวันนี้และพรุ่งนี้</div>';
+    return;
+  }
+
+  // Sort by date then by id
+  recent.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.id - b.id;
+  });
+
+  const fragment = document.createDocumentFragment();
+  recent.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'match-card'; // Reuse match-card for consistency
+    card.style.padding = '16px';
+    card.style.margin = '0';
+    
+    const isToday = m.date === todayStr;
+    const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
+    const statusClass = m.status === 'finished' ? 'badge-green' : 'badge-red';
+    const statusLabel = m.status === 'finished' ? 'จบการแข่งขัน' : 'รอการแข่งขัน';
+
+    const hTeamObj = TEAMS.find(t => t.name === m.home);
+    const aTeamObj = TEAMS.find(t => t.name === m.away);
+    const hZone = hTeamObj ? hTeamObj.zone : 'blue';
+    const aZone = aTeamObj ? aTeamObj.zone : 'blue';
+
+    const hScore = m.homeScore !== null ? m.homeScore : '-';
+    const aScore = m.awayScore !== null ? m.awayScore : '-';
+
+    card.innerHTML = `
+      <div class="match-header" style="font-size: 11px; margin-bottom: 12px;">
+        <span style="color: var(--primary); font-weight: 700;">${dateLabel} · ${m.date}</span>
+        <span class="badge ${statusClass}" style="font-size: 9px; padding: 2px 6px;">${statusLabel}</span>
+      </div>
+      <div class="match-body">
+        <div class="match-team">
+          <span class="team-badge team-${hZone}" style="font-size: 11px; padding: 4px 8px;">${m.home}</span>
+        </div>
+        <div class="recent-match-score" style="background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <span style="font-size: 18px; font-weight: 800; color: #fff;">${hScore}</span>
+          <span style="font-size: 12px; color: var(--text-muted); margin: 0 8px;">:</span>
+          <span style="font-size: 18px; font-weight: 800; color: #fff;">${aScore}</span>
+        </div>
+        <div class="match-team">
+          <span class="team-badge team-${aZone}" style="font-size: 11px; padding: 4px 8px;">${m.away}</span>
+        </div>
+      </div>
+    `;
+    fragment.appendChild(card);
+  });
+
+  container.appendChild(fragment);
+}
+
 function renderDashboard() {
   recalculateAll();
   
@@ -3057,6 +3128,9 @@ function renderDashboard() {
 
   // ── Score Distribution Line Chart ──────────────────────────
   renderScoreChart();
+
+  // ── Recent Matches (Yesterday & Today) ──────────────────────
+  renderRecentMatches();
 
   // ── Top 10 Leaders table ───────────────────────────────────
   const top5AdminCol = getCachedEl('top5-admin-col');
@@ -3546,6 +3620,27 @@ function renderScoreChart() {
     yGridLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
   }
 
+  // 4.1 Render Zone Separators (Rank Thresholds)
+  let zoneSeparators = '';
+  if (maxRank > 1) {
+    const blueLine = Math.ceil(maxRank * 0.2);
+    const greenLine = Math.ceil(maxRank * 0.6);
+    
+    // Line for Blue/Green boundary
+    const yBlue = yOf(blueLine + 0.5); 
+    zoneSeparators += `
+      <line x1="${padL}" x2="${W - padR}" y1="${yBlue}" y2="${yBlue}" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="8,5" stroke-opacity="0.4"/>
+      <text x="${W - padR + 4}" y="${yBlue + 3}" font-size="9" fill="#60a5fa" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">BLUE | GREEN</text>
+    `;
+
+    // Line for Green/Red boundary
+    const yGreen = yOf(greenLine + 0.5);
+    zoneSeparators += `
+      <line x1="${padL}" x2="${W - padR}" y1="${yGreen}" y2="${yGreen}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,5" stroke-opacity="0.4"/>
+      <text x="${W - padR + 4}" y="${yGreen + 3}" font-size="9" fill="#34d399" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">GREEN | RED</text>
+    `;
+  }
+
   // 5. Render X-axis labels (dynamic interval, rotation when crowded, mobile-shortened)
   let xLabels = '';
   const desiredLabels = isMobile ? 5 : 8; // target number of labels to show
@@ -3643,6 +3738,7 @@ function renderScoreChart() {
     <line x1="${padL - 4}" x2="${padL - 4}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
     <line x1="${padL - 4}" x2="${W - padR}" y1="${padT + chartH}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
     ${xLabels}
+    ${zoneSeparators}
     
     <g class="lines-container">${linesGroup}</g>
     <g class="helpers-container">${hoverHelpers}</g>
