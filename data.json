@@ -224,9 +224,9 @@
     {
       "home": "โปรตุเกส",
       "away": "คองโก",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-18",
       "id": 21
@@ -234,9 +234,9 @@
     {
       "home": "อังกฤษ",
       "away": "โครเอเชีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-18",
       "id": 22
@@ -244,9 +244,9 @@
     {
       "home": "กานา",
       "away": "ปานามา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-18",
       "id": 23
