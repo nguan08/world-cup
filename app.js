@@ -4622,7 +4622,7 @@ function renderStatistics() {
   tbody.innerHTML = '';
 
   const teamScores = calculateTeamPoints();
-  
+
   // Convert to array and sort
   const statsArray = TEAMS.map(t => {
     const s = teamScores[t.name] || { points: 0, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0 };
@@ -4639,12 +4639,12 @@ function renderStatistics() {
 
   statsArray.forEach((s, idx) => {
     const tr = document.createElement('tr');
-    
+
     // Rank
     const rankTd = document.createElement('td');
     rankTd.style.textAlign = 'center';
     rankTd.innerHTML = `<strong>${idx + 1}</strong>`;
-    
+
     // Team Name
     const nameTd = document.createElement('td');
     const badge = document.createElement('span');
@@ -4712,9 +4712,80 @@ function renderStatistics() {
 
     tbody.appendChild(tr);
   });
+
+  // Selection Analysis Logic
+  const bestContainer = document.getElementById('best-selection-container');
+  const worstContainer = document.getElementById('worst-selection-container');
+
+  if (bestContainer && worstContainer) {
+    bestContainer.innerHTML = '';
+    worstContainer.innerHTML = '';
+
+    // Group teams by zone
+    const teamsByZone = {};
+    statsArray.forEach(s => {
+      if (!teamsByZone[s.zone]) teamsByZone[s.zone] = [];
+      teamsByZone[s.zone].push(s);
+    });
+
+    // 1. Calculate Best Selection (15 teams, coverage rule, max 4 per zone)
+    let bestSelection = [];
+    let bestCandidates = [];
+
+    Object.keys(teamsByZone).forEach(z => {
+      const sorted = [...teamsByZone[z]].sort((a, b) => b.points - a.points);
+      if (sorted.length > 0) {
+        bestSelection.push(sorted[0]); // Must have 1 from each
+        for (let i = 1; i < Math.min(sorted.length, 4); i++) {
+          bestCandidates.push(sorted[i]);
+        }
+      }
+    });
+
+    bestCandidates.sort((a, b) => b.points - a.points);
+    bestSelection = bestSelection.concat(bestCandidates.slice(0, 10));
+
+    let bestTotal = 0;
+    bestSelection.sort((a, b) => b.points - a.points).forEach(s => {
+      bestTotal += s.points;
+      const b = document.createElement('span');
+      b.className = `team-badge team-${s.zone}`;
+      b.style.cssText = 'padding: 2px 6px; font-size: 10px; margin-right: 4px; margin-bottom: 4px;';
+      b.textContent = `${s.name} (${s.points.toFixed(1)})`;
+      bestContainer.appendChild(b);
+    });
+    document.getElementById('best-total-points').textContent = bestTotal.toFixed(1);
+
+    // 2. Calculate Worst Selection
+    let worstSelection = [];
+    let worstCandidates = [];
+
+    Object.keys(teamsByZone).forEach(z => {
+      const sorted = [...teamsByZone[z]].sort((a, b) => a.points - b.points);
+      if (sorted.length > 0) {
+        worstSelection.push(sorted[0]); // Must have 1 from each (worst one)
+        for (let i = 1; i < Math.min(sorted.length, 4); i++) {
+          worstCandidates.push(sorted[i]);
+        }
+      }
+    });
+
+    worstCandidates.sort((a, b) => a.points - b.points);
+    worstSelection = worstSelection.concat(worstCandidates.slice(0, 10));
+
+    let worstTotal = 0;
+    worstSelection.sort((a, b) => a.points - b.points).forEach(s => {
+      worstTotal += s.points;
+      const b = document.createElement('span');
+      b.className = `team-badge team-${s.zone}`;
+      b.style.cssText = 'padding: 2px 6px; font-size: 10px; margin-right: 4px; margin-bottom: 4px;';
+      b.textContent = `${s.name} (${s.points.toFixed(1)})`;
+      worstContainer.appendChild(b);
+    });
+    document.getElementById('worst-total-points').textContent = worstTotal.toFixed(1);
+  }
 }
 
-// RENDERING - TEAMS MATRIX
 function renderTeamsMatrix() {
   const container = document.getElementById('teams-matrix-container');
   container.innerHTML = '';
