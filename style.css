@@ -28,6 +28,8 @@
   --zone-light-orange-bg: rgba(251, 146, 60, 0.1);
   --zone-red-orange: #f87171;
   --zone-red-orange-bg: rgba(248, 113, 113, 0.1);
+  --zone-grey: #94a3b8;
+  --zone-grey-bg: rgba(148, 163, 184, 0.1);
   
   /* Leaderboard Zones (Image 2) */
   --leader-blue: #0284c7;
@@ -1029,17 +1031,20 @@ tr.leader-second-row {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   gap: 6px;
+  border-left-width: 3px;
+  border-left-style: solid;
 }
 
-.team-blue { background-color: var(--zone-blue-bg); color: var(--zone-blue); }
-.team-green { background-color: var(--zone-green-bg); color: var(--zone-green); }
-.team-yellow { background-color: var(--zone-yellow-bg); color: var(--zone-yellow); }
-.team-light-orange { background-color: var(--zone-light-orange-bg); color: var(--zone-light-orange); }
-.team-red-orange { background-color: var(--zone-red-orange-bg); color: var(--zone-red-orange); }
+.team-blue { background-color: var(--zone-blue-bg); color: var(--zone-blue); border-left-color: var(--zone-blue); }
+.team-green { background-color: var(--zone-green-bg); color: var(--zone-green); border-left-color: var(--zone-green); }
+.team-yellow { background-color: var(--zone-yellow-bg); color: var(--zone-yellow); border-left-color: var(--zone-yellow); }
+.team-light-orange { background-color: var(--zone-light-orange-bg); color: var(--zone-light-orange); border-left-color: var(--zone-light-orange); }
+.team-red-orange { background-color: var(--zone-red-orange-bg); color: var(--zone-red-orange); border-left-color: var(--zone-red-orange); }
+.team-grey { background-color: var(--zone-grey-bg); color: var(--zone-grey); border-left-color: #000; }
 
 /* Search & Inputs */
 .search-bar {

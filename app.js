@@ -2650,15 +2650,15 @@ function processPlayers(teamScores) {
   
   // Partition into zones based on ranks/scores:
   // Blue: top 20%
-  // Green: next 40%
-  // Red: bottom 40%
+  // Green: 25 players
+  // Red: bottom (the rest)
   const total = processed.length;
-  const blueCount = Math.floor(total * 0.20); // 12 players
-  const greenCount = Math.floor(total * 0.40); // 24 players
+  const blueCount = Math.floor(total * 0.20); 
+  const greenCount = 25; 
   
   // Rough indexes for boundaries
-  const blueBoundaryIndex = blueCount - 1; // 11
-  const greenBoundaryIndex = blueCount + greenCount - 1; // 35
+  const blueBoundaryIndex = blueCount - 1; 
+  const greenBoundaryIndex = blueCount + greenCount - 1; 
   
   // Get boundary scores
   const blueCutoffScore = processed[blueBoundaryIndex] ? processed[blueBoundaryIndex].totalScore : 0;
