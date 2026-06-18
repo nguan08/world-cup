@@ -71,6 +71,9 @@ body {
 
 /* Sidebar Navigation */
 .sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100vh;
   width: 280px;
   background-color: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(12px);
@@ -2489,4 +2492,13 @@ input[type=number] {
 }
 .team-grey {
   background: linear-gradient(to right, rgba(148, 163, 184, 0.4) var(--pop-percent, 0%), rgba(148, 163, 184, 0.05) var(--pop-percent, 0%)) !important;
+}
+
+/* Fix for mobile sidebar scrolling and admin button visibility */
+@media (max-width: 992px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 80px !important; /* Extra space for mobile browser address bars */
+  }
 }
