@@ -5008,9 +5008,11 @@ async function exportMatchesImage() {
 
   const broadcastTestBtn = document.getElementById('admin-broadcast-test-btn');
   if (broadcastTestBtn) {
-    broadcastTestBtn.addEventListener('click', () => {
+    broadcastTestBtn.addEventListener('click', async () => {
       const input = document.getElementById('admin-broadcast-message');
       const message = (input?.value || '').trim() || 'ทดสอบแจ้งเตือน — ระบบทำงานปกติ';
+      const { updateBroadcastBanner } = await import('./notifications.js');
+      updateBroadcastBanner({ id: Date.now(), message, sentAt: new Date().toISOString() });
       notifyDataUpdate({ type: 'broadcast', message: `📢 ${message}`, forceBrowserNotify: true });
     });
   }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v11';
+const CACHE_NAME = 'wc2026-v12';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -104,9 +104,17 @@ async function networkFirstData(request) {
         }
         const msgType = isBroadcast ? 'BROADCAST' : 'DATA_UPDATED';
         const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        clients.forEach((client) => {
-          client.postMessage({ type: msgType, message: isBroadcast ? `📢 ${message}` : message });
-        });
+        const payload = {
+          type: msgType,
+          message: isBroadcast ? `📢 ${message}` : message
+        };
+        if (isBroadcast) {
+          try {
+            const data = JSON.parse(text);
+            if (data.broadcast) payload.broadcast = data.broadcast;
+          } catch { /* ignore */ }
+        }
+        clients.forEach((client) => client.postMessage(payload));
         try {
           await self.registration.showNotification(
             isBroadcast ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน' : 'World Cup 2026 — อัปเดตข้อมูล',

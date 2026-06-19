@@ -3732,6 +3732,78 @@ html.pwa-standalone .mobile-header {
   padding-top: max(12px, env(safe-area-inset-top, 12px));
 }
 
+.broadcast-alert-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100000;
+  padding: max(10px, env(safe-area-inset-top, 10px)) 12px 10px;
+  background: linear-gradient(135deg, #4338ca, #7c3aed);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 28px rgba(67, 56, 202, 0.45);
+  transform: translateY(-110%);
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.broadcast-alert-bar--visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.broadcast-alert-bar__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.broadcast-alert-bar__icon {
+  font-size: 20px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.broadcast-alert-bar__text {
+  flex: 1;
+  margin: 0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.broadcast-alert-bar__close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+html.has-broadcast-banner .mobile-header {
+  margin-top: var(--broadcast-banner-height, 0px);
+}
+
+html.has-broadcast-banner .main-content {
+  scroll-margin-top: var(--broadcast-banner-height, 0px);
+}
+
+@media (max-width: 992px) {
+  .broadcast-alert-bar__text {
+    font-size: 15px;
+  }
+}
+
 .admin-actions {
   display: flex;
   flex-direction: column;

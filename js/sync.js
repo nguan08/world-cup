@@ -1,7 +1,8 @@
 import { app } from './state.js';
 import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
-import { notifyDataUpdate, processBroadcast, flushPendingBroadcast } from './notifications.js';
+import { notifyDataUpdate, processBroadcast, flushPendingBroadcast, updateBroadcastBanner } from './notifications.js';
+import { isMobileDevice } from './device.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
 
@@ -196,7 +197,10 @@ export async function initData() {
     }
   }
 
-  if (serverData.broadcast) app.broadcast = serverData.broadcast;
+  if (serverData.broadcast) {
+    app.broadcast = serverData.broadcast;
+    updateBroadcastBanner(serverData.broadcast);
+  }
   processBroadcast(serverData, { onInit: true });
 
   loadEliminatedTeams();
@@ -229,8 +233,8 @@ export function updateDataSyncStatus(status = 'idle', extra = '') {
   }
   const syncLabel = app.isSyncEnabled ? 'ซิงค์อัตโนมัติ' : 'อัปเดตอัตโนมัติ';
   el.textContent = app.lastDataRefreshTime
-    ? `อัปเดตล่าสุด ${formatSyncTime(app.lastDataRefreshTime)} · ${syncLabel} ทุก 1 นาที`
-    : `${syncLabel} ทุก 1 นาที`;
+    ? `อัปเดตล่าสุด ${formatSyncTime(app.lastDataRefreshTime)} · ${syncLabel} ทุก ${isMobileDevice() ? '30 วินาที' : '1 นาที'}`
+    : `${syncLabel} ทุก ${isMobileDevice() ? '30 วินาที' : '1 นาที'}`;
   el.className = 'data-sync-status';
 }
 
@@ -328,7 +332,10 @@ export async function pollServerData() {
     if (!res.ok) return;
     const serverData = await res.json();
     const changed = mergeServerDataIntoLocal(serverData);
-    if (serverData.broadcast) app.broadcast = serverData.broadcast;
+    if (serverData.broadcast) {
+      app.broadcast = serverData.broadcast;
+      updateBroadcastBanner(serverData.broadcast);
+    }
     const broadcasted = processBroadcast(serverData);
     if (changed || broadcasted) {
       app.lastDataRefreshTime = new Date();
@@ -352,7 +359,9 @@ export function setupAutoRefresh() {
   if (app.autoRefreshTimer) clearInterval(app.autoRefreshTimer);
   app.lastDataRefreshTime = new Date();
   updateDataSyncStatus();
-  app.autoRefreshTimer = setInterval(pollServerData, app.AUTO_REFRESH_INTERVAL_MS);
+  const intervalMs = isMobileDevice() ? 30 * 1000 : app.AUTO_REFRESH_INTERVAL_MS;
+  app.autoRefreshTimer = setInterval(pollServerData, intervalMs);
+  setTimeout(pollServerData, 3000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       flushPendingBroadcast();
