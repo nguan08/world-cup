@@ -7,6 +7,14 @@
         "auth": "ZftqWjV8W5MbBDZVlwRTNg"
       },
       "updatedAt": "2026-06-19T23:47:49.453Z"
+    },
+    {
+      "endpoint": "https://web.push.apple.com/QMQljrXB83B_AQEaPGxcorTsngr7rnF6apGqrD12qfFvRSbkMeMGf5DXoPBbtnoPiyZM1UbkC8LgI-W6dYjXDZUq6IMzHX8E0l7DFoxPFCM8oaNmN5Mt-IikG5w6MiyKxlPC8Uph3GMMlP0Odrm0r40WbiiKmJ91YRvVg_JBLlM",
+      "keys": {
+        "p256dh": "BPvdjNi_DiT7Ov1_SNuIeLgw-DzUyHCM8k8f4xFYs9Re0ntKGYDUgOw0Ylf99_kYOJMERZSkGRoZktrxtYmB93A",
+        "auth": "0SiuxPMIG5i6DBKeNEHBsA"
+      },
+      "updatedAt": "2026-06-19T23:49:40.278Z"
     }
   ],
   "lastSentBroadcastId": 1781912574080
