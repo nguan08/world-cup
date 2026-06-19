@@ -2209,8 +2209,96 @@ table {
   border-bottom: none !important;
 }
 
-#leaderboard .leaderboard-card--empty {
+/* Leaderboard page — card full width + full viewport height (like Selections) */
+#leaderboard {
+  --leaderboard-page-pad: 72px;
+  width: 100%;
+}
+
+#leaderboard.page.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--leaderboard-page-pad));
+}
+
+#leaderboard > header {
+  flex-shrink: 0;
+}
+
+#leaderboard .leaderboard-card {
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+#leaderboard .leaderboard-card__toolbar.search-bar {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+#leaderboard .leaderboard-card__table-wrap,
+#leaderboard .leaderboard-table-container,
+#leaderboard #leaderboard-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#leaderboard .leaderboard-card__table-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#leaderboard .leaderboard-table-container {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#leaderboard .leaderboard-avg-note {
+  flex-shrink: 0;
+}
+
+#leaderboard .leaderboard-card--empty .leaderboard-avg-note {
+  display: none;
+}
+
+#leaderboard .leaderboard-table-container--empty {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#leaderboard .leaderboard-filter-empty-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: rgba(15, 23, 42, 0.22);
+}
+
+#leaderboard .leaderboard-filter-empty-message {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
 }
 
 #players .players-card--empty .players-table-hint {
@@ -2242,32 +2330,6 @@ table {
   color: var(--text-muted);
   text-align: center;
   line-height: 1.5;
-}
-
-#leaderboard .leaderboard-card--empty .leaderboard-table-container--empty,
-#leaderboard .leaderboard-card--empty .table-container,
-#leaderboard .leaderboard-card--empty table {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-#leaderboard .leaderboard-table-container--empty {
-  min-height: min(42vh, 400px);
-}
-
-#leaderboard .leaderboard-empty-row {
-  height: 100%;
-}
-
-#leaderboard .leaderboard-empty-row td {
-  width: 100%;
-}
-
-#leaderboard .leaderboard-empty-row .table-filter-empty-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: min(42vh, 400px);
 }
 
 /* Players / Selections table — compact, clear row/column separation */
@@ -2470,6 +2532,10 @@ table {
 
   #players {
     --players-page-pad: 88px;
+  }
+
+  #leaderboard {
+    --leaderboard-page-pad: 88px;
   }
 
   #players .players-card__toolbar.search-bar {

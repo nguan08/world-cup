@@ -1256,10 +1256,34 @@ function setPlayersFilterEmptyState(isEmpty) {
 }
 
 function setLeaderboardFilterEmptyState(isEmpty) {
-  const tbody = document.getElementById('leaderboard-tbody');
-  if (!tbody) return;
-  tbody.closest('.leaderboard-card')?.classList.toggle('leaderboard-card--empty', isEmpty);
-  tbody.closest('.table-container')?.classList.toggle('leaderboard-table-container--empty', isEmpty);
+  const table = document.getElementById('leaderboard-table');
+  const container = table?.closest('.leaderboard-table-container');
+  const tableWrap = table?.closest('.leaderboard-card__table-wrap');
+  if (!table || !container || !tableWrap) return;
+
+  table.closest('.leaderboard-card')?.classList.toggle('leaderboard-card--empty', isEmpty);
+  tableWrap.classList.toggle('leaderboard-card__table-wrap--empty', isEmpty);
+  container.classList.toggle('leaderboard-table-container--empty', isEmpty);
+
+  tableWrap.querySelector('.leaderboard-filter-empty-panel')?.remove();
+
+  let panel = container.querySelector('.leaderboard-filter-empty-panel');
+  if (isEmpty) {
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'leaderboard-filter-empty-panel';
+      panel.setAttribute('role', 'status');
+      panel.innerHTML = '<p class="leaderboard-filter-empty-message">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</p>';
+      container.appendChild(panel);
+    }
+    panel.hidden = false;
+    table.hidden = true;
+    container.hidden = false;
+  } else {
+    if (panel) panel.hidden = true;
+    container.hidden = false;
+    table.hidden = false;
+  }
 }
 
 function renderLeaderboard(options = {}) {
@@ -1277,11 +1301,15 @@ function renderLeaderboard(options = {}) {
 
   let filtered = app.processedPlayers || [];
 
-  if (searchInput) {
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchInput));
-  }
+  let teamFiltered = filtered;
   if (selectedTeams.length > 0) {
-    filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+    teamFiltered = teamFiltered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+  }
+
+  if (searchInput) {
+    filtered = teamFiltered.filter(p => p.name.toLowerCase().includes(searchInput));
+  } else {
+    filtered = teamFiltered;
   }
 
   const btnText = document.getElementById('team-filter-btn-text');
@@ -1295,11 +1323,14 @@ function renderLeaderboard(options = {}) {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  setLeaderboardFilterEmptyState(filtered.length === 0);
+  const isTeamFilterEmpty = selectedTeams.length > 0 && teamFiltered.length === 0;
+
+  setLeaderboardFilterEmptyState(isTeamFilterEmpty);
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr class="leaderboard-empty-row"><td colspan="7" class="table-filter-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>';
-    const avgNoteEl = getCachedEl('leaderboard-avg-note');
-    if (avgNoteEl) avgNoteEl.innerHTML = '';
+    if (isTeamFilterEmpty) {
+      const avgNoteEl = getCachedEl('leaderboard-avg-note');
+      if (avgNoteEl) avgNoteEl.innerHTML = '';
+    }
     return;
   }
 
