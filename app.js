@@ -4605,7 +4605,61 @@ function renderLeaderboard(options = {}) {
   }
 }
 
-// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished matches, matching github version)
+// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend by match day)
+function buildChartDaySteps(finishedMatches) {
+  const dayMap = new Map();
+  const undated = [];
+  finishedMatches.forEach(m => {
+    if (m.date) {
+      if (!dayMap.has(m.date)) dayMap.set(m.date, []);
+      dayMap.get(m.date).push(m);
+    } else {
+      undated.push(m);
+    }
+  });
+  const steps = [...dayMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, dayMatches]) => ({
+      date,
+      matches: dayMatches.sort((a, b) => a.id - b.id)
+    }));
+  if (undated.length) {
+    steps.push({ date: null, matches: undated.sort((a, b) => a.id - b.id) });
+  }
+  return steps;
+}
+
+function applyFinishedMatchToTeamScores(match, teamScores) {
+  const h = match.homeScore;
+  const a = match.awayScore;
+  let homeResPoints = 0;
+  let awayResPoints = 0;
+
+  if (h > a) {
+    homeResPoints = 3;
+    awayResPoints = 1;
+  } else if (h < a) {
+    homeResPoints = 1;
+    awayResPoints = 3;
+  } else if (match.isKnockout && match.penaltyWinner) {
+    if (match.penaltyWinner === 'home') {
+      homeResPoints = 3;
+      awayResPoints = 1;
+    } else {
+      homeResPoints = 1;
+      awayResPoints = 3;
+    }
+  } else {
+    homeResPoints = 2;
+    awayResPoints = 2;
+  }
+
+  const hTeam = TEAMS.find(t => t.name === match.home);
+  const aTeam = TEAMS.find(t => t.name === match.away);
+  if (hTeam) teamScores[match.home] += (homeResPoints + h) * hTeam.multiplier;
+  if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
+}
+
 function renderScoreChart() {
   const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !processedPlayers.length) return;
@@ -4613,11 +4667,12 @@ function renderScoreChart() {
   clearChartPulseLayer(svgEl);
   chartHoverPlayer = '';
 
-  // 1. Get finished matches sorted chronologically
+  // 1. Get finished matches sorted chronologically, then group by day
   const finishedMatches = matches
     .filter(m => m.status === 'finished')
     .sort((a, b) => a.id - b.id);
-  const stepsCount = finishedMatches.length;
+  const chartDaySteps = buildChartDaySteps(finishedMatches);
+  const stepsCount = chartDaySteps.length;
 
   // 2. Cache historical rank and score for all players
   const playerRankHistory = players.map(p => {
@@ -4636,40 +4691,12 @@ function renderScoreChart() {
     teamScores[team.name] = 0;
   });
 
+  let processedMatchCount = 0;
   for (let step = 1; step <= stepsCount; step++) {
-    const match = finishedMatches[step - 1];
-    const h = match.homeScore;
-    const a = match.awayScore;
-
-    let homeResPoints = 0;
-    let awayResPoints = 0;
-
-    if (h > a) {
-      homeResPoints = 3;
-      awayResPoints = 1;
-    } else if (h < a) {
-      homeResPoints = 1;
-      awayResPoints = 3;
-    } else {
-      if (match.isKnockout && match.penaltyWinner) {
-        if (match.penaltyWinner === 'home') {
-          homeResPoints = 3;
-          awayResPoints = 1;
-        } else {
-          homeResPoints = 1;
-          awayResPoints = 3;
-        }
-      } else {
-        homeResPoints = 2;
-        awayResPoints = 2;
-      }
-    }
-
-    const hTeam = TEAMS.find(t => t.name === match.home);
-    const aTeam = TEAMS.find(t => t.name === match.away);
-
-    if (hTeam) teamScores[match.home] += (homeResPoints + h) * hTeam.multiplier;
-    if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
+    chartDaySteps[step - 1].matches.forEach(match => {
+      applyFinishedMatchToTeamScores(match, teamScores);
+    });
+    processedMatchCount += chartDaySteps[step - 1].matches.length;
 
     const scoreBoard = playerRankHistory.map(ph => {
       const playerObj = players.find(p => p.name === ph.name);
@@ -4677,7 +4704,7 @@ function renderScoreChart() {
       playerObj.teams.forEach(teamName => {
         teamsScore += teamScores[teamName] || 0;
       });
-      const finalMatch = finishedMatches.slice(0, step).find(m => m.isFinal);
+      const finalMatch = finishedMatches.slice(0, processedMatchCount).find(m => m.isFinal);
       const predictionScore = calculatePredictionPoints(playerObj, finalMatch);
       return {
         name: ph.name,
@@ -4801,10 +4828,14 @@ function renderScoreChart() {
     if (i === 0) {
       label = isMobile ? 'เริ่ม' : 'เริ่มต้น';
     } else if (showLabel) {
-      const dateStr = finishedMatches[i - 1].date;
-      const d = new Date(dateStr + 'T00:00:00');
-      // mobile: show day only to save space, desktop: show dd/mm
-      label = isMobile ? `${d.getDate()}` : `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const dateStr = chartDaySteps[i - 1].date;
+      if (!dateStr) {
+        label = '—';
+      } else {
+        const d = new Date(dateStr + 'T00:00:00');
+        // mobile: show day only to save space, desktop: show dd/mm
+        label = isMobile ? `${d.getDate()}` : `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
     }
 
     const xLabelX = isMobile && i === stepsCount ? Math.min(x, W - 6) : x;
