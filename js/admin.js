@@ -1,6 +1,18 @@
 import { app } from './state.js';
 import { getCachedEl } from './utils.js';
 
+const GITHUB_TOKEN_KEY = 'worldcup_githubToken';
+
+export function getGitHubToken() {
+  return sessionStorage.getItem(GITHUB_TOKEN_KEY) || '';
+}
+
+export function setGitHubToken(token) {
+  const trimmed = (token || '').trim();
+  if (trimmed) sessionStorage.setItem(GITHUB_TOKEN_KEY, trimmed);
+  else sessionStorage.removeItem(GITHUB_TOKEN_KEY);
+}
+
 export function initAdminState() {
   app.isAdmin = sessionStorage.getItem('worldcup_isAdmin') === 'true';
   updateAdminUI();

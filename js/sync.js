@@ -32,7 +32,7 @@ export async function initData() {
       }
     }
   } catch (e) {
-    console.log('[Sync] Synchronization backend is disabled (static pages or offline)');
+    console.log('[Sync] Local sync API unavailable (static/GitHub Pages mode)');
   }
 
   // 2. Fetch server data with cache busting to ensure the latest file is loaded
@@ -46,6 +46,11 @@ export async function initData() {
   }
 
   const hasServerData = serverData.matches && serverData.matches.length > 0;
+  // On GitHub Pages there is no /api/save — treat data.json as the shared source of truth
+  if (!app.isSyncEnabled && hasServerData) {
+    app.isSyncEnabled = true;
+    window.isSyncEnabled = true;
+  }
   if (hasServerData) {
     const localMatchesStr = localStorage.getItem('worldcup_matches');
     const serverMatchesStr = JSON.stringify(serverData.matches || []);
