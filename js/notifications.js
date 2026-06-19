@@ -30,7 +30,6 @@ export function initNotifications() {
 
   injectToastStyles();
   ensureToastElement();
-  bindBroadcastBannerClose();
   renderNotificationControls();
   setupIOSPushBanner();
   setupIOSPushListeners();
@@ -79,59 +78,28 @@ function getBroadcastMessage(bc) {
 function markBroadcastShown(id) {
   localStorage.setItem(SHOWN_BROADCAST_KEY, String(id));
   localStorage.removeItem(PENDING_BROADCAST_KEY);
-  hideBroadcastBanner();
+  currentBannerId = 0;
 }
 
 function queuePendingBroadcast(bc) {
   localStorage.setItem(PENDING_BROADCAST_KEY, JSON.stringify(bc));
 }
 
-function bindBroadcastBannerClose() {
-  const btn = document.getElementById('broadcast-alert-close');
-  if (!btn || btn.dataset.bound) return;
-  btn.dataset.bound = '1';
-  btn.addEventListener('click', () => {
-    if (currentBannerId) markBroadcastShown(currentBannerId);
-    else hideBroadcastBanner();
-  });
-}
-
 export function updateBroadcastBanner(bc) {
-  bindBroadcastBannerClose();
-  const bar = document.getElementById('broadcast-alert-bar');
-  const textEl = document.getElementById('broadcast-alert-text');
-  if (!bar || !textEl || !bc?.id) {
-    hideBroadcastBanner();
+  if (!bc?.id) {
+    currentBannerId = 0;
     return false;
   }
-
   const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
   if (bc.id <= shownId) {
-    hideBroadcastBanner();
+    currentBannerId = 0;
     return false;
   }
-
   currentBannerId = bc.id;
-  textEl.textContent = getBroadcastMessage(bc);
-  bar.hidden = false;
-  requestAnimationFrame(() => {
-    bar.classList.add('broadcast-alert-bar--visible');
-    const h = bar.offsetHeight;
-    document.documentElement.style.setProperty('--broadcast-banner-height', `${h}px`);
-    document.documentElement.classList.add('has-broadcast-banner');
-  });
   return true;
 }
 
 export function hideBroadcastBanner() {
-  const bar = document.getElementById('broadcast-alert-bar');
-  if (!bar) return;
-  bar.classList.remove('broadcast-alert-bar--visible');
-  document.documentElement.classList.remove('has-broadcast-banner');
-  document.documentElement.style.removeProperty('--broadcast-banner-height');
-  setTimeout(() => {
-    if (!bar.classList.contains('broadcast-alert-bar--visible')) bar.hidden = true;
-  }, 350);
   currentBannerId = 0;
 }
 
@@ -486,12 +454,7 @@ function renderIOSPushBanner() {
         <button type="button" class="ios-push-hint-bar__btn" id="ios-push-hint-action">วิธีติดตั้ง</button>
       </div>
     `;
-    const broadcastBar = document.getElementById('broadcast-alert-bar');
-    if (broadcastBar?.parentNode) {
-      broadcastBar.parentNode.insertBefore(bar, broadcastBar.nextSibling);
-    } else {
-      document.body.prepend(bar);
-    }
+    document.body.prepend(bar);
     injectIOSPushStyles();
     bar.querySelector('#ios-push-hint-action')?.addEventListener('click', () => {
       if (getIOSPushBlockReason() === 'ios-use-safari') {
@@ -564,7 +527,7 @@ function injectIOSPushStyles() {
     }
     html.has-ios-push-hint { scroll-padding-top: 56px; }
     html.has-ios-push-hint .mobile-header { top: 52px; }
-    html.has-ios-push-hint.has-broadcast-banner .mobile-header { top: 104px; }
+
   `;
   document.head.appendChild(style);
 }
@@ -619,9 +582,7 @@ function injectToastStyles() {
         font-size: 15px;
         padding: 16px 18px;
       }
-      html.has-broadcast-banner .update-toast {
-        top: max(120px, calc(env(safe-area-inset-top, 0px) + 112px));
-      }
+
     }
   `;
   document.head.appendChild(style);
