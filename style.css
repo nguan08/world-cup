@@ -7064,7 +7064,7 @@ tr.leader-second-row {
 }
 
 /* ═══════════════════════════════════════════════════
-   PAYOUT PAGE
+   PAYOUT PAGE — Dashboard style (SaaS analytics UI)
    ═══════════════════════════════════════════════════ */
 
 .payout-page-header {
@@ -7082,351 +7082,380 @@ tr.leader-second-row {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(245, 200, 66, 0.22) 0%, rgba(236, 72, 153, 0.14) 100%);
-  border: 1px solid rgba(245, 200, 66, 0.28);
-  box-shadow: 0 8px 24px rgba(245, 200, 66, 0.12);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.14) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.14);
 }
 
 .payout-page-header__icon svg {
   width: 28px;
   height: 28px;
-  fill: #fde68a;
+  fill: #c7d2fe;
 }
 
-.payout-page-card {
-  padding: 0 !important;
-  overflow: hidden;
-  border: 1px solid rgba(245, 200, 66, 0.12) !important;
-  background:
-    linear-gradient(180deg, rgba(245, 200, 66, 0.05) 0%, transparent 28%),
-    var(--bg-card) !important;
-  box-shadow: var(--shadow-md), 0 0 48px rgba(245, 200, 66, 0.06) !important;
+/* ── KPI stat cards (top grid) ── */
+.payout-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.payout-summary-grid {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.payout-summary-bar {
+.payout-stat-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: nowrap;
-  min-width: 0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.payout-summary-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.payout-summary-bar__main,
-.payout-summary-bar__tiers {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.payout-summary-bar__tiers {
-  flex-shrink: 0;
-}
-
-.payout-kpi {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.payout-kpi strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.payout-kpi--total strong {
-  color: #fde68a;
-}
-
-.payout-kpi--count strong {
-  color: #c7d2fe;
-}
-
-.payout-kpi-dot {
-  color: var(--text-muted);
-  opacity: 0.5;
-  user-select: none;
-}
-
-.payout-tier-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.payout-tier-chip strong {
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.payout-tier-chip--1000 {
-  color: #fde047;
-  border-color: rgba(250, 204, 21, 0.22);
-  background: rgba(250, 204, 21, 0.08);
-}
-
-.payout-tier-chip--1200 {
-  color: #fdba74;
-  border-color: rgba(251, 146, 60, 0.24);
-  background: rgba(251, 146, 60, 0.08);
-}
-
-.payout-tier-chip--1500 {
-  color: #fda4af;
-  border-color: rgba(244, 63, 94, 0.26);
-  background: rgba(244, 63, 94, 0.1);
-}
-
-.payout-table-section {
-  padding: 0;
-}
-
-.payout-table-heading {
-  display: flex;
-  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
-  padding: 16px 22px 10px;
-}
-
-.payout-table-heading__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.payout-table-heading__hint {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.payout-table-wrap {
-  border-top: none !important;
-  background: transparent !important;
-  overflow-x: auto;
-}
-
-.payout-table {
-  table-layout: fixed !important;
-  width: 100% !important;
-}
-
-.payout-table thead th:nth-child(1) { width: 36px; }
-.payout-table thead th:nth-child(2) { width: 48%; }
-.payout-table thead th:nth-child(3) { width: 118px; }
-.payout-table thead th:nth-child(4) { width: 76px; }
-
-.payout-table thead th {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
-  color: #a5b4fc !important;
-  font-size: 10px !important;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border-bottom: 1px solid rgba(99, 102, 241, 0.18) !important;
-  white-space: nowrap;
-  padding: 8px 6px !important;
-}
-
-.payout-table tbody tr {
-  transition: background 0.18s ease;
-}
-
-.payout-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.payout-table tbody td {
-  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
-  vertical-align: middle;
-  padding: 8px 6px !important;
-  overflow: hidden;
-}
-
-.payout-rank-cell,
-.payout-amount-cell {
-  text-align: center !important;
-}
-
-.payout-zone-score-cell {
-  text-align: center !important;
-  white-space: nowrap;
-}
-
-.payout-zone-score-cell {
-  display: inline-flex !important;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  max-width: 100%;
+  padding: 18px 20px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   min-width: 0;
 }
 
-.payout-zone-score-sep,
-.payout-player-sep {
-  flex-shrink: 0;
-  color: var(--text-muted);
-  opacity: 0.45;
-  font-size: 10px;
-  line-height: 1;
-  user-select: none;
-}
-
-.payout-zone-score-val {
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #cbd5e1;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.payout-rank-cell {
-  font-weight: 800;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px !important;
-}
-
-.payout-player-cell {
-  text-align: left !important;
+.payout-stat-card__body {
   min-width: 0;
-  max-width: 0;
-}
-
-.payout-player-line {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.payout-player-name {
   flex: 1 1 auto;
-  min-width: 0;
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.25;
 }
 
-.payout-player-note {
-  flex: 0 1 auto;
-  max-width: 42%;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
+.payout-stat-card__value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.payout-stat-card__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
   line-height: 1.2;
 }
 
-.payout-row--due .payout-player-name {
-  color: #fff;
-}
-
-.payout-zone-score-cell .badge {
-  max-width: 100%;
+.payout-stat-card__sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.payout-row--due {
-  background: linear-gradient(90deg, rgba(244, 63, 94, 0.07) 0%, transparent 55%);
+.payout-stat-card--total .payout-stat-card__value { color: #e9d5ff; }
+.payout-stat-card--count .payout-stat-card__value { color: #86efac; }
+.payout-stat-card--tier1000 .payout-stat-card__value { color: #fde047; }
+.payout-stat-card--tier1200 .payout-stat-card__value { color: #fdba74; }
+.payout-stat-card--tier1500 .payout-stat-card__value { color: #fda4af; }
+
+.payout-stat-ring {
+  flex-shrink: 0;
 }
 
-.payout-row--free {
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.04) 0%, transparent 45%);
+.payout-stat-ring__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 4;
 }
 
-.payout-row--zone-blue.payout-row--due {
-  box-shadow: inset 3px 0 0 rgba(56, 189, 248, 0.55);
+.payout-stat-ring__fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 0.4s ease;
 }
 
-.payout-row--zone-green.payout-row--due {
-  box-shadow: inset 3px 0 0 rgba(34, 197, 94, 0.55);
-}
-
-.payout-row--zone-red.payout-row--due {
-  box-shadow: inset 3px 0 0 rgba(248, 113, 113, 0.7);
-}
-
-.payout-amount-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  max-width: 100%;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
+.payout-stat-ring__text {
+  fill: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+}
+
+.payout-stat-ring--purple .payout-stat-ring__fill { stroke: #a78bfa; }
+.payout-stat-ring--green .payout-stat-ring__fill { stroke: #4ade80; }
+.payout-stat-ring--amber .payout-stat-ring__fill { stroke: #facc15; }
+.payout-stat-ring--orange .payout-stat-ring__fill { stroke: #fb923c; }
+.payout-stat-ring--plum .payout-stat-ring__fill { stroke: #f472b6; }
+
+/* ── Two-column content (Transactions + Roster) ── */
+.payout-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.payout-panel {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.payout-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.payout-panel__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.payout-panel__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c4b5fd;
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  padding: 4px 10px;
+  border-radius: 999px;
   white-space: nowrap;
 }
 
-.payout-amount-chip--free {
-  color: #86efac;
+.payout-panel__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.payout-panel__footer {
+  padding: 12px 22px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.payout-panel__footer strong {
+  color: #fde68a;
+  font-weight: 800;
+}
+
+.payout-empty-hint {
+  margin: 0;
+  padding: 28px 22px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Transactions list (due payments) ── */
+.payout-tx-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.payout-tx-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+  min-width: 0;
+}
+
+.payout-tx-item:last-child {
+  border-bottom: none;
+}
+
+.payout-tx-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.payout-tx-item__rank {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  font-variant-numeric: tabular-nums;
+}
+
+.payout-tx-item__info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.payout-tx-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.payout-tx-item__meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payout-tx-item__amount {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.payout-tx-item__amount.payout-tier--amber { color: #fde047; }
+.payout-tx-item__amount.payout-tier--orange { color: #fb923c; }
+.payout-tx-item__amount.payout-tier--plum { color: #fb7185; }
+
+/* ── Roster list (Recent Event style) ── */
+.payout-roster-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 620px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.payout-roster-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+  min-width: 0;
+}
+
+.payout-roster-item:last-child {
+  border-bottom: none;
+}
+
+.payout-roster-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.payout-roster-item__rank-badge {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.payout-roster-item__rank-badge--blue {
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+}
+
+.payout-roster-item__rank-badge--green {
   background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.22);
+  color: #86efac;
 }
 
-.payout-amount-chip--due.payout-tier--amber {
-  color: #fde047;
-  background: linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(245, 158, 11, 0.12) 100%);
-  border: 1px solid rgba(250, 204, 21, 0.3);
-  box-shadow: 0 4px 14px rgba(250, 204, 21, 0.1);
+.payout-roster-item__rank-badge--red {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
 }
 
-.payout-amount-chip--due.payout-tier--orange {
-  color: #fdba74;
-  background: linear-gradient(135deg, rgba(251, 146, 60, 0.22) 0%, rgba(234, 88, 12, 0.12) 100%);
-  border: 1px solid rgba(251, 146, 60, 0.32);
-  box-shadow: 0 4px 14px rgba(251, 146, 60, 0.12);
+.payout-roster-item__rank-label {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
 }
 
-.payout-amount-chip--due.payout-tier--plum {
-  color: #fda4af;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.24) 0%, rgba(190, 24, 93, 0.14) 100%);
-  border: 1px solid rgba(244, 63, 94, 0.35);
-  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.14);
+.payout-roster-item__rank-num {
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
-#payout-table .badge {
+.payout-roster-item__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.payout-roster-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.payout-roster-item__meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payout-roster-item__aside {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.payout-roster-item__aside .badge {
   font-size: 9px !important;
-  padding: 2px 6px !important;
+  padding: 2px 7px !important;
+}
+
+.payout-roster-item__amount {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.payout-roster-item__amount--due.payout-tier--amber { color: #fde047; }
+.payout-roster-item__amount--due.payout-tier--orange { color: #fb923c; }
+.payout-roster-item__amount--due.payout-tier--plum { color: #fb7185; }
+.payout-roster-item__amount--free { color: #4ade80; font-weight: 600; font-size: 11px; }
+
+.payout-roster-item--due {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.04) 0%, transparent 60%);
+}
+
+.payout-roster-item--free .payout-roster-item__name {
+  color: var(--text-secondary);
 }
 
 .tools-sim-header {
@@ -7566,11 +7595,19 @@ td.tools-sim-scores {
   color: var(--accent) !important;
 }
 
-#payout-table th,
-#payout-table td,
 #tools-sim-delta-table th,
 #tools-sim-delta-table td {
   font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .payout-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payout-roster-list {
+    max-height: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -7584,112 +7621,59 @@ td.tools-sim-scores {
     border-radius: 12px;
   }
 
-  .payout-summary-grid {
-    padding: 10px 12px;
+  .payout-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
-  .payout-summary-bar {
-    gap: 8px;
-    padding-bottom: 2px;
+  .payout-stat-card {
+    padding: 14px 14px !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
-  .payout-summary-bar__main,
-  .payout-summary-bar__tiers {
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+  .payout-stat-card__value {
+    font-size: 22px;
   }
 
-  .payout-kpi {
-    font-size: 11px;
+  .payout-stat-card .payout-stat-ring {
+    align-self: flex-end;
   }
 
-  .payout-kpi strong {
+  .payout-panel__header {
+    padding: 14px 16px 12px;
+    flex-wrap: wrap;
+  }
+
+  .payout-tx-item,
+  .payout-roster-item {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .payout-tx-item__amount {
     font-size: 13px;
   }
 
-  .payout-tier-chip {
-    padding: 3px 7px;
-    font-size: 10px;
+  .payout-roster-item__rank-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
   }
 
-  .payout-table-heading {
-    padding: 12px 14px 6px;
+  .payout-roster-item__rank-num {
+    font-size: 13px;
   }
 
-  .payout-table {
-    table-layout: auto !important;
-  }
-
-  .payout-table thead {
+  .payout-roster-item__aside .badge {
     display: none;
   }
+}
 
-  .payout-table tbody tr {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) minmax(0, max-content) minmax(0, max-content);
-    grid-template-areas: "rank player zone amount";
-    gap: 4px 6px;
-    align-items: center;
-    padding: 10px 12px;
-    margin: 0 10px 8px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .payout-table tbody td {
-    display: block;
-    border: none !important;
-    padding: 0 !important;
-    overflow: visible;
-  }
-
-  .payout-table .payout-rank-cell {
-    grid-area: rank;
-    width: 34px;
-    height: 34px;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.06);
-    font-size: 12px !important;
-  }
-
-  .payout-table .payout-player-cell {
-    grid-area: player;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .payout-table .payout-zone-score-cell {
-    grid-area: zone;
-    justify-content: flex-end !important;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .payout-table .payout-zone-score-cell .badge {
-    flex-shrink: 1;
-    min-width: 0;
-  }
-
-  .payout-table .payout-zone-score-val {
-    font-size: 11px !important;
-  }
-
-  .payout-table .payout-amount-cell {
-    grid-area: amount;
-    justify-self: end;
-  }
-
-  .payout-player-name {
-    font-size: 14px !important;
-  }
-
-  .payout-amount-chip {
-    font-size: 10px;
-    padding: 3px 7px;
+@media (max-width: 420px) {
+  .payout-kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 

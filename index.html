@@ -13,7 +13,7 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=20260619-payout-compact">
+  <link rel="stylesheet" href="style.css?v=20260619-payout-dashboard">
 </head>
 <body>
   
@@ -528,26 +528,24 @@
           </div>
         </header>
 
-        <div class="card payout-page-card">
-          <div id="payout-summary" class="payout-summary-grid"></div>
-          <div class="payout-table-section">
-            <div class="payout-table-heading">
-              <span class="payout-table-heading__title">รายชื่อผู้เล่น</span>
-              <span class="payout-table-heading__hint">เรียงตามอันดับคะแนนรวม</span>
+        <div id="payout-summary" class="payout-kpi-grid"></div>
+
+        <div class="payout-content-grid">
+          <div class="card payout-panel payout-panel--due">
+            <div class="payout-panel__header">
+              <h2 class="payout-panel__title">รายการต้องจ่าย</h2>
+              <span id="payout-due-badge" class="payout-panel__badge"></span>
             </div>
-            <div class="table-container payout-table-wrap">
-              <table id="payout-table" class="data-table payout-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>ผู้เล่น</th>
-                    <th>โซน · คะแนน</th>
-                    <th>เงิน</th>
-                  </tr>
-                </thead>
-                <tbody id="payout-tbody"></tbody>
-              </table>
+            <div id="payout-due-list" class="payout-tx-list" role="list"></div>
+            <div id="payout-due-footer" class="payout-panel__footer"></div>
+          </div>
+
+          <div class="card payout-panel payout-panel--roster">
+            <div class="payout-panel__header">
+              <h2 class="payout-panel__title">รายชื่อผู้เล่นทั้งหมด</h2>
+              <span class="payout-panel__hint">เรียงตามอันดับคะแนนรวม</span>
             </div>
+            <div id="payout-roster-list" class="payout-roster-list" role="list"></div>
           </div>
         </div>
       </section>
@@ -887,7 +885,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260619-payout-compact"></script>
+  <script type="module" src="js/main.js?v=20260619-payout-dashboard"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
