@@ -253,9 +253,9 @@
     {
       "home": "สาธารณรัฐเช็ก",
       "away": "แอฟริกาใต้",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-18",
       "id": 25
@@ -263,9 +263,9 @@
     {
       "home": "สวิตเซอร์แลนด์",
       "away": "บอสเนีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-19",
       "id": 26
@@ -273,9 +273,9 @@
     {
       "home": "แคนาดา",
       "away": "กาตาร์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 6,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-19",
       "id": 27

@@ -63,6 +63,34 @@ const TEAMS = [
 
 ];
 
+const TEAM_FLAG_CODES = {
+  'สเปน': 'es', 'ฝรั่งเศส': 'fr', 'บราซิล': 'br', 'อาร์เจนตินา': 'ar',
+  'อังกฤษ': 'gb-eng', 'เยอรมนี': 'de', 'โปรตุเกส': 'pt', 'เบลเยียม': 'be',
+  'เนเธอร์แลนด์': 'nl', 'สวิตเซอร์แลนด์': 'ch', 'อุรุกวัย': 'uy', 'เม็กซิโก': 'mx',
+  'สหรัฐอเมริกา': 'us', 'โมร็อกโก': 'ma', 'นอร์เวย์': 'no', 'โคลอมเบีย': 'co',
+  'สาธารณรัฐเช็ก': 'cz', 'โครเอเชีย': 'hr', 'ตุรกี': 'tr', 'แคนาดา': 'ca',
+  'ญี่ปุ่น': 'jp', 'เอกวาดอร์': 'ec', 'บอสเนีย': 'ba', 'อียิปต์': 'eg',
+  'ออสเตรีย': 'at', 'อิหร่าน': 'ir', 'ไอเวอรีโคสต์': 'ci', 'เกาหลีใต้': 'kr',
+  'แอลจีเรีย': 'dz', 'ปารากวัย': 'py', 'สวีเดน': 'se', 'สกอตแลนด์': 'gb-sct',
+  'เซเนกัล': 'sn', 'กานา': 'gh', 'ออสเตรเลีย': 'au', 'ซาอุดีอาระเบีย': 'sa',
+  'แอฟริกาใต้': 'za', 'ตูนิเซีย': 'tn', 'นิวซีแลนด์': 'nz', 'ปานามา': 'pa',
+  'กาตาร์': 'qa', 'จอร์แดน': 'jo', 'อุซเบกิสถาน': 'uz', 'อิรัก': 'iq',
+  'คูราเซา': 'cw', 'เคปเวิร์ด': 'cv', 'คองโก': 'cd', 'เฮติ': 'ht'
+};
+
+function getTeamFlagUrl(teamName) {
+  const code = TEAM_FLAG_CODES[teamName];
+  return code ? `https://flagcdn.com/w80/${code}.png` : null;
+}
+
+function getTeamFlagHtml(teamName) {
+  const url = getTeamFlagUrl(teamName);
+  if (url) {
+    return `<img src="${url}" alt="${teamName}" class="team-flag" loading="lazy" width="44" height="44">`;
+  }
+  return `<div class="team-avatar" title="${teamName}">${teamName.slice(0, 2)}</div>`;
+}
+
 const INITIAL_MATCHES = [
   {
     "home": "เม็กซิโก",
@@ -2252,10 +2280,7 @@ function updateAdminUI() {
     renderLeaderboard({forceRecalc: false});
   }
   // Always update the admin column header visibility even if not on those tabs
-  const lbAdminCol = document.getElementById('lb-admin-col');
-  if (lbAdminCol) lbAdminCol.style.display = isAdmin ? 'table-cell' : 'none';
-  const top5AdminCol = document.getElementById('top5-admin-col');
-  if (top5AdminCol) top5AdminCol.style.display = isAdmin ? 'table-cell' : 'none';
+
 }
 
 // Initialize data from server data.json and/or localstorage
@@ -2808,7 +2833,7 @@ let teamPoints = {};
 let processedPlayers = [];
 let manualEliminatedTeams = new Set();
 let lastHighlightPlayer = "";
-let playCompletedTeams = new Set();
+let teamMatchesPlayedCounts = {};
 let elCache = {};
 function getCachedEl(id) {
   if (!elCache[id]) elCache[id] = document.getElementById(id);
@@ -2821,8 +2846,16 @@ function debounce(fn, delay = 120) {
     timeout = setTimeout(() => fn.apply(this, args), delay);
   };
 }
-function updatePlayCompletedTeams() {
-  playCompletedTeams = new Set(matches.filter(m => m.status === 'finished').flatMap(m => [m.home, m.away]));
+function updateTeamMatchesPlayedCounts() {
+  teamMatchesPlayedCounts = {};
+  matches.filter(m => m.status === 'finished').forEach(m => {
+    teamMatchesPlayedCounts[m.home] = (teamMatchesPlayedCounts[m.home] || 0) + 1;
+    teamMatchesPlayedCounts[m.away] = (teamMatchesPlayedCounts[m.away] || 0) + 1;
+  });
+}
+function getPlayerTotalMatchesPlayed(playerTeams) {
+  if (!playerTeams) return 0;
+  return playerTeams.reduce((sum, teamName) => sum + (teamMatchesPlayedCounts[teamName] || 0), 0);
 }
 
 // Load manual eliminated teams
@@ -2873,7 +2906,7 @@ function isTeamEliminated(teamName) {
 function recalculateAll() {
   teamPoints = calculateTeamPoints();
   processedPlayers = processPlayers(teamPoints);
-  updatePlayCompletedTeams();
+  updateTeamMatchesPlayedCounts();
 }
 
 // Helper to close player stats drawer (used on mobile + when switching views / tapping elsewhere)
@@ -3007,6 +3040,15 @@ function setupNavigation() {
     });
   });
   
+  // Section "View All" links (SPORT2 style)
+  document.querySelectorAll('[data-nav-tab]').forEach(link => {
+    link.addEventListener('click', () => {
+      const tab = link.getAttribute('data-nav-tab');
+      const targetNav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+      if (targetNav) targetNav.click();
+    });
+  });
+
   // Mobile Hamburger menu
   const menuBtn = document.getElementById('menu-toggle-btn');
   const sidebar = document.getElementById('sidebar');
@@ -3076,129 +3118,596 @@ function handleSimulationScoreChange(matchId, isHome, val) {
 }
 
 // RENDERING - DASHBOARD
+const LIVE_MATCH_COLOR_VARIANTS = ['live-match-card--blue', 'live-match-card--neutral', 'live-match-card--red'];
+
+function buildLiveMatchCard(m, index, todayStr) {
+  const card = document.createElement('div');
+  card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
+
+  const isToday = m.date === todayStr;
+  const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
+  const isSimulated = simulationScores[m.id];
+  const isFinished = m.status === 'finished';
+  const statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
+
+  const hTeamObj = TEAMS.find(t => t.name === m.home);
+  const aTeamObj = TEAMS.find(t => t.name === m.away);
+  const hZone = hTeamObj ? hTeamObj.zone : 'blue';
+  const aZone = aTeamObj ? aTeamObj.zone : 'blue';
+  const hMult = hTeamObj ? hTeamObj.multiplier : 1;
+  const aMult = aTeamObj ? aTeamObj.multiplier : 1;
+
+  let hScore, aScore;
+  if (isFinished) {
+    hScore = m.homeScore;
+    aScore = m.awayScore;
+  } else {
+    hScore = isSimulated ? isSimulated.homeScore : null;
+    aScore = isSimulated ? isSimulated.awayScore : null;
+  }
+
+  const hPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.home, hMult).toFixed(1) : null;
+  const aPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.away, aMult).toFixed(1) : null;
+  const statusChipClass = isFinished ? 'finished' : (isSimulated ? 'simulated' : 'pending');
+
+  card.innerHTML = `
+    <div class="live-match-meta">
+      <span>${dateLabel} · ${m.date}</span>
+      <span class="live-match-status ${statusChipClass}">${statusLabel}</span>
+    </div>
+
+    <div class="live-match-teams">
+      ${getTeamFlagHtml(m.home)}
+      <span class="live-match-vs">VS</span>
+      ${getTeamFlagHtml(m.away)}
+    </div>
+
+    <div class="match-body-grid">
+      <div class="match-team-col">
+        <div class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${m.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.home)}%;">${m.home}</div>
+        <div class="team-mult-label">x${hMult}</div>
+      </div>
+      <div class="match-center-col">
+        ${isFinished ? `
+          <div class="match-score-row live-match-score-desktop">
+            <span class="score-num">${hScore}</span>
+            <span class="score-divider">:</span>
+            <span class="score-num">${aScore}</span>
+          </div>
+        ` : `
+          <div class="match-score-row">
+            <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
+            <span class="score-divider">:</span>
+            <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
+          </div>
+        `}
+        ${hPts !== null ? `
+          <div class="match-pts-row">
+            <span class="pts-label">${hPts > 0 ? '+' : ''}${hPts}</span>
+            <div style="width: 10px;"></div>
+            <span class="pts-label">${aPts > 0 ? '+' : ''}${aPts}</span>
+          </div>
+        ` : ''}
+      </div>
+      <div class="match-team-col align-right">
+        <div class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${m.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.away)}%;">${m.away}</div>
+        <div class="team-mult-label">x${aMult}</div>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
 function renderRecentMatches() {
   const container = getCachedEl('recent-matches-container');
   if (!container) return;
   container.innerHTML = '';
 
-  // Get current date and tomorrow's date (local time)
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  // Filter matches for today and tomorrow
   const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
 
   if (recent.length === 0) {
-    container.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.05);">ไม่มีการแข่งขันวันนี้และพรุ่งนี้</div>';
+    container.className = 'live-matches-container';
+    container.innerHTML = '<div class="live-matches-empty" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.05);">ไม่มีการแข่งขันวันนี้และพรุ่งนี้</div>';
+    setupLiveMatchesCarousel();
     return;
   }
 
-  // Sort by date then by id
   recent.sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date);
     return a.id - b.id;
   });
 
-  const fragment = document.createDocumentFragment();
-  recent.forEach(m => {
-    const card = document.createElement('div');
-    card.className = 'match-card dashboard-match-card';
-    
-    const isToday = m.date === todayStr;
-    const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
-    const isSimulated = simulationScores[m.id];
-    const isFinished = m.status === 'finished';
-    
-    const statusClass = isFinished ? 'badge-green' : (isSimulated ? 'badge-yellow' : 'badge-red');
-    const statusLabel = isFinished ? 'จบการแข่งขัน' : (isSimulated ? 'กำลังจำลองผล' : 'รอการแข่งขัน');
+  container.className = 'live-matches-container dashboard-matches-grid';
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, todayStr)));
+  setupLiveMatchesCarousel();
+}
 
-    const hTeamObj = TEAMS.find(t => t.name === m.home);
-    const aTeamObj = TEAMS.find(t => t.name === m.away);
-    const hZone = hTeamObj ? hTeamObj.zone : 'blue';
-    const aZone = aTeamObj ? aTeamObj.zone : 'blue';
-    const hMult = hTeamObj ? hTeamObj.multiplier : 1;
-    const aMult = aTeamObj ? aTeamObj.multiplier : 1;
+function setupLiveMatchesCarousel() {
+  const carousel = document.getElementById('live-matches-carousel');
+  const wrapper = getCachedEl('recent-matches-container');
+  const prevBtn = document.getElementById('live-matches-prev');
+  const nextBtn = document.getElementById('live-matches-next');
+  const pagination = document.getElementById('live-matches-pagination');
+  if (!carousel || !wrapper || !prevBtn || !nextBtn) return;
 
-    let hScore, aScore;
-    if (isFinished) {
-      hScore = m.homeScore;
-      aScore = m.awayScore;
-    } else {
-      hScore = isSimulated ? isSimulated.homeScore : null;
-      aScore = isSimulated ? isSimulated.awayScore : null;
+  const scrollContainer = wrapper.classList.contains('dashboard-matches-grid')
+    ? wrapper
+    : wrapper.querySelector('.dashboard-matches-grid');
+
+  const hideCarouselChrome = () => {
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    if (pagination) {
+      pagination.innerHTML = '';
+      pagination.classList.add('is-hidden');
     }
+  };
 
-    const hPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.home, hMult).toFixed(1) : null;
-    const aPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.away, aMult).toFixed(1) : null;
+  if (!scrollContainer) {
+    if (carousel._lm) carousel._lm.cleanup();
+    hideCarouselChrome();
+    return;
+  }
 
-    const scoreDisplay = isFinished ? `
-      <div class="recent-match-score" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); padding: 5px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);">
-        <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${hScore}</span>
-        <span style="font-size: 12px; color: var(--text-muted); opacity: 0.5;">:</span>
-        <span style="font-size: 20px; font-weight: 900; color: #fff; line-height: 1;">${aScore}</span>
-      </div>
-    ` : `
-      <div class="recent-match-score-sim" style="display: flex; align-items: center; gap: 4px;">
-        <input type="number" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" style="width: 34px; height: 34px; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-weight: 800; font-size: 16px;">
-        <span style="font-size: 12px; color: var(--text-muted);">:</span>
-        <input type="number" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" style="width: 34px; height: 34px; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-weight: 800; font-size: 16px;">
-      </div>
-    `;
+  if (!carousel._lm) {
+    carousel._lm = {
+      scrollContainer: null,
+      prevBtn: null,
+      nextBtn: null,
+      pagination: null,
+      carousel: carousel,
+      currentIndex: 0,
+      autoplayTimer: null,
+      resumeTimer: null,
+      programmaticTimer: null,
+      scrollSettleTimer: null,
+      scrollRaf: null,
+      hoverPaused: false,
+      userPausedUntil: 0,
+      isProgrammaticScroll: false,
+      isDragging: false,
+      didDrag: false,
+      startX: 0,
+      startY: 0,
+      scrollStart: 0,
+      dragAxis: null,
+      activePointerId: null,
+      AUTOPLAY_INTERVAL_MS: 4500,
+      USER_PAUSE_MS: 8000,
 
-    card.innerHTML = `
-      <div class="match-header" style="font-size: 10px; margin-bottom: 8px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 600; color: var(--text-secondary);">${dateLabel} · ${m.date}</span>
-        <span class="badge ${statusClass}" style="font-size: 8px; padding: 1px 6px; border-radius: 4px;">${statusLabel}</span>
-      </div>
-      
-      <div class="match-body-grid">
-        <!-- Home Team -->
-        <div class="match-team-col">
-          <div class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${m.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.home)}%;">${m.home}</div>
-          <div class="team-mult-label">x${hMult}</div>
-        </div>
+      isMobile() {
+        return window.matchMedia('(max-width: 768px)').matches;
+      },
 
-        <!-- Center: Scores and Points -->
-        <div class="match-center-col">
-          ${isFinished ? `
-            <div class="match-score-row">
-              <span class="score-num">${hScore}</span>
-              <span class="score-divider">:</span>
-              <span class="score-num">${aScore}</span>
-            </div>
-          ` : `
-            <div class="match-score-row">
-              <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
-              <span class="score-divider">:</span>
-              <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
-            </div>
-          `}
-          
-          ${hPts !== null ? `
-            <div class="match-pts-row">
-              <span class="pts-label">${hPts > 0 ? '+' : ''}${hPts}</span>
-              <div style="width: 10px;"></div> <!-- space for colon area -->
-              <span class="pts-label">${aPts > 0 ? '+' : ''}${aPts}</span>
-            </div>
-          ` : ''}
-        </div>
+      getCards() {
+        return this.scrollContainer
+          ? [...this.scrollContainer.querySelectorAll('.live-match-card')]
+          : [];
+      },
 
-        <!-- Away Team -->
-        <div class="match-team-col align-right">
-          <div class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${m.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.away)}%;">${m.away}</div>
-          <div class="team-mult-label">x${aMult}</div>
-        </div>
-      </div>
-      
-      ${!isFinished ? `<div style="font-size: 8px; color: var(--text-muted); margin-top: 4px; text-align: center; opacity: 0.6;">ทดลองกรอกคะแนนเพื่อจำลองผล</div>` : ''}
-    `;
-    fragment.appendChild(card);
+      getScrollLeftForIndex(index) {
+        const cards = this.getCards();
+        const card = cards[index];
+        if (!card || !this.scrollContainer) return 0;
+
+        const sc = this.scrollContainer;
+        const maxScroll = Math.max(0, sc.scrollWidth - sc.clientWidth);
+        const padLeft = parseFloat(getComputedStyle(sc).paddingLeft) || 0;
+
+        if (index === 0) return 0;
+        return Math.min(maxScroll, Math.max(0, card.offsetLeft - padLeft));
+      },
+
+      getNearestIndexFromScroll() {
+        const cards = this.getCards();
+        if (!cards.length || !this.scrollContainer) return 0;
+
+        const scrollLeft = this.scrollContainer.scrollLeft;
+        let closest = 0;
+        let minDist = Infinity;
+
+        cards.forEach((card, i) => {
+          const dist = Math.abs(scrollLeft - this.getScrollLeftForIndex(i));
+          if (dist < minDist) {
+            minDist = dist;
+            closest = i;
+          }
+        });
+        return closest;
+      },
+
+      getScrollStep() {
+        return 3;
+      },
+
+      isCarouselActive() {
+        return this.isMobile();
+      },
+
+      resolveTargetAfterDrag() {
+        const cards = this.getCards();
+        if (!cards.length || !this.scrollContainer) return this.currentIndex;
+
+        const step = this.getScrollStep();
+        const delta = this.scrollContainer.scrollLeft - (this.scrollStart || 0);
+        const card = cards[0];
+        const threshold = card ? Math.min(56, card.offsetWidth * 0.2) : 40;
+
+        if (delta > threshold) {
+          return Math.min(this.currentIndex + step, cards.length - 1);
+        }
+        if (delta < -threshold) {
+          return Math.max(this.currentIndex - step, 0);
+        }
+        return this.getNearestIndexFromScroll();
+      },
+
+      clearScrollSettle() {
+        if (this.scrollSettleTimer) {
+          clearTimeout(this.scrollSettleTimer);
+          this.scrollSettleTimer = null;
+        }
+      },
+
+      snapToNearestSmooth() {
+        if (this.isProgrammaticScroll || this.isDragging) return;
+
+        const target = this.getNearestIndexFromScroll();
+        const targetScroll = this.getScrollLeftForIndex(target);
+        const drift = Math.abs(this.scrollContainer.scrollLeft - targetScroll);
+        if (drift > 2 || target !== this.currentIndex) {
+          this.goToSlide(target, true);
+        }
+      },
+
+      navigatePrev() {
+        const cards = this.getCards();
+        if (!cards.length || this.currentIndex <= 0) return;
+
+        this.clearScrollSettle();
+        this.pauseAutoplayForUser();
+        this.goToSlide(this.currentIndex - this.getScrollStep(), true);
+      },
+
+      navigateNext() {
+        const cards = this.getCards();
+        if (!cards.length || this.currentIndex >= cards.length - 1) return;
+
+        this.clearScrollSettle();
+        this.pauseAutoplayForUser();
+        this.goToSlide(this.currentIndex + this.getScrollStep(), true);
+      },
+
+      syncCurrentIndex() {
+        const cards = this.getCards();
+        if (!cards.length) {
+          this.currentIndex = 0;
+          return;
+        }
+        this.currentIndex = Math.max(0, Math.min(this.currentIndex, cards.length - 1));
+        this.carousel.dataset.slideIndex = String(this.currentIndex);
+      },
+
+      goToSlide(index, smooth = true) {
+        const cards = this.getCards();
+        if (!cards.length || !this.scrollContainer) return;
+
+        if (!this.isCarouselActive()) {
+          this.scrollContainer.scrollLeft = 0;
+          this.updateNav();
+          return;
+        }
+
+        const clamped = Math.max(0, Math.min(index, cards.length - 1));
+        this.currentIndex = clamped;
+        this.carousel.dataset.slideIndex = String(this.currentIndex);
+
+        this.clearScrollSettle();
+        this.isProgrammaticScroll = true;
+        if (this.programmaticTimer) clearTimeout(this.programmaticTimer);
+        this.scrollContainer.scrollTo({
+          left: this.getScrollLeftForIndex(clamped),
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+        this.programmaticTimer = setTimeout(() => {
+          this.isProgrammaticScroll = false;
+          this.programmaticTimer = null;
+        }, smooth ? 900 : 80);
+        this.updateNav();
+      },
+
+      stopAutoplay() {
+        if (this.autoplayTimer) {
+          clearInterval(this.autoplayTimer);
+          this.autoplayTimer = null;
+        }
+      },
+
+      startAutoplay() {
+        this.stopAutoplay();
+        if (!this.isCarouselActive()) return;
+
+        const cards = this.getCards();
+        if (cards.length <= 1 || document.hidden || this.hoverPaused || Date.now() < this.userPausedUntil) return;
+
+        this.autoplayTimer = setInterval(() => {
+          if (document.hidden || this.hoverPaused || Date.now() < this.userPausedUntil) return;
+          const cardsNow = this.getCards();
+          if (cardsNow.length <= 1) return;
+
+          const step = this.getScrollStep();
+          let next = this.currentIndex + step;
+          if (next >= cardsNow.length) next = 0;
+          this.goToSlide(next, true);
+        }, this.AUTOPLAY_INTERVAL_MS);
+      },
+
+      pauseAutoplayForUser(ms) {
+        const pauseMs = ms || this.USER_PAUSE_MS;
+        this.userPausedUntil = Date.now() + pauseMs;
+        this.stopAutoplay();
+        if (this.resumeTimer) clearTimeout(this.resumeTimer);
+        this.resumeTimer = setTimeout(() => {
+          if (!this.hoverPaused && !document.hidden) this.startAutoplay();
+        }, pauseMs);
+      },
+
+      buildPagination() {
+        if (!this.pagination) return;
+        const cards = this.getCards();
+        this.pagination.innerHTML = '';
+
+        if (!this.isCarouselActive() || cards.length <= 1) {
+          this.pagination.classList.add('is-hidden');
+          return;
+        }
+
+        this.pagination.classList.remove('is-hidden');
+        const lm = this;
+        cards.forEach((_, i) => {
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'carousel-dot';
+          dot.setAttribute('role', 'tab');
+          dot.setAttribute('aria-label', `การแข่งขันที่ ${i + 1}`);
+          dot.addEventListener('click', () => {
+            lm.pauseAutoplayForUser();
+            lm.goToSlide(i, true);
+          });
+          this.pagination.appendChild(dot);
+        });
+      },
+
+      updatePagination() {
+        if (!this.isCarouselActive() || !this.pagination || this.pagination.classList.contains('is-hidden')) return;
+        const dots = this.pagination.querySelectorAll('.carousel-dot');
+        dots.forEach((dot, i) => {
+          const isActive = i === this.currentIndex;
+          dot.classList.toggle('active', isActive);
+          dot.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      },
+
+      updateNav() {
+        this.syncCurrentIndex();
+        const cards = this.getCards();
+
+        this.prevBtn.style.display = 'none';
+        this.nextBtn.style.display = 'none';
+
+        this.updatePagination();
+      },
+
+      endDrag(pointerId) {
+        if (!this.isDragging) return;
+        if (pointerId != null && this.activePointerId != null && pointerId !== this.activePointerId) return;
+
+        this.isDragging = false;
+        this.dragAxis = null;
+        this.activePointerId = null;
+        if (this.scrollContainer) this.scrollContainer.classList.remove('is-dragging');
+
+        if (this.didDrag) {
+          this.pauseAutoplayForUser();
+          this.goToSlide(this.resolveTargetAfterDrag(), true);
+        }
+        this.didDrag = false;
+      },
+
+      cleanup() {
+        this.stopAutoplay();
+        if (this.resumeTimer) {
+          clearTimeout(this.resumeTimer);
+          this.resumeTimer = null;
+        }
+        if (this.programmaticTimer) {
+          clearTimeout(this.programmaticTimer);
+          this.programmaticTimer = null;
+        }
+        this.clearScrollSettle();
+        if (this.scrollRaf) {
+          cancelAnimationFrame(this.scrollRaf);
+          this.scrollRaf = null;
+        }
+        this.hoverPaused = false;
+        this.userPausedUntil = 0;
+        this.isProgrammaticScroll = false;
+        this.endDrag(null);
+      }
+    };
+
+    const lm = carousel._lm;
+
+    prevBtn.addEventListener('click', () => lm.navigatePrev());
+    nextBtn.addEventListener('click', () => lm.navigateNext());
+
+    const onScroll = () => {
+      if (lm.scrollRaf) return;
+      lm.scrollRaf = requestAnimationFrame(() => {
+        lm.scrollRaf = null;
+        lm.updateNav();
+      });
+
+      lm.clearScrollSettle();
+      lm.scrollSettleTimer = setTimeout(() => {
+        lm.scrollSettleTimer = null;
+        if (!lm.scrollContainer) return;
+        if (lm.isProgrammaticScroll || lm.scrollContainer.classList.contains('is-dragging')) return;
+
+        if (!lm.isCarouselActive()) {
+          lm.updateNav();
+          return;
+        }
+
+        const nearest = lm.getNearestIndexFromScroll();
+        const targetScroll = lm.getScrollLeftForIndex(nearest);
+        const drift = Math.abs(lm.scrollContainer.scrollLeft - targetScroll);
+
+        if (drift > 2 || nearest !== lm.currentIndex) {
+          lm.pauseAutoplayForUser();
+          lm.goToSlide(nearest, true);
+        } else {
+          lm.currentIndex = nearest;
+          lm.carousel.dataset.slideIndex = String(nearest);
+          lm.updateNav();
+        }
+      }, 220);
+    };
+
+    const onResize = () => {
+      lm.buildPagination();
+      if (lm.isCarouselActive()) {
+        lm.goToSlide(lm.currentIndex, false);
+        lm.startAutoplay();
+      } else {
+        if (lm.scrollContainer) lm.scrollContainer.scrollLeft = 0;
+        lm.stopAutoplay();
+        lm.updateNav();
+      }
+    };
+
+    carousel.addEventListener('mouseenter', () => {
+      lm.hoverPaused = true;
+      lm.stopAutoplay();
+    });
+    carousel.addEventListener('mouseleave', () => {
+      lm.hoverPaused = false;
+      lm.startAutoplay();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) lm.stopAutoplay();
+      else lm.startAutoplay();
+    });
+
+    const isInteractiveTarget = (target) => target.closest(
+      'input, button, select, textarea, .team-badge, .team-clickable, #team-selection-popup'
+    );
+
+    const onPointerDown = (e) => {
+      if (!lm.isCarouselActive()) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (isInteractiveTarget(e.target)) return;
+
+      lm.isDragging = true;
+      lm.didDrag = false;
+      lm.dragAxis = null;
+      lm.activePointerId = e.pointerId;
+      lm.startX = e.clientX;
+      lm.startY = e.clientY;
+      lm.scrollStart = lm.scrollContainer.scrollLeft;
+      lm.scrollContainer.classList.add('is-dragging');
+      lm.pauseAutoplayForUser();
+
+      if (lm.scrollContainer.setPointerCapture) {
+        try { lm.scrollContainer.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+      }
+    };
+
+    const onPointerMove = (e) => {
+      if (!lm.isDragging || e.pointerId !== lm.activePointerId) return;
+
+      const dx = e.clientX - lm.startX;
+      const dy = e.clientY - lm.startY;
+
+      if (!lm.dragAxis) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        lm.dragAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        if (lm.dragAxis !== 'x') {
+          lm.endDrag(e.pointerId);
+          return;
+        }
+      }
+
+      if (lm.dragAxis !== 'x') return;
+
+      lm.didDrag = true;
+      e.preventDefault();
+      lm.scrollContainer.scrollLeft = lm.scrollStart - dx;
+    };
+
+    const onPointerUp = (e) => lm.endDrag(e.pointerId);
+
+    lm._onScroll = onScroll;
+    lm._onResize = onResize;
+    lm._onPointerDown = onPointerDown;
+    lm._onPointerMove = onPointerMove;
+    lm._onPointerUp = onPointerUp;
+    lm._onWheel = () => {
+      if (lm.isCarouselActive()) lm.pauseAutoplayForUser();
+    };
+
+    carousel.dataset.bound = 'true';
+  }
+
+  const lm = carousel._lm;
+  if (lm._onScroll && lm.scrollContainer && lm.scrollContainer !== scrollContainer) {
+    lm.scrollContainer.removeEventListener('scroll', lm._onScroll);
+    lm.scrollContainer.removeEventListener('pointerdown', lm._onPointerDown);
+    lm.scrollContainer.removeEventListener('pointermove', lm._onPointerMove);
+    lm.scrollContainer.removeEventListener('pointerup', lm._onPointerUp);
+    lm.scrollContainer.removeEventListener('pointercancel', lm._onPointerUp);
+    lm.scrollContainer.removeEventListener('wheel', lm._onWheel);
+  }
+
+  lm.cleanup();
+  lm.scrollContainer = scrollContainer;
+  lm.prevBtn = prevBtn;
+  lm.nextBtn = nextBtn;
+  lm.pagination = pagination;
+  lm.currentIndex = Math.max(0, parseInt(carousel.dataset.slideIndex || '0', 10) || 0);
+
+  if (!scrollContainer.dataset.listenersBound) {
+    scrollContainer.addEventListener('scroll', lm._onScroll, { passive: true });
+    scrollContainer.addEventListener('pointerdown', lm._onPointerDown);
+    scrollContainer.addEventListener('pointermove', lm._onPointerMove, { passive: false });
+    scrollContainer.addEventListener('pointerup', lm._onPointerUp);
+    scrollContainer.addEventListener('pointercancel', lm._onPointerUp);
+    window.addEventListener('resize', lm._onResize);
+    scrollContainer.dataset.listenersBound = 'true';
+  } else {
+    scrollContainer.removeEventListener('wheel', lm._onWheel);
+  }
+  scrollContainer.addEventListener('wheel', lm._onWheel, { passive: false });
+
+  lm.syncCurrentIndex();
+  lm.buildPagination();
+  requestAnimationFrame(() => {
+    if (lm.isCarouselActive()) {
+      lm.goToSlide(lm.currentIndex, false);
+      lm.startAutoplay();
+    } else if (lm.scrollContainer) {
+      lm.scrollContainer.scrollLeft = 0;
+      lm.stopAutoplay();
+    }
+    lm.updateNav();
   });
-
-  container.appendChild(fragment);
 }
 
 function renderDashboard() {
@@ -3222,9 +3731,6 @@ function renderDashboard() {
   renderRecentMatches();
 
   // ── Top 10 Leaders table ───────────────────────────────────
-  const top5AdminCol = getCachedEl('top5-admin-col');
-  if (top5AdminCol) top5AdminCol.style.display = isAdmin ? 'table-cell' : 'none';
-
   const tbody = getCachedEl('top-leaders-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
@@ -3257,7 +3763,7 @@ function renderDashboard() {
       openPlayerDetails(p.name);
     };
 
-    const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
+    const totalMatchesPlayed = getPlayerTotalMatchesPlayed(p.teams);
 
     // Rank cell (safe static HTML for crowns) - always center
     const rankTd = document.createElement('td');
@@ -3299,9 +3805,9 @@ function renderDashboard() {
     }
 
     const teamsTd = document.createElement('td');
-    teamsTd.setAttribute('data-label', 'จำนวนทีมที่เตะไปแล้ว');
+    teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
     teamsTd.style.textAlign = 'center';
-    teamsTd.textContent = teamsPlayedCount;
+    teamsTd.textContent = totalMatchesPlayed;
 
     const guessTd = document.createElement('td');
     guessTd.setAttribute('data-label', 'ทายชิง (xx)');
@@ -3311,9 +3817,7 @@ function renderDashboard() {
 
     const scoreTd = document.createElement('td');
     scoreTd.setAttribute('data-label', 'คะแนนรวม');
-    scoreTd.style.textAlign = 'right';
-    scoreTd.style.color = 'var(--primary)';
-    scoreTd.style.fontWeight = '700';
+    scoreTd.className = 'table-score-cell';
     scoreTd.textContent = p.totalScore.toFixed(1);
 
     // Zone badge (same as leaderboard) - centered
@@ -3332,12 +3836,8 @@ function renderDashboard() {
     const payoutTd = document.createElement('td');
     payoutTd.setAttribute('data-label', 'ค่าใช้จ่ายสังสรรค์ (บาท)');
     const payoutVal = p.payout || 0;
+    payoutTd.className = `table-payout-cell ${payoutVal > 0 ? 'table-payout-cell--due' : 'table-payout-cell--free'}`;
     payoutTd.textContent = payoutVal;
-    payoutTd.style.color = payoutVal > 0 ? '#f43f5e' : '#34d399';
-    payoutTd.style.fontWeight = '600';
-    payoutTd.style.fontSize = '12px';
-    payoutTd.style.whiteSpace = 'nowrap';
-    payoutTd.style.textAlign = 'center';
 
     tr.appendChild(rankTd);
     tr.appendChild(nameTd);
@@ -3346,27 +3846,6 @@ function renderDashboard() {
     tr.appendChild(scoreTd);
     tr.appendChild(zoneTd);
     tr.appendChild(payoutTd);
-
-    if (isAdmin) {
-      const editTd = document.createElement('td');
-      editTd.style.textAlign = 'center';
-      editTd.addEventListener('click', (e) => e.stopPropagation());
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-secondary';
-      editBtn.style.cssText = 'padding:4px 12px; font-size:12px; white-space:nowrap;';
-      editBtn.textContent = '✏️ แก้ไข';
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const pl = players.find(pl => pl.name === p.name);
-        if (pl) openPlayerForm(pl);
-      });
-      editTd.appendChild(editBtn);
-      tr.appendChild(editTd);
-    } else {
-      const emptyTd = document.createElement('td');
-      emptyTd.style.display = 'none';
-      tr.appendChild(emptyTd);
-    }
 
     fragment.appendChild(tr);
   });
@@ -3522,7 +4001,7 @@ function renderLeaderboard(options = {}) {
       openPlayerDetails(p.name);
     };
 
-    const teamsPlayedCount = p.teams ? p.teams.filter(teamName => playCompletedTeams.has(teamName)).length : 0;
+    const totalMatchesPlayed = getPlayerTotalMatchesPlayed(p.teams);
     const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
 
     // Rank with special styling for 1st/2nd (like target site) - always center
@@ -3562,11 +4041,11 @@ function renderLeaderboard(options = {}) {
       nameTd.textContent = p.name;
     }
 
-    // Teams played
+    // Total matches played by selected teams
     const teamsTd = document.createElement('td');
-    teamsTd.setAttribute('data-label', 'จำนวนทีมที่เตะไปแล้ว');
+    teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
     teamsTd.style.textAlign = 'center';
-    teamsTd.textContent = teamsPlayedCount;
+    teamsTd.textContent = totalMatchesPlayed;
 
     // Guess
     const guessTd = document.createElement('td');
@@ -3577,9 +4056,7 @@ function renderLeaderboard(options = {}) {
     // Score
     const scoreTd = document.createElement('td');
     scoreTd.setAttribute('data-label', 'คะแนนรวม');
-    scoreTd.style.textAlign = 'right';
-    scoreTd.style.color = 'var(--primary)';
-    scoreTd.style.fontWeight = '700';
+    scoreTd.className = 'table-score-cell';
     scoreTd.textContent = p.totalScore.toFixed(1);
 
     // Zone (badge like target site) - centered
@@ -3598,12 +4075,8 @@ function renderLeaderboard(options = {}) {
     const payoutTd = document.createElement('td');
     payoutTd.setAttribute('data-label', 'ค่าใช้จ่ายสังสรรค์ (บาท)');
     const payoutVal = p.payout || 0;
+    payoutTd.className = `table-payout-cell ${payoutVal > 0 ? 'table-payout-cell--due' : 'table-payout-cell--free'}`;
     payoutTd.textContent = payoutVal;
-    payoutTd.style.color = payoutVal > 0 ? '#f43f5e' : '#34d399';
-    payoutTd.style.fontWeight = '600';
-    payoutTd.style.fontSize = '12px';
-    payoutTd.style.whiteSpace = 'nowrap';
-    payoutTd.style.textAlign = 'center';
 
     // Extra safeguard: mark every cell to never wrap (search/filter safety)
     rankTd.style.whiteSpace = 'nowrap';
@@ -3621,28 +4094,6 @@ function renderLeaderboard(options = {}) {
     tr.appendChild(scoreTd);
     tr.appendChild(zoneTd);
     tr.appendChild(payoutTd);
-
-    if (isAdmin) {
-      const editTd = document.createElement('td');
-      editTd.setAttribute('data-label', '');
-      editTd.style.textAlign = 'center';
-      editTd.addEventListener('click', (e) => e.stopPropagation());
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-secondary';
-      editBtn.style.cssText = 'padding:4px 12px; font-size:12px;';
-      editBtn.textContent = '✏️ แก้ไข';
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const pl = players.find(pl => pl.name === p.name);
-        if (pl) openPlayerForm(pl);
-      });
-      editTd.appendChild(editBtn);
-      tr.appendChild(editTd);
-    } else {
-      const emptyTd = document.createElement('td');
-      emptyTd.style.display = 'none';
-      tr.appendChild(emptyTd);
-    }
 
     fragment.appendChild(tr);
   });
@@ -4596,7 +5047,7 @@ function renderPlayers() {
     teamsTd.appendChild(badgesWrapper);
 
     const scoreTd = document.createElement('td');
-    scoreTd.style.cssText = 'text-align: right; color: var(--primary); font-weight: 700;';
+    scoreTd.className = 'table-score-cell';
     scoreTd.textContent = p.totalScore.toFixed(1);
 
     const actionTd = document.createElement('td');
@@ -5982,34 +6433,67 @@ renderPlayers = function() {
 }
 
 window.showTeamSelectionPopup = function(teamName, event) {
-  event.stopPropagation();
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  if (window._teamPopupCloseHandler) {
+    document.removeEventListener('click', window._teamPopupCloseHandler, true);
+    document.removeEventListener('pointerdown', window._teamPopupCloseHandler, true);
+    window._teamPopupCloseHandler = null;
+  }
+
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
+
   const selectedBy = players.filter(p => p.teams && p.teams.includes(teamName)).map(p => p.name);
   const popup = document.createElement('div');
   popup.id = 'team-selection-popup';
-  popup.className = 'selection-popup';
-  popup.style.left = event.pageX + 'px';
-  popup.style.top = event.pageY + 'px';
-  let html = '<h4>ผู้เลือก ' + teamName + ' (' + selectedBy.length + ' คน)</h4>';
+  popup.className = 'selection-popup team-players-popup';
+
+  const anchorX = event ? event.clientX : window.innerWidth / 2;
+  const anchorY = event ? event.clientY : window.innerHeight / 2;
+
+  let html = '<h4>ผู้เลือก ' + escapeHtml(teamName) + ' (' + selectedBy.length + ' คน)</h4>';
   if (selectedBy.length === 0) {
     html += '<div>ไม่มีผู้เลือก</div>';
   } else {
-    html += '<ul>' + selectedBy.map(n => '<li>' + escapeHtml(n) + '</li>').join('') + '</ul>';
+    html += '<ul class="team-players-list-small">' + selectedBy.map(n => '<li>' + escapeHtml(n) + '</li>').join('') + '</ul>';
   }
   popup.innerHTML = html;
   document.body.appendChild(popup);
+
+  const margin = 10;
+  let left = anchorX;
+  let top = anchorY;
   const rect = popup.getBoundingClientRect();
-  if (rect.right > window.innerWidth) popup.style.left = (window.innerWidth - rect.width - 10) + 'px';
-  if (rect.bottom > window.innerHeight) popup.style.top = (window.innerHeight - rect.height - 10) + 'px';
-  setTimeout(() => {
-    document.addEventListener('click', function closePopup(e) {
-      if (!popup.contains(e.target)) {
-        popup.remove();
-        document.removeEventListener('click', closePopup);
-      }
-    });
-  }, 0);
+  if (left + rect.width > window.innerWidth - margin) left = window.innerWidth - rect.width - margin;
+  if (top + rect.height > window.innerHeight - margin) top = window.innerHeight - rect.height - margin;
+  if (left < margin) left = margin;
+  if (top < margin) top = margin;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+
+  window._teamPopupJustOpened = true;
+  setTimeout(() => { window._teamPopupJustOpened = false; }, 400);
+
+  const closeHandler = (e) => {
+    if (window._teamPopupJustOpened) return;
+    if (!document.getElementById('team-selection-popup')) return;
+    if (popup.contains(e.target)) return;
+    if (e.target.closest('.team-badge, .team-clickable')) return;
+    popup.remove();
+    document.removeEventListener('click', closeHandler, true);
+    document.removeEventListener('pointerdown', closeHandler, true);
+    window._teamPopupCloseHandler = null;
+  };
+
+  window._teamPopupCloseHandler = closeHandler;
+  requestAnimationFrame(() => {
+    document.addEventListener('click', closeHandler, true);
+    document.addEventListener('pointerdown', closeHandler, true);
+  });
 };
 
 // Hover effect for badges

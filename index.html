@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <link rel="stylesheet" href="style.css?v=20260617-1145">
+  <link rel="stylesheet" href="style.css?v=20260619-drawer">
 </head>
 <body>
   
@@ -14,7 +14,10 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-logo">🏆 WORLD CUP 2026</div>
+        <div class="brand-logo" aria-label="World Cup 2026">
+          <span class="brand-logo__trophy" aria-hidden="true">🏆</span>
+          <span class="brand-logo__text">World Cup 2026</span>
+        </div>
       </div>
       <nav class="nav-links">
         <li class="nav-item active" data-tab="dashboard">
@@ -61,18 +64,17 @@
         </li>
       </nav>
       
-      <div style="margin-top: auto; padding-top: 20px; display: flex; flex-direction: column; gap: 12px;">
-        <button class="btn btn-primary" id="open-add-player-btn" style="width: 100%; display: none;">
-          <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <div class="sidebar-footer">
+        <button class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
+          <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           เพิ่มผู้เล่นใหม่
         </button>
         
-        <div id="admin-status-box" style="background-color: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">สถานะ: <span id="admin-status-text" style="font-weight: 700; color: var(--text-muted);">ผู้เข้าชม</span></div>
-          <button class="btn btn-secondary" id="admin-login-toggle-btn" style="width: 100%; padding: 8px 12px; font-size: 13px; margin-bottom: 0;">
+        <div id="admin-status-box" class="admin-status-box">
+          <div class="admin-status-label">สถานะ: <span id="admin-status-text" class="admin-status-text">ผู้เข้าชม</span></div>
+          <button class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
             เข้าสู่ระบบแอดมิน
           </button>
-
         </div>
       </div>
     </aside>
@@ -80,7 +82,10 @@
 
     <!-- Mobile Header -->
     <header class="mobile-header" id="mobile-header">
-      <div class="brand-logo" style="font-size:20px;">🏆 WORLD CUP 2026</div>
+      <div class="brand-logo brand-logo--compact" aria-label="World Cup 2026">
+        <span class="brand-logo__trophy" aria-hidden="true">🏆</span>
+        <span class="brand-logo__text">World Cup 2026</span>
+      </div>
       <button id="menu-toggle-btn" aria-label="เปิดเมนู">☰</button>
     </header>
 
@@ -125,26 +130,36 @@
         </div>
 
         <!-- Recent Matches (Today & Tomorrow) -->
-        <div class="card" id="recent-matches-card" style="margin-bottom: 24px;">
-          <div class="card-title" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
-              ผลการแข่งขัน&ทดลองพยากรณ์คะแนน
+        <div class="card recent-matches-card" id="recent-matches-card">
+          <div class="section-header recent-matches-card__header">
+            <div class="section-header-title">
+              <svg class="section-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+              Live Matches
             </div>
-            <div style="font-size: 11px; font-weight: 400; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-              วิธีใช้: ทดลองใส่คะแนนเพื่อคำนวนผล ระบบจะคืนค่าเป็นผลจริงเมื่อ Refresh
+            <button type="button" class="section-link" data-nav-tab="matches">ดูทั้งหมด →</button>
+          </div>
+          <div class="recent-matches-track">
+            <div class="live-matches-carousel" id="live-matches-carousel">
+              <button type="button" class="carousel-nav carousel-nav--prev" id="live-matches-prev" aria-label="เลื่อนซ้าย">‹</button>
+              <div id="recent-matches-container" class="live-matches-container">
+                <!-- Javascript will populate this -->
+              </div>
+              <button type="button" class="carousel-nav carousel-nav--next" id="live-matches-next" aria-label="เลื่อนขวา">›</button>
             </div>
+            <div class="carousel-pagination" id="live-matches-pagination" role="tablist" aria-label="เลือกการแข่งขัน"></div>
           </div>
-          <div id="recent-matches-container" class="dashboard-matches-grid">
-            <!-- Javascript will populate this -->
-          </div>
+          <p class="recent-matches-card__note">
+            ทดลองใส่คะแนนเพื่อคำนวณผล — ระบบจะคืนค่าเป็นผลจริงเมื่อ Refresh
+          </p>
         </div>
 
         <!-- Score Distribution Line Graph -->
         <div class="card" id="chart-card">
-          <div class="card-title" style="margin-bottom: 8px;">
-            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4L22 6.92 20.59 5.5l-7.09 8.08-4-4L2 17l1.5 1.5z"/></svg>
-            กราฟแสดงการเปลี่ยนแปลงคะแนนในแต่ละวัน (Score Trend Chart)
+          <div class="section-header" style="margin-bottom: 8px;">
+            <div class="section-header-title">
+              <svg style="width:20px;height:20px;fill:var(--primary)" viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4L22 6.92 20.59 5.5l-7.09 8.08-4-4L2 17l1.5 1.5z"/></svg>
+              Score Trend
+            </div>
           </div>
           <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">แกน X = วันแข่ง, แกน Y = อันดับ — วางเมาส์ที่จุดหรือเส้นเพื่อดูรายละเอียดและไฮไลท์</div>
           
@@ -170,9 +185,12 @@
         </div>
 
         <div class="card">
-          <div class="card-title">
-            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
-            อันดับหัวตาราง (Top 10)
+          <div class="section-header">
+            <div class="section-header-title">
+              <svg style="width:20px;height:20px;fill:var(--primary)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+              Top 10 Leaders
+            </div>
+            <button type="button" class="section-link" data-nav-tab="leaderboard">ดูทั้งหมด →</button>
           </div>
           <div class="table-container">
             <table id="top-leaders-table">
@@ -180,12 +198,11 @@
                      <tr>
                        <th>อันดับ</th>
                        <th>ผู้เล่น</th>
-                       <th style="text-align: center;">ทีมที่เตะ</th>
+                       <th style="text-align: center;">นัดที่เตะรวม</th>
                        <th style="text-align: center;">ทาย</th>
-                       <th style="text-align: right;">คะแนน</th>
+                       <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
                        <th style="text-align: center;">จ่าย</th>
-                       <th id="top5-admin-col" style="display:none;"></th>
                      </tr>
               </thead>
               <tbody id="top-leaders-tbody">
@@ -235,12 +252,11 @@
                     <tr>
                       <th>อันดับ</th>
                       <th>ผู้เล่น</th>
-                      <th style="text-align: center;">ทีมที่เตะ</th>
+                      <th style="text-align: center;">นัดที่เตะรวม</th>
                       <th style="text-align: center;">ทาย</th>
-                      <th style="text-align: right;">คะแนน</th>
+                      <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
                        <th style="text-align: center;">จ่าย</th>
-                       <th id="lb-admin-col" style="display:none;"></th>
                     </tr>
                  </thead>
                <tbody id="leaderboard-tbody">
@@ -493,47 +509,48 @@
 
     <!-- DRAWER: PLAYER DETAILS -->
     <div class="drawer-overlay" id="player-details-drawer-overlay">
-      <div class="drawer" style="width: 650px;">
+      <div class="drawer player-details-drawer" style="width: 650px;">
         <div class="drawer-header">
           <h2 id="detail-player-name">ชื่อผู้เล่น</h2>
           <button class="close-btn" id="close-detail-btn">×</button>
         </div>
 
-        <div style="margin-bottom: 24px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-            <span style="color:var(--text-secondary)">คะแนนรวมทีมที่เลือก:</span>
-            <strong style="font-size:18px; color:var(--primary)" id="detail-teams-score">0.00</strong>
+        <div class="player-details-drawer__scroll">
+          <div style="margin-bottom: 24px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+              <span style="color:var(--text-secondary)">คะแนนรวมทีมที่เลือก:</span>
+              <strong style="font-size:18px; color:var(--primary)" id="detail-teams-score">0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+              <span style="color:var(--text-secondary)">ผลทำนายจำนวนประตูชิง (แต้มพิเศษ):</span>
+              <strong style="font-size:18px; color:var(--accent)">
+                <span id="detail-prediction-score">0.00</span> (ทาย: <span id="detail-prediction-guess">0</span>)
+              </strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
+              <span style="font-weight:600;">คะแนนรวมทั้งสิ้น:</span>
+              <strong style="font-size:24px; color:#fff" id="detail-total-score">0.00</strong>
+            </div>
           </div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-            <span style="color:var(--text-secondary)">ผลทำนายจำนวนประตูชิง (แต้มพิเศษ):</span>
-            <strong style="font-size:18px; color:var(--accent)">
-              <span id="detail-prediction-score">0.00</span> (ทาย: <span id="detail-prediction-guess">0</span>)
-            </strong>
+
+          <div id="detail-team-stats-container" style="margin-bottom: 20px;"></div>
+
+          <h3 style="margin-bottom:16px; font-size:15px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary)">ทีมที่เลือก ผลการแข่งขัน และคะแนนสะสม</h3>
+          <div class="player-teams-list" id="detail-teams-grid" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- JS will load teams with history here -->
           </div>
-          <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
-            <span style="font-weight:600;">คะแนนรวมทั้งสิ้น:</span>
-            <strong style="font-size:24px; color:#fff" id="detail-total-score">0.00</strong>
+
+          <div class="player-details-drawer__actions">
+            <button class="btn btn-secondary" id="edit-player-selections-btn" style="flex:1;">แก้ไขการเลือกทีม</button>
+            <button class="btn btn-secondary" id="delete-player-btn" style="background-color:rgba(244,63,94,0.1); color:var(--accent); border-color:rgba(244,63,94,0.2); flex:1;">ลบผู้เล่น</button>
           </div>
-        </div>
-        
-        <div id="detail-team-stats-container" style="margin-bottom: 20px;"></div>
-        
-        <h3 style="margin-bottom:16px; font-size:15px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary)">ทีมที่เลือก ผลการแข่งขัน และคะแนนสะสม</h3>
-        <!-- We will make detail-teams-grid full-width stacked list instead of grid for match history visibility -->
-        <div class="player-teams-list" id="detail-teams-grid" style="display: flex; flex-direction: column; gap: 16px;">
-          <!-- JS will load teams with history here -->
-        </div>
-        
-        <div style="margin-top: 30px; display: flex; gap: 12px;">
-          <button class="btn btn-secondary" id="edit-player-selections-btn" style="flex:1;">แก้ไขการเลือกทีม</button>
-          <button class="btn btn-secondary" id="delete-player-btn" style="background-color:rgba(244,63,94,0.1); color:var(--accent); border-color:rgba(244,63,94,0.2); flex:1;">ลบผู้เล่น</button>
         </div>
 
-        <!-- Very obvious close button for mobile (always at the bottom, full width, easy to tap) -->
-        <button class="btn btn-secondary player-detail-close-btn" id="player-detail-bottom-close-btn" 
-                style="margin: 28px 0 12px 0; width:100%; padding:18px 20px; font-size:17px; font-weight:700; background:rgba(244,63,94,0.22); border:3px solid rgba(244,63,94,0.65); color:#f43f5e; border-radius:12px;">
-          ✕ ปิดหน้าต่างสถิติ (ปิด)
-        </button>
+        <div class="player-details-drawer__footer">
+          <button type="button" class="btn btn-secondary player-detail-close-btn" id="player-detail-bottom-close-btn">
+            ✕ ปิดหน้าต่างสถิติ (ปิด)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -660,14 +677,14 @@
         </div>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn btn-secondary" id="confirm-modal-cancel-btn" style="padding: 10px 20px; font-size: 14px; background: rgba(255,255,255,0.05); color: #fff;">ยกเลิก</button>
-          <button class="btn btn-primary" id="confirm-modal-ok-btn" style="padding: 10px 20px; font-size: 14px; background: linear-gradient(135deg, var(--accent), #e11d48); color: #fff; border-color: transparent;">ตกลง</button>
+          <button class="btn btn-primary" id="confirm-modal-ok-btn" style="padding: 10px 20px; font-size: 14px;">ตกลง</button>
         </div>
       </div>
     </div>
 
   </div>
 
-  <script src="app.js?v=20260617-1020"></script>
+  <script src="app.js?v=20260619-payoutcol"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
