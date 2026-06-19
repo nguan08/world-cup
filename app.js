@@ -3854,7 +3854,7 @@ function renderDashboard() {
       const span = document.createElement('span');
       span.className = 'leader-name-first';
       const crown = document.createElement('span');
-      crown.className = 'leader-crown';
+      crown.className = 'leader-crown king-crown';
       crown.textContent = '👑';
       span.appendChild(crown);
       const nameText = document.createTextNode(p.name);
@@ -4047,6 +4047,12 @@ function renderLeaderboard(options = {}) {
 
   const fragment = document.createDocumentFragment();
 
+  const allRanks = [...new Set((processedPlayers || []).map(pl => pl.rank))].sort((a, b) => a - b);
+  const maxRank = allRanks.length ? allRanks[allRanks.length - 1] : 0;
+  const secondLastRank = allRanks.length >= 2 ? allRanks[allRanks.length - 2] : 0;
+  const isSadLastRank = (rank) => maxRank > 2 && rank === maxRank;
+  const isSadSecondLastRank = (rank) => secondLastRank > 2 && rank === secondLastRank && rank !== maxRank;
+
   filtered.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
@@ -4057,6 +4063,10 @@ function renderLeaderboard(options = {}) {
       tr.classList.add('leader-first-row');
     } else if (p.rank === 2) {
       tr.classList.add('leader-second-row');
+    } else if (isSadLastRank(p.rank)) {
+      tr.classList.add('leader-last-row');
+    } else if (isSadSecondLastRank(p.rank)) {
+      tr.classList.add('leader-second-last-row');
     } else if (p.zone === 'blue') {
       tr.classList.add('zone-blue-row');
     } else if (p.zone === 'green') {
@@ -4082,6 +4092,10 @@ function renderLeaderboard(options = {}) {
       rankTd.innerHTML = `<span class="leader-rank leader-rank-first">${p.rank}</span>`;
     } else if (p.rank === 2) {
       rankTd.innerHTML = `<span class="leader-rank leader-rank-second">${p.rank}</span>`;
+    } else if (isSadLastRank(p.rank)) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-last">${p.rank}</span>`;
+    } else if (isSadSecondLastRank(p.rank)) {
+      rankTd.innerHTML = `<span class="leader-rank leader-rank-second-last">${p.rank}</span>`;
     } else {
       rankTd.textContent = p.rank;
     }
@@ -4093,7 +4107,7 @@ function renderLeaderboard(options = {}) {
       const span = document.createElement('span');
       span.className = 'leader-name-first';
       const crown = document.createElement('span');
-      crown.className = 'leader-crown';
+      crown.className = 'leader-crown king-crown';
       crown.textContent = '👑';
       span.appendChild(crown);
       span.appendChild(document.createTextNode(p.name));
@@ -4105,6 +4119,24 @@ function renderLeaderboard(options = {}) {
       crown.className = 'leader-crown queen-crown';
       crown.textContent = '👸';
       span.appendChild(crown);
+      span.appendChild(document.createTextNode(p.name));
+      nameTd.appendChild(span);
+    } else if (isSadLastRank(p.rank)) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-last';
+      const icon = document.createElement('span');
+      icon.className = 'leader-sad-icon';
+      icon.textContent = '😢';
+      span.appendChild(icon);
+      span.appendChild(document.createTextNode(p.name));
+      nameTd.appendChild(span);
+    } else if (isSadSecondLastRank(p.rank)) {
+      const span = document.createElement('span');
+      span.className = 'leader-name-second-last';
+      const icon = document.createElement('span');
+      icon.className = 'leader-sad-icon';
+      icon.textContent = '😔';
+      span.appendChild(icon);
       span.appendChild(document.createTextNode(p.name));
       nameTd.appendChild(span);
     } else {
