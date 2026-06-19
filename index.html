@@ -13,7 +13,7 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=20260619-sim-inline">
+  <link rel="stylesheet" href="style.css?v=20260619-payout-ui">
 </head>
 <body>
   
@@ -517,28 +517,39 @@
       </section>
 
       <!-- PAGE: PAYOUT -->
-      <section id="payout" class="page">
-        <header>
-          <h1>สรุปค่าใช้จ่าย (Payout)</h1>
-          <p class="page-description">สรุปผู้ที่ต้องจ่ายค่าเลี้ยงสังสรรค์ตามโซนและอันดับ ณ ข้อมูลปัจจุบัน</p>
+      <section id="payout" class="page payout-page">
+        <header class="payout-page-header">
+          <div class="payout-page-header__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.78 0 2.44-.85 2.44-1.39 0-.73-.39-1.41-2.34-1.88-2.17-.52-3.61-1.36-3.61-3.27 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.39 0 .67.45 1.16 2.34 1.67 2.18.53 3.61 1.37 3.61 3.31 0 1.79-1.39 2.96-3.22 3.26z"/></svg>
+          </div>
+          <div>
+            <h1>สรุปค่าใช้จ่าย</h1>
+            <p class="page-description">สรุปผู้ที่ต้องจ่ายค่าเลี้ยงสังสรรค์ตามโซนและอันดับ ณ ข้อมูลปัจจุบัน</p>
+          </div>
         </header>
 
         <div class="card payout-page-card">
-          <div id="payout-summary" class="tools-payout-pills"></div>
-          <div class="table-container">
-            <table id="payout-table" class="data-table">
-              <thead>
-                <tr>
-                  <th>อันดับ</th>
-                  <th>ผู้เล่น</th>
-                  <th>โซน</th>
-                  <th>คะแนนรวม</th>
-                  <th>จำนวนเงิน</th>
-                  <th>รายละเอียด</th>
-                </tr>
-              </thead>
-              <tbody id="payout-tbody"></tbody>
-            </table>
+          <div id="payout-summary" class="payout-summary-grid"></div>
+          <div class="payout-table-section">
+            <div class="payout-table-heading">
+              <span class="payout-table-heading__title">รายชื่อผู้เล่น</span>
+              <span class="payout-table-heading__hint">เรียงตามอันดับคะแนนรวม</span>
+            </div>
+            <div class="table-container payout-table-wrap">
+              <table id="payout-table" class="data-table payout-table">
+                <thead>
+                  <tr>
+                    <th>อันดับ</th>
+                    <th>ผู้เล่น</th>
+                    <th>โซน</th>
+                    <th>คะแนนรวม</th>
+                    <th>จำนวนเงิน</th>
+                    <th>รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody id="payout-tbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -878,7 +889,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260619-sim-inline"></script>
+  <script type="module" src="js/main.js?v=20260619-payout-ui"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

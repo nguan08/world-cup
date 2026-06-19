@@ -6061,6 +6061,21 @@ function renderTools() {
   renderToolsSimulator();
 }
 
+function getPayoutTierClass(amount) {
+  if (amount >= 1500) return 'payout-tier--plum';
+  if (amount >= 1200) return 'payout-tier--orange';
+  if (amount >= 1000) return 'payout-tier--amber';
+  return 'payout-tier--free';
+}
+
+function renderPayoutAmountChip(amount) {
+  if (!amount) {
+    return '<span class="payout-amount-chip payout-amount-chip--free">ไม่ต้องจ่าย</span>';
+  }
+  const tier = getPayoutTierClass(amount);
+  return `<span class="payout-amount-chip payout-amount-chip--due ${tier}">฿${amount.toLocaleString('th-TH')}</span>`;
+}
+
 function renderPayout() {
   recalculateAll();
   const summaryEl = document.getElementById('payout-summary');
@@ -6074,25 +6089,41 @@ function renderPayout() {
   const count1500 = paying.filter(p => p.payout === 1500).length;
 
   summaryEl.innerHTML = `
-    <div class="tools-payout-pill tools-payout-pill--total">
-      <span class="tools-payout-pill-label">รวมเก็บได้</span>
-      <strong>${totalCollected.toLocaleString('th-TH')} บาท</strong>
+    <div class="payout-stat payout-stat--hero">
+      <div class="payout-stat__glow" aria-hidden="true"></div>
+      <div class="payout-stat__icon" aria-hidden="true">💰</div>
+      <div class="payout-stat__body">
+        <span class="payout-stat__label">รวมเก็บได้</span>
+        <strong class="payout-stat__value">${totalCollected.toLocaleString('th-TH')}<small>บาท</small></strong>
+      </div>
     </div>
-    <div class="tools-payout-pill">
-      <span class="tools-payout-pill-label">ต้องจ่าย</span>
-      <strong>${paying.length} คน</strong>
+    <div class="payout-stat payout-stat--count">
+      <div class="payout-stat__icon" aria-hidden="true">👥</div>
+      <div class="payout-stat__body">
+        <span class="payout-stat__label">ต้องจ่าย</span>
+        <strong class="payout-stat__value">${paying.length}<small>คน</small></strong>
+      </div>
     </div>
-    <div class="tools-payout-pill">
-      <span class="tools-payout-pill-label">1,000 บาท</span>
-      <strong>${count1000} คน</strong>
+    <div class="payout-stat payout-stat--tier payout-stat--tier-1000">
+      <div class="payout-stat__icon" aria-hidden="true">🪙</div>
+      <div class="payout-stat__body">
+        <span class="payout-stat__label">ระดับ 1,000</span>
+        <strong class="payout-stat__value">${count1000}<small>คน</small></strong>
+      </div>
     </div>
-    <div class="tools-payout-pill">
-      <span class="tools-payout-pill-label">1,200 บาท</span>
-      <strong>${count1200} คน</strong>
+    <div class="payout-stat payout-stat--tier payout-stat--tier-1200">
+      <div class="payout-stat__icon" aria-hidden="true">🍑</div>
+      <div class="payout-stat__body">
+        <span class="payout-stat__label">รองบ๊วย 1,200</span>
+        <strong class="payout-stat__value">${count1200}<small>คน</small></strong>
+      </div>
     </div>
-    <div class="tools-payout-pill">
-      <span class="tools-payout-pill-label">1,500 บาท</span>
-      <strong>${count1500} คน</strong>
+    <div class="payout-stat payout-stat--tier payout-stat--tier-1500">
+      <div class="payout-stat__icon" aria-hidden="true">🍋</div>
+      <div class="payout-stat__body">
+        <span class="payout-stat__label">บ๊วย 1,500</span>
+        <strong class="payout-stat__value">${count1500}<small>คน</small></strong>
+      </div>
     </div>
   `;
 
@@ -6100,15 +6131,27 @@ function renderPayout() {
   const fragment = document.createDocumentFragment();
   processedPlayers.forEach(p => {
     const tr = document.createElement('tr');
-    if (p.payout > 0) tr.classList.add('tools-payout-row--due');
     const zoneCls = getZoneBadgeClass(p.zone);
+    tr.classList.add(`payout-row--zone-${zoneCls}`);
+    if (p.payout > 0) {
+      tr.classList.add('payout-row--due', getPayoutTierClass(p.payout));
+    } else {
+      tr.classList.add('payout-row--free');
+    }
+    const labelClass = p.payout >= 1500
+      ? 'payout-detail-tag payout-detail-tag--plum'
+      : p.payout >= 1200
+        ? 'payout-detail-tag payout-detail-tag--orange'
+        : p.payout > 0
+          ? 'payout-detail-tag payout-detail-tag--amber'
+          : 'payout-detail-tag payout-detail-tag--free';
     tr.innerHTML = `
-      <td data-label="อันดับ" style="text-align:center">${p.rank}</td>
-      <td data-label="ผู้เล่น">${escapeHtml(p.name)}</td>
-      <td data-label="โซน"><span class="badge badge-${zoneCls}">${formatZoneDisplayLabel(p.zone)}</span></td>
-      <td data-label="คะแนนรวม" style="text-align:center">${p.totalScore.toFixed(1)}</td>
-      <td data-label="จำนวนเงิน" class="${p.payout > 0 ? 'table-payout-cell table-payout-cell--due' : 'table-payout-cell table-payout-cell--free'}">${p.payout > 0 ? p.payout.toLocaleString('th-TH') : '—'}</td>
-      <td data-label="รายละเอียด" class="tools-payout-label">${escapeHtml(p.payoutLabel)}</td>
+      <td data-label="อันดับ" class="payout-rank-cell">${p.rank}</td>
+      <td data-label="ผู้เล่น" class="payout-player-cell">${escapeHtml(p.name)}</td>
+      <td data-label="โซน" class="payout-zone-cell"><span class="badge badge-${zoneCls}">${formatZoneDisplayLabel(p.zone)}</span></td>
+      <td data-label="คะแนนรวม" class="payout-score-cell">${p.totalScore.toFixed(1)}</td>
+      <td data-label="จำนวนเงิน" class="payout-amount-cell">${renderPayoutAmountChip(p.payout)}</td>
+      <td data-label="รายละเอียด" class="payout-detail-cell"><span class="${labelClass}">${escapeHtml(p.payoutLabel)}</span></td>
     `;
     fragment.appendChild(tr);
   });
