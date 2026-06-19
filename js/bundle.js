@@ -15,7 +15,7 @@ import {
   initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
-import { saveToServer } from './persist.js';
+import { saveToServer, sendBroadcastNotification } from './persist.js';
 import { setRecalcHook } from './scoring.js';
 import { initAdminState, updateAdminUI, setGitHubToken, getGitHubToken } from './admin.js';
 import { initPWA } from './pwa.js';
@@ -4993,6 +4993,24 @@ async function exportMatchesImage() {
     });
   }
   
+  const broadcastBtn = document.getElementById('admin-broadcast-btn');
+  if (broadcastBtn) {
+    broadcastBtn.addEventListener('click', async () => {
+      if (!app.isAdmin) return;
+      const input = document.getElementById('admin-broadcast-message');
+      const message = input ? input.value : '';
+      const originalLabel = broadcastBtn.textContent;
+      broadcastBtn.disabled = true;
+      broadcastBtn.textContent = '⏳ กำลังส่ง...';
+      try {
+        await sendBroadcastNotification(message);
+      } finally {
+        broadcastBtn.disabled = false;
+        broadcastBtn.textContent = originalLabel;
+      }
+    });
+  }
+
   // Handle admin login submission
   const loginForm = document.getElementById('admin-login-form');
   if (loginForm) {

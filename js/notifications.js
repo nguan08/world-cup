@@ -35,6 +35,27 @@ export async function requestNotificationPermission() {
   }
 }
 
+const BROADCAST_STORAGE_KEY = 'worldcup_lastBroadcastId';
+
+export function processBroadcast(serverData, { onInit = false } = {}) {
+  const bc = serverData?.broadcast;
+  if (!bc?.id) return false;
+
+  const lastId = Number(localStorage.getItem(BROADCAST_STORAGE_KEY) || 0);
+  if (onInit && lastId === 0) {
+    localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
+    return false;
+  }
+  if (bc.id <= lastId) return false;
+
+  localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
+  notifyDataUpdate({
+    type: 'data',
+    message: bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป'
+  });
+  return true;
+}
+
 export function notifyDataUpdate({ type = 'data', message } = {}) {
   const text = message || (type === 'data'
     ? 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่'

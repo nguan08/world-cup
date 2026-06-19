@@ -23,10 +23,12 @@ export function updateAdminUI() {
   const openAddMatchBtn = document.getElementById('open-add-match-btn');
   const adminLoginToggleBtn = document.getElementById('admin-login-toggle-btn');
   const resetAllBtn = document.getElementById('reset-all-btn');
+  const broadcastPanel = document.getElementById('admin-broadcast-panel');
   
   if (app.isAdmin) {
     if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'block';
     if (openAddMatchBtn) openAddMatchBtn.style.display = 'block';
+    if (broadcastPanel) broadcastPanel.hidden = false;
     if (adminLoginToggleBtn) {
       adminLoginToggleBtn.textContent = 'ออก';
       adminLoginToggleBtn.classList.remove('btn-secondary');
@@ -44,6 +46,7 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = '';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'none';
+    if (broadcastPanel) broadcastPanel.hidden = true;
   }
 
 

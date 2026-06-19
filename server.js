@@ -69,9 +69,10 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Write to data.json
+        // Write to data.json (strip auth fields)
+        const { adminPassword: _pw, ...dataToSave } = payload;
         const dataPath = path.join(PUBLIC_DIR, 'data.json');
-        fs.writeFileSync(dataPath, JSON.stringify(payload, null, 2), 'utf8');
+        fs.writeFileSync(dataPath, JSON.stringify(dataToSave, null, 2), 'utf8');
         console.log(`[Server] Successfully saved data.json from IP: ${req.socket.remoteAddress}`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });

@@ -8,11 +8,13 @@ const GITHUB_PATH = 'data.json';
 const GITHUB_BRANCH = 'main';
 
 function buildPayload() {
-  return {
+  const payload = {
     matches: app.matches,
     players: app.players,
     eliminatedTeams: Array.from(app.manualEliminatedTeams)
   };
+  if (app.broadcast) payload.broadcast = app.broadcast;
+  return payload;
 }
 
 function encodeBase64Utf8(str) {
@@ -70,7 +72,28 @@ function notifyAdminSave(message, isError = false) {
   notifyDataUpdate({ type: 'data', message: isError ? `⚠️ ${message}` : `✅ ${message}` });
 }
 
-export async function saveToServer() {
+export async function sendBroadcastNotification(message) {
+  if (!app.isAdmin) return false;
+
+  const text = (message || '').trim()
+    || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
+  app.broadcast = {
+    id: Date.now(),
+    message: text,
+    sentAt: new Date().toISOString()
+  };
+
+  const ok = await saveToServer({ quiet: true });
+  if (ok) {
+    localStorage.setItem('worldcup_lastBroadcastId', String(app.broadcast.id));
+    notifyAdminSave('ส่งแจ้งเตือนถึงผู้ใช้ที่เปิดการแจ้งเตือนแล้ว');
+  } else {
+    notifyAdminSave('ส่งแจ้งเตือนล้มเหลว — ตรวจสอบ GitHub Token', true);
+  }
+  return ok;
+}
+
+export async function saveToServer({ quiet = false } = {}) {
   const payload = buildPayload();
   let serverSaved = false;
 
@@ -108,11 +131,11 @@ export async function saveToServer() {
   try {
     await saveToGitHub(payload, token);
     console.log('Successfully synced data to GitHub data.json');
-    notifyAdminSave('ซิงค์ข้อมูลลง GitHub สำเร็จ');
+    if (!quiet) notifyAdminSave('ซิงค์ข้อมูลลง GitHub สำเร็จ');
     return true;
   } catch (e) {
     console.error('[Persist] GitHub save failed:', e);
-    notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
+    if (!quiet) notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
     return false;
   }
 }

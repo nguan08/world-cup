@@ -1,4 +1,6 @@
-const CACHE_NAME = 'wc2026-v7';
+const CACHE_NAME = 'wc2026-v8';
+const META_CACHE = 'wc-meta-v1';
+const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -82,14 +84,30 @@ async function networkFirstData(request) {
       const text = await clone.text();
       const hash = simpleHash(text);
       if (lastDataHash && hash !== lastDataHash) {
-        await notifyClients('มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่');
-        await self.registration.showNotification('World Cup 2026 — อัปเดตข้อมูล', {
-          body: 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่',
-          icon: iconUrl(),
-          badge: iconUrl(),
-          tag: 'wc-data-update',
-          renotify: true
-        });
+        let message = 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่';
+        try {
+          const data = JSON.parse(text);
+          const bc = data.broadcast;
+          if (bc?.id) {
+            const lastBroadcastId = await getStoredBroadcastId();
+            if (bc.id > lastBroadcastId) {
+              await setStoredBroadcastId(bc.id);
+              message = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
+            }
+          }
+        } catch {
+          // keep default message
+        }
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        if (clients.length === 0) {
+          await self.registration.showNotification('World Cup 2026 — อัปเดตข้อมูล', {
+            body: message,
+            icon: iconUrl(),
+            badge: iconUrl(),
+            tag: 'wc-data-update',
+            renotify: true
+          });
+        }
       }
       lastDataHash = hash;
     }
@@ -104,6 +122,18 @@ function simpleHash(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
   return String(h);
+}
+
+async function getStoredBroadcastId() {
+  const cache = await caches.open(META_CACHE);
+  const res = await cache.match(BROADCAST_META_KEY);
+  if (!res) return 0;
+  return Number(await res.text()) || 0;
+}
+
+async function setStoredBroadcastId(id) {
+  const cache = await caches.open(META_CACHE);
+  await cache.put(BROADCAST_META_KEY, new Response(String(id)));
 }
 
 async function notifyClients(message) {

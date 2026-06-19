@@ -12,6 +12,7 @@ export const app = {
   teamPoints: {},
   processedPlayers: [],
   manualEliminatedTeams: new Set(),
+  broadcast: null,
   lastHighlightPlayer: '',
   teamMatchesPlayedCounts: {},
   elCache: {},

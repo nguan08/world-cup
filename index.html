@@ -100,6 +100,11 @@
             <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             เพิ่มผู้เล่นใหม่
           </button>
+          <div id="admin-broadcast-panel" class="admin-broadcast-panel" hidden>
+            <div class="admin-broadcast-panel__label">ส่งแจ้งเตือนถึงทุกคน (PWA)</div>
+            <input type="text" id="admin-broadcast-message" class="admin-broadcast-panel__input" maxlength="200" placeholder="ข้อความ เช่น ผลอัปเดตแล้ว มาดูเลย!" autocomplete="off">
+            <button type="button" class="btn btn-secondary admin-broadcast-btn" id="admin-broadcast-btn">🔔 ส่งแจ้งเตือน</button>
+          </div>
           <button type="button" class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
             Admin
           </button>
@@ -904,7 +909,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-github-sync"></script>
+  <script type="module" src="js/main.js?v=20260620-broadcast"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

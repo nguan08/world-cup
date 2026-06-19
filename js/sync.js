@@ -1,7 +1,7 @@
 import { app } from './state.js';
 import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
-import { notifyDataUpdate } from './notifications.js';
+import { notifyDataUpdate, processBroadcast } from './notifications.js';
 import { saveToServer } from './persist.js';
 
 export { saveToServer };
@@ -193,6 +193,9 @@ export async function initData() {
     }
   }
 
+  if (serverData.broadcast) app.broadcast = serverData.broadcast;
+  processBroadcast(serverData, { onInit: true });
+
   loadEliminatedTeams();
   app.lastDataRefreshTime = new Date();
 }
@@ -302,19 +305,24 @@ export function refreshActivePage() {
 }
 
 export async function pollServerData() {
-  if (document.hidden) return;
   try {
     const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const serverData = await res.json();
     const changed = mergeServerDataIntoLocal(serverData);
-    if (changed) {
-      updateDataSyncStatus('updating');
-      recalculateAll();
-      _refreshPage();
+    if (serverData.broadcast) app.broadcast = serverData.broadcast;
+    const broadcasted = processBroadcast(serverData);
+    if (changed || broadcasted) {
       app.lastDataRefreshTime = new Date();
-      updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
-      notifyDataUpdate({ type: 'data' });
+      if (!document.hidden) {
+        if (changed) {
+          updateDataSyncStatus('updating');
+          recalculateAll();
+          _refreshPage();
+          updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
+        }
+        if (!broadcasted && changed) notifyDataUpdate({ type: 'data' });
+      }
     }
   } catch (e) {
     // Offline — skip silently
