@@ -2455,12 +2455,16 @@ body.player-drawer-open {
     box-sizing: border-box;
   }
 
+  #chart-card {
+    overflow: visible;
+  }
+
   #chart-card #chart-svg-container {
     width: 100%;
     max-width: 100%;
     margin: 0;
     padding: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     box-sizing: border-box;
   }
 
@@ -2469,10 +2473,9 @@ body.player-drawer-open {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    height: auto !important;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
     box-sizing: border-box;
     vertical-align: top;
   }

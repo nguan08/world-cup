@@ -4287,9 +4287,13 @@ function renderScoreChart() {
 
   // 3. Setup Layout Dimensions dynamically for responsive scaling
   const container = document.getElementById('chart-svg-container');
-  const containerW = container
-    ? Math.floor(container.getBoundingClientRect().width) || container.clientWidth || 0
-    : 0;
+  const containerW = (() => {
+    if (!container) return 0;
+    const cs = getComputedStyle(container);
+    const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const innerW = Math.floor(container.getBoundingClientRect().width - padX);
+    return innerW > 0 ? innerW : container.clientWidth || 0;
+  })();
 
   const isMobile = window.innerWidth <= 768;
   if (isMobile && container && containerW === 0) {
@@ -4299,22 +4303,23 @@ function renderScoreChart() {
   const W = containerW || (isMobile
     ? Math.max(280, window.innerWidth - 16)
     : Math.max(800, 150 + (stepsCount + 1) * 110));
-  const padL = isMobile ? 14 : 60;
-  const padR = isMobile ? 2 : 140;
+  const padL = isMobile ? 16 : 60;
+  const padR = isMobile ? 16 : 140;
   const padT = isMobile ? 26 : 40;
-  const axisLabelX = isMobile ? padL - 1 : padL - 8;
+  const axisLabelX = isMobile ? 12 : padL - 8;
   const axisLineX = isMobile ? padL : padL - 4;
   const yRankFontSize = isMobile ? '7' : '10';
   const chartW = W - padL - padR;
   const minPixelPerStep = chartW / Math.max(1, stepsCount);
   const rotateWhenNarrow = isMobile ? 36 : 48;
   const rotateAngle = minPixelPerStep < rotateWhenNarrow ? -45 : 0;
-  const padB = isMobile ? (rotateAngle !== 0 ? 54 : 32) : 60;
+  const padB = isMobile ? (rotateAngle !== 0 ? 52 : 34) : 60;
+  const mobileEdgeGuard = isMobile ? 14 : 0;
   const chartH = isMobile
     ? Math.max(155, Math.round(chartW * 0.62))
     : (380 - padT - padB);
-  const H = isMobile ? padT + chartH + padB : 380;
-  const xLabelY = padT + chartH + (isMobile ? 14 : 18);
+  const H = isMobile ? padT + chartH + padB + mobileEdgeGuard : 380;
+  const xLabelY = padT + chartH + (isMobile ? 12 : 18);
 
   const maxRank = processedPlayers.length || 1;
 
@@ -4340,7 +4345,8 @@ function renderScoreChart() {
     const displayRank = Math.round(rankValue);
     const y = yOf(rankValue);
     yGridLines += `<line x1="${axisLineX}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
-    yGridLines += `<text x="${axisLabelX}" y="${y + 3}" text-anchor="end" font-size="${yRankFontSize}" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
+    const rankLabelY = isMobile && i === yTicks ? y - 1 : y + 3;
+    yGridLines += `<text x="${axisLabelX}" y="${rankLabelY}" text-anchor="end" font-size="${yRankFontSize}" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
   }
 
   // 4.1 Render Zone Separators (Rank Thresholds)
@@ -4384,16 +4390,18 @@ function renderScoreChart() {
       label = isMobile ? `${d.getDate()}` : `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
+    const xLabelX = isMobile && i === stepsCount ? Math.min(x, W - 6) : x;
+    const xAnchor = i === 0 ? 'start' : (i === stepsCount ? 'end' : 'middle');
+
     if (rotateAngle !== 0 && showLabel) {
-      const xAnchor = i === 0 ? 'start' : (i === stepsCount ? 'end' : 'middle');
       xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-      <text x="${x}" y="${xLabelY}" transform="rotate(${rotateAngle} ${x} ${xLabelY})" text-anchor="${xAnchor}" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
+      <text x="${xLabelX}" y="${xLabelY}" transform="rotate(${rotateAngle} ${xLabelX} ${xLabelY})" text-anchor="${xAnchor}" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
     `;
     } else {
       xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-      ${showLabel ? `<text x="${x}" y="${xLabelY}" text-anchor="middle" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>` : ''}
+      ${showLabel ? `<text x="${xLabelX}" y="${xLabelY}" text-anchor="${xAnchor}" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>` : ''}
     `;
     }
   }
@@ -4477,14 +4485,14 @@ function renderScoreChart() {
   svgEl.style.maxWidth = '100%';
   svgEl.style.width = '100%';
   svgEl.style.display = 'block';
-  svgEl.style.overflow = 'hidden';
+  svgEl.style.overflow = isMobile ? 'visible' : 'hidden';
   svgEl.dataset.chartW = String(W);
   svgEl.dataset.chartH = String(H);
 
   if (isMobile) {
-    svgEl.removeAttribute('height');
-    svgEl.style.height = 'auto';
-    svgEl.style.aspectRatio = `${W} / ${H}`;
+    svgEl.setAttribute('height', H);
+    svgEl.style.height = H + 'px';
+    svgEl.style.aspectRatio = '';
   } else {
     svgEl.setAttribute('height', H);
     svgEl.style.height = H + 'px';
@@ -4511,24 +4519,21 @@ function renderScoreChart() {
   `;
 
   if (container) {
-    container.style.overflow = 'hidden';
+    container.style.overflow = isMobile ? 'visible' : 'hidden';
     container.style.paddingBottom = isMobile ? '0' : '8px';
     container.style.width = '100%';
     container.style.maxWidth = '100%';
     container.style.boxSizing = 'border-box';
-    if (isMobile) {
-      container.style.minHeight = '0';
-      container.style.height = 'auto';
-      container.style.aspectRatio = `${W} / ${H}`;
-    } else {
-      container.style.aspectRatio = '';
-      container.style.minHeight = H + 'px';
-    }
+    container.style.aspectRatio = '';
+    container.style.minHeight = isMobile ? H + 'px' : H + 'px';
+    container.style.height = 'auto';
   }
 
   if (container) {
     requestAnimationFrame(() => {
-      const measuredW = Math.floor(container.getBoundingClientRect().width);
+      const cs = getComputedStyle(container);
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const measuredW = Math.floor(container.getBoundingClientRect().width - padX);
       const renderedW = Number(svgEl.dataset.chartW || 0);
       if (measuredW > 0 && Math.abs(measuredW - renderedW) > 1 && !svgEl.dataset.chartRecalc) {
         svgEl.dataset.chartRecalc = '1';
