@@ -51,9 +51,16 @@ async function verifyWorldCupRepoAccess(token) {
   assertWorldCupRepo(repo);
 }
 
+function isShaConflict(status, message = '') {
+  return status === 409 || /does not match/i.test(message);
+}
+
 async function fetchGitHubFileSha(token) {
-  const url = `${githubContentsUrl(GITHUB_DATA_FILE)}?ref=${GITHUB_BRANCH}`;
-  const res = await fetch(url, { headers: githubAuthHeaders(token) });
+  const url = `${githubContentsUrl(GITHUB_DATA_FILE)}?ref=${GITHUB_BRANCH}&t=${Date.now()}`;
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: githubAuthHeaders(token)
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `อ่าน ${GITHUB_DATA_FILE} จาก world-cup ล้มเหลว (${res.status})`);
@@ -63,12 +70,11 @@ async function fetchGitHubFileSha(token) {
   return data.sha;
 }
 
-async function saveToGitHub(payload, token) {
-  await verifyWorldCupRepoAccess(token);
-  const sha = await fetchGitHubFileSha(token);
+async function putGitHubDataJson(payload, token, sha) {
   const content = encodeBase64Utf8(JSON.stringify(payload, null, 2));
   const res = await fetch(githubContentsUrl(GITHUB_DATA_FILE), {
     method: 'PUT',
+    cache: 'no-store',
     headers: {
       ...githubAuthHeaders(token),
       'Content-Type': 'application/json'
@@ -82,11 +88,43 @@ async function saveToGitHub(payload, token) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `บันทึก world-cup/data.json ล้มเหลว (${res.status})`);
+    const error = new Error(err.message || `บันทึก world-cup/data.json ล้มเหลว (${res.status})`);
+    error.status = res.status;
+    throw error;
   }
   const saved = await res.json();
   assertWorldCupFileMeta(saved.content);
   return saved;
+}
+
+async function saveToGitHub(payload, token) {
+  await verifyWorldCupRepoAccess(token);
+
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const sha = await fetchGitHubFileSha(token);
+    try {
+      return await putGitHubDataJson(payload, token, sha);
+    } catch (e) {
+      if (isShaConflict(e.status, e.message) && attempt < maxAttempts) {
+        console.warn(`[Persist] data.json SHA conflict — retry ${attempt}/${maxAttempts - 1}`);
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+        continue;
+      }
+      if (isShaConflict(e.status, e.message)) {
+        throw new Error('ไฟล์ data.json ถูกอัปเดตพร้อมกัน — ลองบันทึกอีกครั้ง');
+      }
+      throw e;
+    }
+  }
+}
+
+let _githubSaveChain = Promise.resolve();
+
+function enqueueGitHubSave(task) {
+  const run = _githubSaveChain.then(task, task);
+  _githubSaveChain = run.catch(() => {});
+  return run;
 }
 
 function notifyAdminSave(message, isError = false) {
@@ -156,7 +194,7 @@ export async function saveToServer({ quiet = false } = {}) {
   }
 
   try {
-    await saveToGitHub(payload, token);
+    await enqueueGitHubSave(() => saveToGitHub(payload, token));
     console.log(`Successfully synced to ${GITHUB_REPO_FULL}/${GITHUB_DATA_FILE}`);
     if (!quiet) notifyAdminSave(`ซิงค์ ${GITHUB_REPO_FULL} สำเร็จ`);
     return true;
