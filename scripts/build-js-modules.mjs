@@ -22,10 +22,10 @@ function exportify(code) {
 
 fs.mkdirSync(OUT, { recursive: true });
 
-// ── constants.js (lines 3–2258) ──
+// ── constants.js (lines 3–2259, through INITIAL_PLAYERS closing `];`) ──
 fs.writeFileSync(
   path.join(OUT, 'constants.js'),
-  `// Team data, initial seed, formatting helpers\n${exportify(slice(3, 2258))}\n`
+  `// Team data, initial seed, formatting helpers\n${exportify(slice(3, 2259))}\n`
 );
 
 // ── state.js ──
