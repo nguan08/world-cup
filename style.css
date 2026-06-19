@@ -2046,7 +2046,15 @@ table {
   width: 100%;
 }
 
-#players .players-card,
+#players .players-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
 #players .players-card__table-wrap,
 #players .players-table-container,
 #players #players-table {
@@ -2177,36 +2185,30 @@ table {
 }
 
 #players .players-card--empty {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 140px);
+  min-height: calc(100vh - 120px);
 }
 
 #players .players-card--empty .players-card__table-wrap--empty {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: calc(100vh - 280px);
 }
 
-#players .players-card--empty .players-table-hint {
-  display: none;
-}
-
-#players .players-table-container--empty {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: calc(100vh - 300px);
+#players .players-card--empty .players-table-hint,
+#players .players-card--empty .players-table-container--empty {
+  display: none !important;
 }
 
 #players .players-filter-empty-panel {
-  position: absolute;
-  inset: 0;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 100%;
+  min-height: calc(100vh - 300px);
+  margin: 0;
+  border-top: 1px solid var(--border-subtle);
   background: rgba(15, 23, 42, 0.22);
 }
 
