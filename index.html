@@ -109,10 +109,12 @@
             เพิ่มผู้เล่นใหม่
           </button>
           <div id="admin-broadcast-panel" class="admin-broadcast-panel" hidden>
-            <div class="admin-broadcast-panel__label">ส่งแจ้งเตือนถึงทุกคน (PWA)</div>
+            <div class="admin-broadcast-panel__label">ส่งแจ้งเตือนถึงทุกคน</div>
+            <p class="admin-broadcast-panel__hint">เครื่องอื่นจะเห็นแถบม่วงด้านบนภายใน ~30 วินาที</p>
             <input type="text" id="admin-broadcast-message" class="admin-broadcast-panel__input" maxlength="200" placeholder="ข้อความ เช่น ผลอัปเดตแล้ว มาดูเลย!" autocomplete="off">
-            <button type="button" class="btn btn-secondary admin-broadcast-btn" id="admin-broadcast-btn">🔔 ส่งแจ้งเตือน</button>
-            <button type="button" class="btn btn-secondary admin-broadcast-test-btn" id="admin-broadcast-test-btn">ทดสอบแจ้งเตือนบนเครื่องนี้</button>
+            <button type="button" class="btn btn-secondary admin-broadcast-btn" id="admin-broadcast-btn">🔔 ส่งถึงทุกคน</button>
+            <button type="button" class="btn btn-secondary admin-broadcast-test-btn" id="admin-broadcast-test-btn">🔔 ส่งทดสอบถึงทุกคน</button>
+            <button type="button" class="btn btn-secondary admin-broadcast-preview-btn" id="admin-broadcast-preview-btn">👁 ดูตัวอย่างเครื่องนี้</button>
           </div>
           <button type="button" class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
             Admin
@@ -914,7 +916,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-mobile-banner"></script>
+  <script type="module" src="js/main.js?v=20260620-broadcast-all"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

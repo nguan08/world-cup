@@ -146,7 +146,7 @@ export async function sendBroadcastNotification(message) {
   const ok = await saveToServer({ quiet: true });
   if (ok) {
     localStorage.setItem('worldcup_shownBroadcastId', String(app.broadcast.id));
-    notifyAdminSave(`ส่งแล้ว: "${text}"`);
+    notifyAdminSave(`ส่งถึงทุกคนแล้ว: "${text}" (เครื่องอื่นเห็นภายใน ~30 วินาที)`);
     import('./sync.js').then((m) => m.requestPollNow());
   } else {
     notifyAdminSave('ส่งแจ้งเตือนล้มเหลว — ตรวจสอบสิทธิ์ repo world-cup', true);

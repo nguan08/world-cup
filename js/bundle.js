@@ -5009,8 +5009,27 @@ async function exportMatchesImage() {
   const broadcastTestBtn = document.getElementById('admin-broadcast-test-btn');
   if (broadcastTestBtn) {
     broadcastTestBtn.addEventListener('click', async () => {
+      if (!app.isAdmin) return;
       const input = document.getElementById('admin-broadcast-message');
-      const message = (input?.value || '').trim() || 'ทดสอบแจ้งเตือน — ระบบทำงานปกติ';
+      const raw = (input?.value || '').trim() || 'ทดสอบแจ้งเตือน';
+      const message = `[ทดสอบ] ${raw}`;
+      const originalLabel = broadcastTestBtn.textContent;
+      broadcastTestBtn.disabled = true;
+      broadcastTestBtn.textContent = '⏳ กำลังส่ง...';
+      try {
+        await sendBroadcastNotification(message);
+      } finally {
+        broadcastTestBtn.disabled = false;
+        broadcastTestBtn.textContent = originalLabel;
+      }
+    });
+  }
+
+  const broadcastPreviewBtn = document.getElementById('admin-broadcast-preview-btn');
+  if (broadcastPreviewBtn) {
+    broadcastPreviewBtn.addEventListener('click', async () => {
+      const input = document.getElementById('admin-broadcast-message');
+      const message = (input?.value || '').trim() || 'ตัวอย่างแจ้งเตือน';
       const { updateBroadcastBanner } = await import('./notifications.js');
       updateBroadcastBanner({ id: Date.now(), message, sentAt: new Date().toISOString() });
       notifyDataUpdate({ type: 'broadcast', message: `📢 ${message}`, forceBrowserNotify: true });
