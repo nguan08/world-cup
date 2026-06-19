@@ -3417,6 +3417,8 @@ body.player-drawer-open {
   width: 100%;
   padding: 8px 12px !important;
   font-size: 12px !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .admin-status-box {
