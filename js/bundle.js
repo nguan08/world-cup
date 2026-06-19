@@ -2509,19 +2509,23 @@ function renderPlayers() {
 
   let filtered = app.processedPlayers || [];
 
-  // Filter by name
-  if (searchInput) {
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchInput));
+  // Filter by teams first (empty panel only when no player has all selected teams)
+  let teamFiltered = filtered;
+  if (selectedTeams.length > 0) {
+    teamFiltered = teamFiltered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
   }
 
-  // Filter by teams
-  if (selectedTeams.length > 0) {
-    filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
+  // Filter by name
+  if (searchInput) {
+    filtered = teamFiltered.filter(p => p.name.toLowerCase().includes(searchInput));
+  } else {
+    filtered = teamFiltered;
   }
 
   const selectedTeamsSet = new Set(selectedTeams);
+  const isTeamFilterEmpty = selectedTeams.length > 0 && teamFiltered.length === 0;
 
-  setPlayersFilterEmptyState(filtered.length === 0);
+  setPlayersFilterEmptyState(isTeamFilterEmpty);
   if (filtered.length === 0) return;
 
   filtered.forEach(p => {
