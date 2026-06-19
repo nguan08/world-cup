@@ -4308,10 +4308,28 @@ function initTeamFilter(config) {
 
 function setPlayersFilterEmptyState(isEmpty) {
   const table = document.getElementById('players-table');
-  if (!table) return;
+  const container = table?.closest('.players-table-container');
+  if (!table || !container) return;
+
   table.closest('.players-card')?.classList.toggle('players-card--empty', isEmpty);
   table.closest('.players-card__table-wrap')?.classList.toggle('players-card__table-wrap--empty', isEmpty);
-  table.closest('.table-container')?.classList.toggle('players-table-container--empty', isEmpty);
+  container.classList.toggle('players-table-container--empty', isEmpty);
+
+  let panel = container.querySelector('.players-filter-empty-panel');
+  if (isEmpty) {
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'players-filter-empty-panel';
+      panel.setAttribute('role', 'status');
+      panel.innerHTML = '<p class="players-filter-empty-message">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</p>';
+      container.appendChild(panel);
+    }
+    panel.hidden = false;
+    table.hidden = true;
+  } else {
+    if (panel) panel.hidden = true;
+    table.hidden = false;
+  }
 }
 
 function setLeaderboardFilterEmptyState(isEmpty) {
@@ -5585,10 +5603,7 @@ function renderPlayers() {
   const selectedTeamsSet = new Set(selectedTeams);
 
   setPlayersFilterEmptyState(filtered.length === 0);
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr class="players-empty-row"><td colspan="3" class="table-filter-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>';
-    return;
-  }
+  if (filtered.length === 0) return;
 
   filtered.forEach(p => {
     const tr = document.createElement('tr');
