@@ -149,10 +149,7 @@ function injectToastStyles() {
     }
     .update-toast--visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
     .update-toast__close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 0 4px; }
-    .notification-settings { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
-    .notification-settings__label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
-    .notification-settings__status { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-    .notification-enable-btn { width: 100%; padding: 8px 12px !important; font-size: 12px !important; }
+
   `;
   document.head.appendChild(style);
 }

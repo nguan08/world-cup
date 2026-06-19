@@ -13,7 +13,7 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-192.svg">
-  <link rel="stylesheet" href="style.css?v=20260619-modules-pwa">
+  <link rel="stylesheet" href="style.css?v=20260619-admin-btn-bottom">
 </head>
 <body>
   
@@ -85,27 +85,27 @@
       </nav>
       
       <div class="sidebar-footer">
-        <button class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
-          <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          เพิ่มผู้เล่นใหม่
-        </button>
-        
-        <div id="admin-status-box" class="admin-status-box">
-          <div class="admin-status-label">สถานะ: <span id="admin-status-text" class="admin-status-text">ผู้เข้าชม</span></div>
-          <button class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
-            เข้าสู่ระบบแอดมิน
-          </button>
-        </div>
-
         <div id="notification-settings" class="notification-settings">
           <div class="notification-settings__label">การแจ้งเตือนอัปเดต</div>
           <div class="notification-settings__status" data-notif-status>ยังไม่ได้เปิด</div>
           <button type="button" class="btn btn-secondary notification-enable-btn" data-notif-enable>เปิดการแจ้งเตือน</button>
         </div>
 
-        <button type="button" class="btn btn-secondary notification-enable-btn" id="pwa-install-btn" style="display:none; margin-top:8px;">
+        <button type="button" class="btn btn-secondary sidebar-pwa-btn" id="pwa-install-btn" style="display:none;">
           ติดตั้งแอป (PWA)
         </button>
+
+        <div id="admin-status-box" class="admin-status-box">
+          <div class="admin-status-box__heading">ระบบแอดมิน</div>
+          <div class="admin-status-label">สถานะ: <span id="admin-status-text" class="admin-status-text">ผู้เข้าชม</span></div>
+          <button class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            เพิ่มผู้เล่นใหม่
+          </button>
+          <button class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
+            เข้าสู่ระบบแอดมิน
+          </button>
+        </div>
       </div>
     </aside>
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
@@ -198,7 +198,7 @@
           <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <label for="chart-highlight-select" style="font-size: 13px; color: var(--text-secondary);">ไฮไลท์ผู้เล่น (Highlight Player):</label>
-              <select id="chart-highlight-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background-color: var(--bg-primary); color: #fff; font-family: inherit; font-size: 13px; cursor: pointer; min-width: 180px;">
+              <select id="chart-highlight-select" name="chart-highlight-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background-color: var(--bg-primary); color: #fff; font-family: inherit; font-size: 13px; cursor: pointer; min-width: 180px;">
                 <option value="">-- แสดงทั้งหมด --</option>
               </select>
             </div>
@@ -276,7 +276,7 @@
            <div class="search-bar" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
              <div class="input-group" style="flex: 2; min-width: 250px;">
                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-               <input type="text" class="search-input" id="leaderboard-search" placeholder="ค้นหาชื่อผู้เล่น...">
+               <input type="text" class="search-input" id="leaderboard-search" name="leaderboard-search" placeholder="ค้นหาชื่อผู้เล่น...">
              </div>
              <div class="input-group" id="team-filter-dropdown-container" style="flex: 1; min-width: 260px; position: relative;">
                <button id="team-filter-btn" class="search-input" style="padding-left: 16px; padding-right: 40px; text-align: left; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 100%; display: flex; align-items: center; justify-content: space-between; background-color: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); color: #fff; border-radius: 12px; font-size: 15px; height: 100%; min-height: 50px;">
@@ -401,6 +401,15 @@
           </div>
         </div>
 
+        <div class="card stats-final-guess-card">
+          <div class="stats-breakdown-header stats-breakdown-header--compact">
+            <div class="stats-breakdown-title">🎯 ทายจำนวนลูกนัดชิง (xx)</div>
+            <span id="stats-final-guess-summary" class="stats-final-guess-summary">—</span>
+          </div>
+          <p id="stats-final-guess-meta" class="stats-final-guess-meta">—</p>
+          <div id="stats-final-guess-bars" class="stats-final-guess-bars"></div>
+        </div>
+
         <div class="card stats-table-card">
           <p class="stats-table-sort-hint">คลิกหัวคอลัมน์เพื่อเรียงลำดับ · กดซ้ำสลับ ↑↓</p>
           <div class="table-container">
@@ -452,7 +461,7 @@
           <div class="search-bar">
             <div class="input-group" style="flex: 2;">
               <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-              <input type="text" class="search-input" id="players-search" placeholder="ค้นหาชื่อผู้เล่นเพื่อดูทีมที่เลือก...">
+              <input type="text" class="search-input" id="players-search" name="players-search" placeholder="ค้นหาชื่อผู้เล่นเพื่อดูทีมที่เลือก...">
             </div>
             
             <div class="input-group" id="players-team-filter-dropdown-container" style="flex: 1; min-width: 260px; position: relative;">
@@ -536,45 +545,54 @@
 
       <!-- PAGE: TOOLS -->
       <section id="tools" class="page">
-        <header>
-          <h1>เครื่องมือวิเคราะห์ (Tools)</h1>
-          <p class="page-description">เทียบผู้เล่นและจำลองผลแข่งขันเพื่อดูผลกระทบต่ออันดับ</p>
+        <header class="tools-page-header">
+          <h1>เครื่องมือวิเคราะห์</h1>
         </header>
 
         <div class="tools-grid">
-          <div class="card tools-section" id="tools-compare-section">
-            <div class="card-title">เทียบ 2 ผู้เล่น</div>
-            <div class="tools-compare-selects">
-              <div class="tools-select-group">
-                <label for="compare-player-a">ผู้เล่น A</label>
-                <select id="compare-player-a" class="tools-select"></select>
+          <div class="card tools-section tools-section--compare" id="tools-compare-section">
+            <div class="compare-bench">
+              <div class="compare-bench-select-grid">
+                <div class="compare-bench-select-col compare-bench-select-col--left">
+                  <div class="compare-bench-select-col-head">
+                    <span class="compare-bench-kicker">Baseline</span>
+                    <span class="compare-bench-rank" id="compare-rank-a">—</span>
+                  </div>
+                  <select id="compare-player-a" name="compare-player-a" class="compare-bench-select compare-bench-select--left" aria-label="ผู้เล่น Baseline"></select>
+                  <div class="compare-bench-player-name" id="compare-name-a">เลือกผู้เล่นฝั่งซ้าย</div>
+                </div>
+                <div class="compare-bench-select-col compare-bench-select-col--right">
+                  <div class="compare-bench-select-col-head">
+                    <span class="compare-bench-rank" id="compare-rank-b">—</span>
+                    <span class="compare-bench-kicker">Alternative</span>
+                  </div>
+                  <select id="compare-player-b" name="compare-player-b" class="compare-bench-select compare-bench-select--right" aria-label="ผู้เล่น Alternative"></select>
+                  <div class="compare-bench-player-name" id="compare-name-b">เลือกผู้เล่นฝั่งขวา</div>
+                </div>
+                <div class="compare-bench-select-split" aria-hidden="true">
+                  <span class="compare-bench-select-vs">VS</span>
+                </div>
               </div>
-              <div class="tools-compare-vs">VS</div>
-              <div class="tools-select-group">
-                <label for="compare-player-b">ผู้เล่น B</label>
-                <select id="compare-player-b" class="tools-select"></select>
-              </div>
+              <div id="tools-compare-result" class="compare-bench-body"></div>
             </div>
-            <div id="tools-compare-result" class="tools-compare-result"></div>
           </div>
 
           <div class="card tools-section tools-section--wide" id="tools-sim-section">
             <div class="tools-sim-header">
-              <div class="card-title">จำลองผล (What-if Simulator)</div>
-              <button type="button" class="btn btn-secondary tools-clear-sim-btn" id="tools-clear-sim-btn">ล้างจำลองทั้งหมด</button>
+              <div class="card-title tools-section-title">จำลองผล <span class="tools-sim-hint">กรอกสกอร์นัดที่ยังไม่จบ — ไม่บันทึกลงระบบ</span></div>
+              <button type="button" class="btn btn-secondary tools-clear-sim-btn" id="tools-clear-sim-btn">ล้างจำลอง</button>
             </div>
-            <p class="tools-sim-desc">กรอกสกอร์นัดที่ยังไม่จบเพื่อดูผลกระทบต่ออันดับ — ไม่บันทึกลงระบบ</p>
             <div id="tools-sim-matches" class="tools-sim-matches"></div>
             <div id="tools-sim-delta-wrap" class="tools-sim-delta-wrap" style="display:none;">
-              <div class="card-title tools-sim-delta-title">ผลกระทบต่ออันดับ</div>
+              <div class="tools-sim-delta-title">ผลกระทบต่ออันดับ</div>
               <div class="table-container">
-                <table id="tools-sim-delta-table" class="data-table">
+                <table id="tools-sim-delta-table" class="data-table tools-compact-table">
                   <thead>
                     <tr>
                       <th>ผู้เล่น</th>
-                      <th>อันดับจริง</th>
-                      <th>อันดับจำลอง</th>
-                      <th>เปลี่ยนแปลง</th>
+                      <th>จริง</th>
+                      <th>จำลอง</th>
+                      <th>Δ</th>
                     </tr>
                   </thead>
                   <tbody id="tools-sim-delta-tbody"></tbody>
@@ -739,35 +757,35 @@
         </div>
         
         <form id="match-form" onsubmit="event.preventDefault();">
-          <input type="hidden" id="form-match-id">
+          <input type="hidden" id="form-match-id" name="form-match-id">
           
           <div style="margin-bottom: 20px;">
             <label for="form-match-home" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเหย้า (Home Team)</label>
-            <select id="form-match-home" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <select id="form-match-home" name="form-match-home" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
               <!-- JS will load options -->
             </select>
           </div>
           
           <div style="margin-bottom: 20px;">
             <label for="form-match-away" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ทีมเยือน (Away Team)</label>
-            <select id="form-match-away" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <select id="form-match-away" name="form-match-away" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
               <!-- JS will load options -->
             </select>
           </div>
           
           <div style="margin-bottom: 20px;">
             <label for="form-match-date" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">วันที่แข่ง (Match Date)</label>
-            <input type="date" id="form-match-date" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; color-scheme:dark;">
+            <input type="date" id="form-match-date" name="form-match-date" required style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; color-scheme:dark;">
           </div>
           
            <div style="margin-bottom: 24px; display: flex; gap: 24px;">
             <label for="form-match-knockout" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="form-match-knockout" style="width: 16px; height: 16px; accent-color: var(--primary);">
+              <input type="checkbox" id="form-match-knockout" name="form-match-knockout" style="width: 16px; height: 16px; accent-color: var(--primary);">
               รอบน็อคเอาท์ (Knockout)
             </label>
             
             <label for="form-match-final" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="form-match-final" style="width: 16px; height: 16px; accent-color: var(--primary);">
+              <input type="checkbox" id="form-match-final" name="form-match-final" style="width: 16px; height: 16px; accent-color: var(--primary);">
               นัดชิงชนะเลิศ (Final)
             </label>
           </div>
@@ -786,16 +804,16 @@
         </div>
         
         <form id="player-form" onsubmit="event.preventDefault();">
-          <input type="hidden" id="form-player-id">
+          <input type="hidden" id="form-player-id" name="form-player-id">
           
           <div style="margin-bottom: 20px;">
             <label for="form-player-name" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">ชื่อผู้เล่น</label>
-            <input type="text" id="form-player-name" required placeholder="เช่น สุรเชษฐ์ เจริญสุข" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <input type="text" id="form-player-name" name="form-player-name" required placeholder="เช่น สุรเชษฐ์ เจริญสุข" autocomplete="name" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           
           <div style="margin-bottom: 20px;">
             <label for="form-player-guess" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">จำนวนประตูรวมนัดชิงฯ ที่ทำนาย (0-9 ประตู)</label>
-            <input type="number" id="form-player-guess" required min="0" max="9" placeholder="เช่น 3" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <input type="number" id="form-player-guess" name="form-player-guess" required min="0" max="9" placeholder="เช่น 3" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           
           <div style="margin-bottom: 24px;">
@@ -809,7 +827,7 @@
             </div>
 
              <!-- Team selector container -->
-             <div id="form-team-selector" aria-labelledby="form-team-selector-label" style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+             <div id="form-team-selector" aria-labelledby="form-team-selector-label" style="border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
                <!-- JS will build collapsible color zone grids here -->
              </div>
           </div>
@@ -829,12 +847,12 @@
         <form id="admin-login-form" onsubmit="event.preventDefault();">
           <div style="margin-bottom: 16px;">
             <label for="admin-password-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
-            <input type="password" id="admin-password-input" required placeholder="กรอกรหัสผ่าน..." style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <input type="password" id="admin-password-input" name="admin-password" required placeholder="กรอกรหัสผ่าน..." autocomplete="current-password" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
             <div id="login-error-msg" style="display:none; color: var(--accent); font-size: 12px; margin-top: 8px; font-weight: 600;">รหัสผ่านไม่ถูกต้อง!</div>
           </div>
           <div style="margin-bottom: 20px;">
             <label for="admin-github-token-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">GitHub Personal Access Token (ป้อนเพื่อซิงค์ข้อมูลลง GitHub ตรงๆ)</label>
-            <input type="password" id="admin-github-token-input" placeholder="ป้อน GitHub Token (ไม่บังคับ)..." style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
+            <input type="password" id="admin-github-token-input" name="admin-github-token" placeholder="ป้อน GitHub Token (ไม่บังคับ)..." autocomplete="off" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">เข้าสู่ระบบ</button>
         </form>
@@ -860,7 +878,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260619-fix2"></script>
+  <script type="module" src="js/main.js?v=20260619-stats-drawer-fix"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

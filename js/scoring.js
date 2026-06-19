@@ -103,31 +103,22 @@ export function calculateTeamPoints(targetMatches = app.matches) {
 // Calculate final prediction score for a user
 export function calculatePredictionPoints(user, finalMatch) {
   if (!finalMatch || finalMatch.status !== 'finished') return 0;
-  
+
   const totalGoals = finalMatch.homeScore + finalMatch.awayScore;
-  if (user.guess !== totalGoals) return 0; // Guess incorrect
-  
-  // Guess is correct, calculate points: (A_goals * A_mult) + (B_goals * B_mult)
-  // Rule: 0 and 1 goals = 1 goal
-  const rawHomeGoals = finalMatch.homeScore;
-  const rawAwayGoals = finalMatch.awayScore;
-  
-  const calcHomeGoals = rawHomeGoals <= 1 ? 1 : rawHomeGoals;
-  const calcAwayGoals = rawAwayGoals <= 1 ? 1 : rawAwayGoals;
-  
+  if (user.guess !== totalGoals) return 0;
+
+  const calcHomeGoals = finalMatch.homeScore <= 1 ? 1 : finalMatch.homeScore;
+  const calcAwayGoals = finalMatch.awayScore <= 1 ? 1 : finalMatch.awayScore;
+
   const hTeam = TEAMS.find(t => t.name === finalMatch.home);
   const aTeam = TEAMS.find(t => t.name === finalMatch.away);
-  
+
   const hMult = hTeam ? hTeam.multiplier : 1;
   const aMult = aTeam ? aTeam.multiplier : 1;
-  
+
   let score = (calcHomeGoals * hMult) + (calcAwayGoals * aMult);
-  
-  // Divide by 2 if score exceeds 7 points
-  if (score > 7) {
-    score = score / 2;
-  }
-  
+  if (score > 7) score = score / 2;
+
   return parseFloat(score.toFixed(2));
 }
 

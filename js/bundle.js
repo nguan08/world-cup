@@ -2,10 +2,10 @@
 import {
   TEAMS, TEAM_WC_GROUP_MEMBERS, INITIAL_MATCHES, INITIAL_PLAYERS,
   getTeamWcGroup, formatWcGroupLabel, formatZoneDisplayLabel,
-  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml
+  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml, getCompareTeamFlagHtml
 } from './constants.js';
 import { app } from './state.js';
-import { escapeHtml, getCachedEl, debounce } from './utils.js';
+import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
   calculateTeamPoints, calculatePredictionPoints, processPlayers,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
@@ -157,6 +157,21 @@ function attachPlayerRowOpenHandlers() {
     }, false); // bubbling, not capture
     document._playerRowDocOpenBound = true;
   }
+}
+
+// Delegated opener for stats final-guess player chips (survives bar re-renders)
+function attachStatsFinalGuessPlayerHandlers() {
+  if (document._statsGuessPlayerOpenBound) return;
+  document._statsGuessPlayerOpenBound = true;
+
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest('.stats-final-guess-player[data-player]');
+    if (!chip) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const name = chip.getAttribute('data-player');
+    if (name) openPlayerDetails(name);
+  }, false);
 }
 
 // NAVIGATION
@@ -1120,7 +1135,7 @@ function renderDashboard() {
 
 // RENDERING - LEADERBOARD (full table + average footer)
 // Helper to group teams by zone and build filter menu HTML
-function buildTeamFilterHTML() {
+function buildTeamFilterHTML(prefix = 'filter') {
   const teamsByZone = {};
   TEAMS.forEach(t => {
     if (!teamsByZone[t.zone]) teamsByZone[t.zone] = [];
@@ -1150,10 +1165,11 @@ function buildTeamFilterHTML() {
     `;
 
     const sortedZoneTeams = [...zoneTeams].sort((a, b) => a.name.localeCompare(b.name, 'th'));
-    sortedZoneTeams.forEach(t => {
+    sortedZoneTeams.forEach((t, idx) => {
+      const fieldId = `${prefix}-team-filter-${zoneKey}-${toFieldSlug(t.name, String(idx))}`;
       html += `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
-          <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
+        <label for="${fieldId}" style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
+          <input type="checkbox" id="${fieldId}" name="${prefix}-team-filter" class="team-filter-checkbox" value="${escapeHtml(t.name)}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
           <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--filter" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding: 2px 6px; font-size: 11px;">${escapeHtml(t.name)} · ${formatWcGroupLabel(t.wcGroup)} · x${t.multiplier}</span>
         </label>
       `;
@@ -1169,7 +1185,7 @@ function buildTeamFilterHTML() {
 
 // Global initialization of team filters for any page
 function initTeamFilter(config) {
-  const { containerId, btnId, menuId, checkboxesContainerId, clearBtnId, onFilterChange } = config;
+  const { containerId, btnId, menuId, checkboxesContainerId, clearBtnId, onFilterChange, prefix = 'filter' } = config;
   const container = document.getElementById(containerId);
   const btn = document.getElementById(btnId);
   const menu = document.getElementById(menuId);
@@ -1177,7 +1193,7 @@ function initTeamFilter(config) {
   const clearBtn = document.getElementById(clearBtnId);
 
   if (btn && menu && checkboxesContainer) {
-    checkboxesContainer.innerHTML = buildTeamFilterHTML();
+    checkboxesContainer.innerHTML = buildTeamFilterHTML(prefix);
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1201,7 +1217,7 @@ function initTeamFilter(config) {
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        checkboxesContainer.querySelectorAll('.team-filter-checkbox').forEach(cb => cb.checked = false);
+        checkboxesContainer.querySelectorAll('.team-filter-checkbox').forEach(cb => { cb.checked = false; });
         onFilterChange();
       });
     }
@@ -2863,6 +2879,7 @@ function renderStatistics() {
   const statsArray = sortStatsArray(buildStatsArray());
   renderStatsGroupBreakdown(statsArray);
   renderStatsZoneBreakdown(statsArray);
+  renderStatsFinalGuess();
   updateStatsSortUI();
 
   statsArray.forEach((s, idx) => {
@@ -3032,6 +3049,17 @@ function populateCompareSelects() {
   if (prevB && app.processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
 }
 
+function updateCompareBenchHeaders(playerA, playerB) {
+  const nameA = document.getElementById('compare-name-a');
+  const nameB = document.getElementById('compare-name-b');
+  const rankA = document.getElementById('compare-rank-a');
+  const rankB = document.getElementById('compare-rank-b');
+  if (nameA) nameA.textContent = playerA ? playerA.name : 'เลือกผู้เล่นฝั่งซ้าย';
+  if (nameB) nameB.textContent = playerB ? playerB.name : 'เลือกผู้เล่นฝั่งขวา';
+  if (rankA) rankA.textContent = playerA ? `#${playerA.rank}` : '—';
+  if (rankB) rankB.textContent = playerB ? `#${playerB.rank}` : '—';
+}
+
 function renderToolsCompare() {
   populateCompareSelects();
   const selA = document.getElementById('compare-player-a');
@@ -3055,17 +3083,26 @@ function renderToolsCompareResult() {
   if (!container) return;
 
   if (!nameA || !nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">เลือกผู้เล่น 2 คนเพื่อเปรียบเทียบ</p>';
+    updateCompareBenchHeaders(null, null);
+    container.innerHTML = '<div class="compare-bench-empty">เลือกผู้เล่น 2 คนจาก dropdown ด้านบนเพื่อเริ่มเทียบ</div>';
     return;
   }
   if (nameA === nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">กรุณาเลือกผู้เล่นคนละคน</p>';
+    const p = app.processedPlayers.find(pl => pl.name === nameA);
+    updateCompareBenchHeaders(p, p);
+    container.innerHTML = '<div class="compare-bench-empty">กรุณาเลือกผู้เล่นคนละคนสำหรับ Baseline และ Alternative</div>';
     return;
   }
 
   const playerA = app.processedPlayers.find(p => p.name === nameA);
   const playerB = app.processedPlayers.find(p => p.name === nameB);
-  if (!playerA || !playerB) return;
+  if (!playerA || !playerB) {
+    updateCompareBenchHeaders(null, null);
+    container.innerHTML = '<div class="compare-bench-empty">ไม่พบข้อมูลผู้เล่น — ลองเลือกใหม่</div>';
+    return;
+  }
+
+  updateCompareBenchHeaders(playerA, playerB);
 
   const teamsA = new Set(playerA.teams || []);
   const teamsB = new Set(playerB.teams || []);
@@ -3080,55 +3117,90 @@ function renderToolsCompareResult() {
     return `<span class="badge badge-${cls}">${formatZoneDisplayLabel(zone)}</span>`;
   };
 
-  const teamBadges = (teamNames) => teamNames.map(t => {
-    const tb = (playerA.teamBreakdown || []).find(x => x.name === t)
-      || (playerB.teamBreakdown || []).find(x => x.name === t);
-    const zone = tb ? tb.zone : getTeamZoneByName(t);
+  const sortByPts = (names, player) => [...names].sort((a, b) => {
+    const pa = (player.teamBreakdown || []).find(x => x.name === a)?.points || 0;
+    const pb = (player.teamBreakdown || []).find(x => x.name === b)?.points || 0;
+    return pb - pa;
+  });
+
+  const compareTeamRow = (teamName, player, side) => {
+    const tb = (player.teamBreakdown || []).find(x => x.name === teamName);
+    const zone = tb ? tb.zone : getTeamZoneByName(teamName);
     const pts = tb ? tb.points.toFixed(1) : '0.0';
-    return `<span class="tools-compare-team-item">${buildTeamBadgeHtml(t, zone, { compact: true })}<span class="tools-compare-team-pts">${pts}</span></span>`;
-  }).join('');
+    const zoneCls = getTeamZoneClass(zone);
+    if (side === 'b') {
+      return `<li class="compare-bench-team-row compare-bench-team-row--right ${zoneCls}">
+        <span class="compare-bench-team-pts">${pts}</span>
+        <span class="compare-bench-team-name" data-team="${escapeHtml(teamName)}" title="ดูผู้เลือก">${escapeHtml(teamName)}</span>
+        ${getCompareTeamFlagHtml(teamName)}
+      </li>`;
+    }
+    if (side === 'shared') {
+      return `<li class="compare-bench-team-row compare-bench-team-row--shared" title="${escapeHtml(teamName)} · ${pts}">
+        ${getCompareTeamFlagHtml(teamName)}
+      </li>`;
+    }
+    return `<li class="compare-bench-team-row compare-bench-team-row--left ${zoneCls}">
+      ${getCompareTeamFlagHtml(teamName)}
+      <span class="compare-bench-team-name" data-team="${escapeHtml(teamName)}" title="ดูผู้เลือก">${escapeHtml(teamName)}</span>
+      <span class="compare-bench-team-pts">${pts}</span>
+    </li>`;
+  };
+
+  const rosterList = (teams, player, side) => {
+    if (!teams.length) return '<li class="compare-bench-team-empty">—</li>';
+    return sortByPts(teams, player).map(t => compareTeamRow(t, player, side)).join('');
+  };
+
+  const betterA = (a, b) => (a > b ? ' is-winner' : a < b ? ' is-loser' : '');
+  const betterRankA = playerA.rank < playerB.rank ? ' is-winner' : playerA.rank > playerB.rank ? ' is-loser' : '';
+  const betterRankB = playerB.rank < playerA.rank ? ' is-winner' : playerB.rank > playerA.rank ? ' is-loser' : '';
+  const totalSum = playerA.totalScore + playerB.totalScore || 1;
+  const pctLeft = Math.round((playerA.totalScore / totalSum) * 100);
+  const pctRight = 100 - pctLeft;
+  const winnerSide = scoreDiff > 0 ? 'left' : scoreDiff < 0 ? 'right' : 'tie';
+
+  const benchRow = (label, valL, valR, { winL = '', winR = '', highlight = false } = {}) => `
+    <div class="compare-bench-row${highlight ? ' compare-bench-row--highlight' : ''}">
+      <div class="compare-bench-cell compare-bench-cell--left${winL}">${valL}</div>
+      <div class="compare-bench-cell compare-bench-cell--label">${label}</div>
+      <div class="compare-bench-cell compare-bench-cell--right${winR}">${valR}</div>
+    </div>`;
 
   container.innerHTML = `
-    <div class="tools-compare-grid">
-      <div class="tools-compare-card tools-compare-card--a">
-        <div class="tools-compare-name">${escapeHtml(playerA.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerA.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerA.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerA.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerA.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerA.predictionScore.toFixed(1)}</div>
-      </div>
-      <div class="tools-compare-mid">
-        <div class="tools-compare-diff ${scoreDiff > 0 ? 'tools-compare-diff--up' : scoreDiff < 0 ? 'tools-compare-diff--down' : ''}">
-          <span class="tools-compare-diff-label">ต่างคะแนน</span>
-          <strong>${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</strong>
+    <div class="compare-bench-verdict compare-bench-verdict--${winnerSide}">
+      <div class="compare-bench-bar">
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--left" style="width:${pctLeft}%">
+          <span>${playerA.totalScore.toFixed(1)}</span>
         </div>
-        <div class="tools-compare-diff">
-          <span class="tools-compare-diff-label">ต่างอันดับ</span>
-          <strong>${rankDiff > 0 ? '+' : ''}${rankDiff}</strong>
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--right" style="width:${pctRight}%">
+          <span>${playerB.totalScore.toFixed(1)}</span>
         </div>
       </div>
-      <div class="tools-compare-card tools-compare-card--b">
-        <div class="tools-compare-name">${escapeHtml(playerB.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerB.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerB.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerB.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerB.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerB.predictionScore.toFixed(1)}</div>
+      <div class="compare-bench-verdict-meta">
+        <span class="compare-bench-verdict-diff">${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)} คะแนน</span>
+        <span class="compare-bench-verdict-diff">${rankDiff > 0 ? '+' : ''}${rankDiff} อันดับ</span>
       </div>
     </div>
-    <div class="tools-compare-teams">
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">ทีมร่วม (${shared.length})</div>
-        <div class="tools-compare-teams-badges">${shared.length ? teamBadges(shared) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+    <div class="compare-bench-table">
+      ${benchRow('อันดับ', `#${playerA.rank}`, `#${playerB.rank}`, { winL: betterRankA, winR: betterRankB })}
+      ${benchRow('โซน', zoneBadge(playerA.zone), zoneBadge(playerB.zone))}
+      ${benchRow('คะแนนรวม', playerA.totalScore.toFixed(1), playerB.totalScore.toFixed(1), { highlight: true, winL: betterA(playerA.totalScore, playerB.totalScore), winR: betterA(playerB.totalScore, playerA.totalScore) })}
+      ${benchRow('คะแนนทีม', playerA.teamsScore.toFixed(1), playerB.teamsScore.toFixed(1), { winL: betterA(playerA.teamsScore, playerB.teamsScore), winR: betterA(playerB.teamsScore, playerA.teamsScore) })}
+      ${benchRow('ทายนัดชิง', playerA.predictionScore.toFixed(1), playerB.predictionScore.toFixed(1), { winL: betterA(playerA.predictionScore, playerB.predictionScore), winR: betterA(playerB.predictionScore, playerA.predictionScore) })}
+    </div>
+    <div class="compare-bench-teams">
+      <div class="compare-bench-teams-col compare-bench-teams-col--left">
+        <div class="compare-bench-teams-title">เฉพาะ Baseline <span>${onlyA.length}</span></div>
+        <ul class="compare-bench-teams-list">${rosterList(onlyA, playerA, 'a')}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerA.name)} (${onlyA.length})</div>
-        <div class="tools-compare-teams-badges">${onlyA.length ? teamBadges(onlyA) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--mid">
+        <div class="compare-bench-teams-title">ร่วม <span>${shared.length}</span></div>
+        <ul class="compare-bench-teams-list compare-bench-teams-list--mid">${rosterList(shared, playerA, 'shared')}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerB.name)} (${onlyB.length})</div>
-        <div class="tools-compare-teams-badges">${onlyB.length ? teamBadges(onlyB) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--right">
+        <div class="compare-bench-teams-title"><span>${onlyB.length}</span> เฉพาะ Alternative</div>
+        <ul class="compare-bench-teams-list">${rosterList(onlyB, playerB, 'b')}</ul>
       </div>
     </div>
   `;
@@ -3155,39 +3227,53 @@ function renderToolsSimulator() {
     return a.id - b.id;
   });
 
-  matchesEl.innerHTML = '';
   if (pending.length === 0) {
     matchesEl.innerHTML = '<p class="tools-empty-hint">ไม่มีนัดที่รอแข่ง — จำลองผลไม่ได้ในขณะนี้</p>';
     if (deltaWrap) deltaWrap.style.display = 'none';
     return;
   }
 
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-container tools-sim-table-wrap';
+  tableWrap.innerHTML = `
+    <table class="data-table tools-compact-table tools-sim-table">
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>รอบ</th>
+          <th>เหย้า</th>
+          <th>สกอร์</th>
+          <th>เยือน</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+  const tbody = tableWrap.querySelector('tbody');
   pending.forEach(m => {
     const sim = app.simulationScores[m.id];
     const hVal = sim ? (sim.homeScore !== null ? sim.homeScore : '') : '';
     const aVal = sim ? (sim.awayScore !== null ? sim.awayScore : '') : '';
     const hZone = getTeamZoneByName(m.home);
     const aZone = getTeamZoneByName(m.away);
-    const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
-    const row = document.createElement('div');
-    row.className = 'tools-sim-match' + (sim ? ' tools-sim-match--active' : '');
-    row.innerHTML = `
-      <div class="tools-sim-match-meta">
-        <span>${dateLabel} · แมตช์ #${m.id}</span>
-        <span class="tools-sim-match-round">${getMatchRoundLabel(m)}</span>
-      </div>
-      <div class="tools-sim-match-body">
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</div>
-        <div class="tools-sim-scores">
-          <input type="number" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
-          <span class="score-divider">:</span>
-          <input type="number" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
-        </div>
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</div>
-      </div>
+    const dateLabel = m.date ? formatThaiDate(m.date) : '—';
+    const tr = document.createElement('tr');
+    if (sim) tr.className = 'tools-sim-row--active';
+    tr.innerHTML = `
+      <td class="tools-sim-date" data-label="วันที่">${dateLabel}</td>
+      <td class="tools-sim-round" data-label="รอบ">${getMatchRoundLabel(m)}</td>
+      <td class="tools-sim-team tools-sim-team--home" data-label="เหย้า">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</td>
+      <td class="tools-sim-scores" data-label="สกอร์">
+        <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
+        <span class="score-divider">:</span>
+        <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
+      </td>
+      <td class="tools-sim-team tools-sim-team--away" data-label="เยือน">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</td>
     `;
-    matchesEl.appendChild(row);
+    tbody.appendChild(tr);
   });
+  matchesEl.innerHTML = '';
+  matchesEl.appendChild(tableWrap);
 
   const hasSim = Object.keys(app.simulationScores).length > 0;
   if (!deltaWrap || !deltaTbody) return;
@@ -3580,6 +3666,8 @@ function playRankSoundEffect(player) {
 
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
+  window._playerDetailsLastOpenAt = Date.now();
+
   // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
   // This is the key fix: we open the popup immediately on any row click.
   // Even if later lookup or content building has issues, the user will see the drawer.
@@ -3916,7 +4004,7 @@ function openPlayerForm(player = null) {
       // Unique id + explicit for= to satisfy a11y (no "label not associated" warning)
       const safeId = `form-team-${t.zone}-${t.name.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
       label.innerHTML = `
-        <input type="checkbox" id="${safeId}" class="form-team-checkbox" data-zone="${t.zone}" value="${t.name}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
+        <input type="checkbox" id="${safeId}" name="form-teams" class="form-team-checkbox" data-zone="${t.zone}" value="${escapeHtml(t.name)}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
         <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--form" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} padding: 3px 8px; font-size: 11px; flex: 1;">${escapeHtml(t.name)}</span>
       `;
       label.setAttribute('for', safeId);
@@ -4103,6 +4191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, app.players table)
+  attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
   
   // Initialize admin status
   initAdminState();
@@ -4648,6 +4737,7 @@ async function exportMatchesImage() {
   
   // Initialize Team Filters
   initTeamFilter({
+    prefix: 'leaderboard',
     containerId: 'team-filter-dropdown-container',
     btnId: 'team-filter-btn',
     menuId: 'team-filter-menu',
@@ -4657,6 +4747,7 @@ async function exportMatchesImage() {
   });
 
   initTeamFilter({
+    prefix: 'players',
     containerId: 'players-team-filter-dropdown-container',
     btnId: 'players-team-filter-btn',
     menuId: 'players-team-filter-menu',
@@ -4722,8 +4813,11 @@ async function exportMatchesImage() {
       const overlay = document.getElementById('player-details-drawer-overlay');
       if (!overlay || !overlay.classList.contains('active')) return;
 
-      // Do not close if the click originated from a player row (the thing that opens the drawer)
-      if (e.target.closest('.hoverable')) return;
+      // Ignore the same click that just opened the drawer (main-content bubbles after chip handler)
+      if (Date.now() - (window._playerDetailsLastOpenAt || 0) < 120) return;
+
+      // Do not close if the click originated from an opener control
+      if (e.target.closest('.hoverable, .stats-final-guess-player, .stats-final-guess-bars, .team-players-list-item')) return;
 
       const drawer = overlay.querySelector('.drawer');
       if (drawer && !drawer.contains(e.target)) {
@@ -4878,6 +4972,124 @@ function getTeamPopularity(teamName) {
     if (p.teams && p.teams.includes(teamName)) count++;
   }
   return count;
+}
+
+function getFinalGuessBuckets() {
+  const buckets = Array.from({ length: 10 }, (_, guess) => ({ guess, players: [] }));
+  const noGuess = [];
+
+  app.players.forEach(player => {
+    const raw = player.guess;
+    if (raw == null || raw === '') {
+      noGuess.push(player);
+      return;
+    }
+    const guess = Number(raw);
+    if (!Number.isInteger(guess) || guess < 0 || guess > 9) {
+      noGuess.push(player);
+      return;
+    }
+    buckets[guess].players.push(player);
+  });
+
+  const byName = (a, b) => a.name.localeCompare(b.name, 'th');
+  buckets.forEach(bucket => bucket.players.sort(byName));
+  noGuess.sort(byName);
+  return { buckets, noGuess };
+}
+
+function buildStatsFinalGuessPlayerChip(playerName) {
+  return `<button type="button" class="stats-final-guess-player" data-player="${escapeHtml(playerName)}">${escapeHtml(playerName)}</button>`;
+}
+
+function renderStatsFinalGuess() {
+  const container = document.getElementById('stats-final-guess-bars');
+  const summaryEl = document.getElementById('stats-final-guess-summary');
+  const metaEl = document.getElementById('stats-final-guess-meta');
+  if (!container) return;
+
+  const finalMatch = app.matches.find(m => m.isFinal);
+  const { buckets, noGuess } = getFinalGuessBuckets();
+  const activeBuckets = buckets.filter(b => b.players.length > 0);
+  const guessedCount = app.players.length - noGuess.length;
+  const topBucket = [...activeBuckets].sort((a, b) => b.players.length - a.players.length)[0];
+  const actualTotal = finalMatch?.status === 'finished'
+    && finalMatch.homeScore != null
+    && finalMatch.awayScore != null
+    ? finalMatch.homeScore + finalMatch.awayScore
+    : null;
+
+  if (summaryEl) {
+    const noGuessNote = noGuess.length ? ` · ยังไม่ทาย ${noGuess.length}` : '';
+    summaryEl.textContent = `ทายแล้ว ${guessedCount}/${app.players.length} คน${noGuessNote}`;
+  }
+
+  if (metaEl) {
+    if (!finalMatch) {
+      metaEl.textContent = 'ยังไม่มีนัดชิงในระบบ';
+    } else {
+      const dateLabel = finalMatch.date
+        ? new Date(finalMatch.date + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '';
+      const matchLine = `${finalMatch.home} vs ${finalMatch.away}${dateLabel ? ` · ${dateLabel}` : ''}`;
+      if (actualTotal != null) {
+        const winners = buckets[actualTotal]?.players.length || 0;
+        metaEl.textContent = `${matchLine} · ผลจริงรวม ${actualTotal} ลูก · ทายถูก ${winners} คน`;
+      } else {
+        const popular = topBucket
+          ? ` · เลขยอดนิยม ${topBucket.guess} ลูก (${topBucket.players.length} คน)`
+          : '';
+        metaEl.textContent = `${matchLine} · รอผลนัดชิง${popular}`;
+      }
+    }
+  }
+
+  if (!activeBuckets.length) {
+    container.innerHTML = '<div class="stats-final-guess-empty">ยังไม่มีผู้ทายเลขใดเลย</div>';
+    return;
+  }
+
+  const maxCount = Math.max(...activeBuckets.map(b => b.players.length), 1);
+  const activeGuess = renderStatsFinalGuess._activeGuess ?? null;
+
+  container.innerHTML = activeBuckets
+    .sort((a, b) => a.guess - b.guess)
+    .map(({ guess, players }) => {
+      const pct = Math.round((players.length / maxCount) * 100);
+      const isWinner = actualTotal === guess;
+      const isOpen = activeGuess === guess;
+      const playerHtml = players.map(p => buildStatsFinalGuessPlayerChip(p.name)).join('');
+      return `
+        <div class="stats-final-guess-bar-item${isWinner ? ' stats-final-guess-bar-item--winner' : ''}${isOpen ? ' is-open' : ''}">
+          <button type="button" class="stats-final-guess-bar-row" data-guess="${guess}" title="กดดูรายชื่อ">
+            <span class="stats-final-guess-bar-num">${guess}</span>
+            <span class="stats-final-guess-bar-wrap" aria-hidden="true">
+              <span class="stats-final-guess-bar-fill" style="width:${pct}%"></span>
+            </span>
+            <span class="stats-final-guess-bar-count">${players.length}</span>
+          </button>
+          <div class="stats-final-guess-bar-players">${playerHtml}</div>
+        </div>`;
+    }).join('');
+
+  if (!container._finalGuessBound) {
+    container._finalGuessBound = true;
+    container.addEventListener('click', (e) => {
+      const chip = e.target.closest('.stats-final-guess-player[data-player]');
+      if (chip) {
+        e.stopPropagation();
+        e.preventDefault();
+        openPlayerDetails(chip.getAttribute('data-player'));
+        return;
+      }
+      const row = e.target.closest('.stats-final-guess-bar-row[data-guess]');
+      if (!row || !container.contains(row)) return;
+      e.stopPropagation();
+      const guess = Number(row.getAttribute('data-guess'));
+      renderStatsFinalGuess._activeGuess = renderStatsFinalGuess._activeGuess === guess ? null : guess;
+      renderStatsFinalGuess();
+    });
+  }
 }
 
 

@@ -2268,6 +2268,11 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function toFieldSlug(str, fallback = 'field') {
+  const slug = String(str).replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
+  return slug || fallback;
+}
+
 const ADMIN_PASSWORD = '123456';
 
 // State variables
@@ -3236,6 +3241,21 @@ function attachPlayerRowOpenHandlers() {
   }
 }
 
+// Delegated opener for stats final-guess player chips (survives bar re-renders)
+function attachStatsFinalGuessPlayerHandlers() {
+  if (document._statsGuessPlayerOpenBound) return;
+  document._statsGuessPlayerOpenBound = true;
+
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest('.stats-final-guess-player[data-player]');
+    if (!chip) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const name = chip.getAttribute('data-player');
+    if (name) openPlayerDetails(name);
+  }, false);
+}
+
 // NAVIGATION
 function setupNavigation() {
   const navItems = document.querySelectorAll('.nav-item');
@@ -4197,7 +4217,7 @@ function renderDashboard() {
 
 // RENDERING - LEADERBOARD (full table + average footer)
 // Helper to group teams by zone and build filter menu HTML
-function buildTeamFilterHTML() {
+function buildTeamFilterHTML(prefix = 'filter') {
   const teamsByZone = {};
   TEAMS.forEach(t => {
     if (!teamsByZone[t.zone]) teamsByZone[t.zone] = [];
@@ -4227,10 +4247,11 @@ function buildTeamFilterHTML() {
     `;
 
     const sortedZoneTeams = [...zoneTeams].sort((a, b) => a.name.localeCompare(b.name, 'th'));
-    sortedZoneTeams.forEach(t => {
+    sortedZoneTeams.forEach((t, idx) => {
+      const fieldId = `${prefix}-team-filter-${zoneKey}-${toFieldSlug(t.name, String(idx))}`;
       html += `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
-          <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
+        <label for="${fieldId}" style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
+          <input type="checkbox" id="${fieldId}" name="${prefix}-team-filter" class="team-filter-checkbox" value="${escapeHtml(t.name)}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
           <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--filter" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding: 2px 6px; font-size: 11px;">${escapeHtml(t.name)} · ${formatWcGroupLabel(t.wcGroup)} · x${t.multiplier}</span>
         </label>
       `;
@@ -4246,7 +4267,7 @@ function buildTeamFilterHTML() {
 
 // Global initialization of team filters for any page
 function initTeamFilter(config) {
-  const { containerId, btnId, menuId, checkboxesContainerId, clearBtnId, onFilterChange } = config;
+  const { containerId, btnId, menuId, checkboxesContainerId, clearBtnId, onFilterChange, prefix = 'filter' } = config;
   const container = document.getElementById(containerId);
   const btn = document.getElementById(btnId);
   const menu = document.getElementById(menuId);
@@ -4254,7 +4275,7 @@ function initTeamFilter(config) {
   const clearBtn = document.getElementById(clearBtnId);
 
   if (btn && menu && checkboxesContainer) {
-    checkboxesContainer.innerHTML = buildTeamFilterHTML();
+    checkboxesContainer.innerHTML = buildTeamFilterHTML(prefix);
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -4278,7 +4299,7 @@ function initTeamFilter(config) {
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        checkboxesContainer.querySelectorAll('.team-filter-checkbox').forEach(cb => cb.checked = false);
+        checkboxesContainer.querySelectorAll('.team-filter-checkbox').forEach(cb => { cb.checked = false; });
         onFilterChange();
       });
     }
@@ -6258,9 +6279,9 @@ function renderToolsSimulator() {
       <div class="tools-sim-match-body">
         <div class="tools-sim-team">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</div>
         <div class="tools-sim-scores">
-          <input type="number" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
+          <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
           <span class="score-divider">:</span>
-          <input type="number" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
+          <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
         </div>
         <div class="tools-sim-team">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</div>
       </div>
@@ -6659,6 +6680,8 @@ function playRankSoundEffect(player) {
 
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
+  window._playerDetailsLastOpenAt = Date.now();
+
   // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
   // This is the key fix: we open the popup immediately on any row click.
   // Even if later lookup or content building has issues, the user will see the drawer.
@@ -6995,7 +7018,7 @@ function openPlayerForm(player = null) {
       // Unique id + explicit for= to satisfy a11y (no "label not associated" warning)
       const safeId = `form-team-${t.zone}-${t.name.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
       label.innerHTML = `
-        <input type="checkbox" id="${safeId}" class="form-team-checkbox" data-zone="${t.zone}" value="${t.name}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
+        <input type="checkbox" id="${safeId}" name="form-teams" class="form-team-checkbox" data-zone="${t.zone}" value="${escapeHtml(t.name)}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
         <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--form" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} padding: 3px 8px; font-size: 11px; flex: 1;">${escapeHtml(t.name)}</span>
       `;
       label.setAttribute('for', safeId);
@@ -7164,6 +7187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
+  attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
   
   // Initialize admin status
   initAdminState();
@@ -7709,6 +7733,7 @@ async function exportMatchesImage() {
   
   // Initialize Team Filters
   initTeamFilter({
+    prefix: 'leaderboard',
     containerId: 'team-filter-dropdown-container',
     btnId: 'team-filter-btn',
     menuId: 'team-filter-menu',
@@ -7718,6 +7743,7 @@ async function exportMatchesImage() {
   });
 
   initTeamFilter({
+    prefix: 'players',
     containerId: 'players-team-filter-dropdown-container',
     btnId: 'players-team-filter-btn',
     menuId: 'players-team-filter-menu',
@@ -7783,8 +7809,11 @@ async function exportMatchesImage() {
       const overlay = document.getElementById('player-details-drawer-overlay');
       if (!overlay || !overlay.classList.contains('active')) return;
 
-      // Do not close if the click originated from a player row (the thing that opens the drawer)
-      if (e.target.closest('.hoverable')) return;
+      // Ignore the same click that just opened the drawer
+      if (Date.now() - (window._playerDetailsLastOpenAt || 0) < 120) return;
+
+      // Do not close if the click originated from an opener control
+      if (e.target.closest('.hoverable, .stats-final-guess-player, .stats-final-guess-bars, .team-players-list-item')) return;
 
       const drawer = overlay.querySelector('.drawer');
       if (drawer && !drawer.contains(e.target)) {
