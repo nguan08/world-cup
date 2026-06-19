@@ -2909,10 +2909,80 @@ function recalculateAll() {
   updateTeamMatchesPlayedCounts();
 }
 
+// Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
+let _playerDrawerSavedScrollY = 0;
+let _playerDrawerScrollLocked = false;
+
+function lockScrollForPlayerDrawer() {
+  if (_playerDrawerScrollLocked) return;
+  _playerDrawerScrollLocked = true;
+  _playerDrawerSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.documentElement.classList.add('player-drawer-open');
+  document.body.classList.add('player-drawer-open');
+  document.body.style.overflow = '';
+  document.body.style.top = `-${_playerDrawerSavedScrollY}px`;
+}
+
+function unlockScrollForPlayerDrawer() {
+  if (!_playerDrawerScrollLocked) return;
+  _playerDrawerScrollLocked = false;
+  document.documentElement.classList.remove('player-drawer-open');
+  document.body.classList.remove('player-drawer-open');
+  document.body.style.top = '';
+  window.scrollTo(0, _playerDrawerSavedScrollY);
+
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('active')) {
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function showPlayerDetailsDrawer() {
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  if (!overlay) return false;
+  if (!overlay.classList.contains('active')) {
+    overlay.classList.add('active');
+    lockScrollForPlayerDrawer();
+  }
+  return true;
+}
+
+function hidePlayerDetailsDrawer() {
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  if (!overlay || !overlay.classList.contains('active')) return;
+  overlay.classList.remove('active');
+  unlockScrollForPlayerDrawer();
+}
+
+// Prevent touch scroll from chaining to the page when drawer content hits top/bottom (iOS)
+function attachPlayerDrawerScrollGuard() {
+  const scrollEl = document.querySelector('.player-details-drawer__scroll');
+  if (!scrollEl || scrollEl._scrollGuardBound) return;
+  scrollEl._scrollGuardBound = true;
+
+  let touchStartY = 0;
+  scrollEl.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  scrollEl.addEventListener('touchmove', (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchStartY - touchY;
+    touchStartY = touchY;
+
+    const atTop = scrollTop <= 0;
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+
+    if ((atTop && deltaY < 0) || (atBottom && deltaY > 0)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+}
+
 // Helper to close player stats drawer (used on mobile + when switching views / tapping elsewhere)
 function closePlayerDetailsIfOpen() {
-  const overlay = document.getElementById('player-details-drawer-overlay');
-  if (overlay) overlay.classList.remove('active');
+  hidePlayerDetailsDrawer();
 }
 
 // This function is kept for compatibility but its old aggressive handlers have been replaced
@@ -3806,12 +3876,12 @@ function renderDashboard() {
 
     const teamsTd = document.createElement('td');
     teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
-    teamsTd.style.textAlign = 'center';
+    teamsTd.className = 'table-matches-cell';
     teamsTd.textContent = totalMatchesPlayed;
 
     const guessTd = document.createElement('td');
     guessTd.setAttribute('data-label', 'ทายชิง (xx)');
-    guessTd.style.textAlign = 'center';
+    guessTd.className = 'table-guess-cell';
     const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
     guessTd.textContent = guessText;
 
@@ -4044,13 +4114,13 @@ function renderLeaderboard(options = {}) {
     // Total matches played by selected teams
     const teamsTd = document.createElement('td');
     teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
-    teamsTd.style.textAlign = 'center';
+    teamsTd.className = 'table-matches-cell';
     teamsTd.textContent = totalMatchesPlayed;
 
     // Guess
     const guessTd = document.createElement('td');
     guessTd.setAttribute('data-label', 'ทายชิง (xx)');
-    guessTd.style.textAlign = 'center';
+    guessTd.className = 'table-guess-cell';
     guessTd.textContent = guessText;
 
     // Score
@@ -4217,19 +4287,34 @@ function renderScoreChart() {
 
   // 3. Setup Layout Dimensions dynamically for responsive scaling
   const container = document.getElementById('chart-svg-container');
-  const containerW = container ? container.clientWidth : 0;
-  
-  // Decide responsive layout sizes
-  const W = containerW || Math.max(800, 150 + (stepsCount + 1) * 110);
-  const isMobile = W < 600;
-  const H = isMobile ? 300 : 380;
-  
-  const padL = isMobile ? 40 : 60;
-  const padR = isMobile ? 25 : 140; // small padR on mobile
-  const padT = 40;
-  const padB = isMobile ? 50 : 60;
+  const containerW = container
+    ? Math.floor(container.getBoundingClientRect().width) || container.clientWidth || 0
+    : 0;
+
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile && container && containerW === 0) {
+    requestAnimationFrame(() => renderScoreChart());
+    return;
+  }
+  const W = containerW || (isMobile
+    ? Math.max(280, window.innerWidth - 16)
+    : Math.max(800, 150 + (stepsCount + 1) * 110));
+  const padL = isMobile ? 14 : 60;
+  const padR = isMobile ? 2 : 140;
+  const padT = isMobile ? 26 : 40;
+  const axisLabelX = isMobile ? padL - 1 : padL - 8;
+  const axisLineX = isMobile ? padL : padL - 4;
+  const yRankFontSize = isMobile ? '7' : '10';
   const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
+  const minPixelPerStep = chartW / Math.max(1, stepsCount);
+  const rotateWhenNarrow = isMobile ? 36 : 48;
+  const rotateAngle = minPixelPerStep < rotateWhenNarrow ? -45 : 0;
+  const padB = isMobile ? (rotateAngle !== 0 ? 54 : 32) : 60;
+  const chartH = isMobile
+    ? Math.max(155, Math.round(chartW * 0.62))
+    : (380 - padT - padB);
+  const H = isMobile ? padT + chartH + padB : 380;
+  const xLabelY = padT + chartH + (isMobile ? 14 : 18);
 
   const maxRank = processedPlayers.length || 1;
 
@@ -4254,8 +4339,8 @@ function renderScoreChart() {
     const rankValue = 1 + (i / yTicks) * (maxRank - 1);
     const displayRank = Math.round(rankValue);
     const y = yOf(rankValue);
-    yGridLines += `<line x1="${padL - 4}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
+    yGridLines += `<line x1="${axisLineX}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
+    yGridLines += `<text x="${axisLabelX}" y="${y + 3}" text-anchor="end" font-size="${yRankFontSize}" fill="rgba(255,255,255,0.4)" font-family="Inter,Sarabun,sans-serif">${displayRank}</text>`;
   }
 
   // 4.1 Render Zone Separators (Rank Thresholds)
@@ -4268,14 +4353,14 @@ function renderScoreChart() {
     const yBlue = yOf(blueLine + 0.5); 
     zoneSeparators += `
       <line x1="${padL}" x2="${W - padR}" y1="${yBlue}" y2="${yBlue}" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="8,5" stroke-opacity="0.4"/>
-      <text x="${W - padR + 4}" y="${yBlue + 3}" font-size="9" fill="#60a5fa" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">BLUE | GREEN</text>
+      ${isMobile ? '' : `<text x="${W - padR + 4}" y="${yBlue + 3}" font-size="9" fill="#60a5fa" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">BLUE | GREEN</text>`}
     `;
 
     // Line for Green/Red boundary
     const yGreen = yOf(greenLine + 0.5);
     zoneSeparators += `
       <line x1="${padL}" x2="${W - padR}" y1="${yGreen}" y2="${yGreen}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,5" stroke-opacity="0.4"/>
-      <text x="${W - padR + 4}" y="${yGreen + 3}" font-size="9" fill="#34d399" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">GREEN | RED</text>
+      ${isMobile ? '' : `<text x="${W - padR + 4}" y="${yGreen + 3}" font-size="9" fill="#34d399" fill-opacity="0.6" font-family="Inter,Sarabun,sans-serif" font-weight="700">GREEN | RED</text>`}
     `;
   }
 
@@ -4285,18 +4370,13 @@ function renderScoreChart() {
   const interval = Math.max(1, Math.ceil((stepsCount + 1) / desiredLabels));
   const labelFontSize = isMobile ? '8' : '10';
 
-  // decide whether to rotate labels if points are too close
-  const minPixelPerStep = chartW / Math.max(1, stepsCount);
-  const rotateWhenNarrow = isMobile ? 36 : 48;
-  const rotateAngle = minPixelPerStep < rotateWhenNarrow ? -45 : 0;
-
   for (let i = 0; i <= stepsCount; i++) {
     const x = xOf(i);
     const showLabel = (i === 0) || (i % interval === 0);
 
     let label = '';
     if (i === 0) {
-      label = 'เริ่มต้น';
+      label = isMobile ? 'เริ่ม' : 'เริ่มต้น';
     } else if (showLabel) {
       const dateStr = finishedMatches[i - 1].date;
       const d = new Date(dateStr + 'T00:00:00');
@@ -4305,15 +4385,15 @@ function renderScoreChart() {
     }
 
     if (rotateAngle !== 0 && showLabel) {
-      // rotate around the label position; use end anchor for better alignment
+      const xAnchor = i === 0 ? 'start' : (i === stepsCount ? 'end' : 'middle');
       xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-      <text x="${x}" y="${padT + chartH + 18}" transform="rotate(${rotateAngle} ${x} ${padT + chartH + 18})" text-anchor="end" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
+      <text x="${x}" y="${xLabelY}" transform="rotate(${rotateAngle} ${x} ${xLabelY})" text-anchor="${xAnchor}" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>
     `;
     } else {
       xLabels += `
       <line x1="${x}" x2="${x}" y1="${padT}" y2="${padT + chartH + 4}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-      ${showLabel ? `<text x="${x}" y="${padT + chartH + 18}" text-anchor="middle" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>` : ''}
+      ${showLabel ? `<text x="${x}" y="${xLabelY}" text-anchor="middle" font-size="${labelFontSize}" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif" font-weight="600">${label}</text>` : ''}
     `;
     }
   }
@@ -4362,19 +4442,64 @@ function renderScoreChart() {
     labelsGroup += `<text x="${labelX}" y="${lastY + 3}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" fill-opacity="0.85" class="trend-end-label" data-player="${ph.name}" style="display: ${labelDisplay}; font-family: Inter,Sarabun,sans-serif; pointer-events: none; transition: fill-opacity 0.2s;">${ph.name} (อันดับ ${lastRank})</text>`;
   });
 
-  // Setup SVG dimensions and viewBox
+  let legendMarkup = '';
+  if (isMobile) {
+    const legendY = 8;
+    const legendItems = [
+      { color: '#60a5fa', label: 'Blue' },
+      { color: '#34d399', label: 'Green' },
+      { color: '#f43f5e', label: 'Red' }
+    ];
+    const slotW = W / legendItems.length;
+    legendItems.forEach((item, idx) => {
+      const lx = idx * slotW + 4;
+      legendMarkup += `
+        <rect x="${lx}" y="${legendY}" width="8" height="8" rx="2" fill="${item.color}"/>
+        <text x="${lx + 12}" y="${legendY + 7}" font-size="8" fill="rgba(255,255,255,0.65)" font-family="Inter,Sarabun,sans-serif">${item.label}</text>
+      `;
+    });
+  } else {
+    legendMarkup = `
+      <rect x="${padL}" y="${padT - 26}" width="10" height="10" rx="2" fill="#60a5fa"/>
+      <text x="${padL + 14}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Blue Zone</text>
+      <rect x="${padL + 80}" y="${padT - 26}" width="10" height="10" rx="2" fill="#34d399"/>
+      <text x="${padL + 94}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Green Zone</text>
+      <rect x="${padL + 170}" y="${padT - 26}" width="10" height="10" rx="2" fill="#f43f5e"/>
+      <text x="${padL + 184}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Red Zone</text>
+    `;
+  }
+
+  // Setup SVG dimensions — width tracks chart-card container, height follows viewBox ratio
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.setAttribute('preserveAspectRatio', isMobile ? 'none' : 'xMidYMid meet');
   svgEl.setAttribute('width', '100%');
-  svgEl.setAttribute('height', H);
-  svgEl.style.minWidth = '';
+  svgEl.style.minWidth = '0';
+  svgEl.style.maxWidth = '100%';
   svgEl.style.width = '100%';
-  svgEl.style.height = H + 'px';
+  svgEl.style.display = 'block';
+  svgEl.style.overflow = 'hidden';
+  svgEl.dataset.chartW = String(W);
+  svgEl.dataset.chartH = String(H);
+
+  if (isMobile) {
+    svgEl.removeAttribute('height');
+    svgEl.style.height = 'auto';
+    svgEl.style.aspectRatio = `${W} / ${H}`;
+  } else {
+    svgEl.setAttribute('height', H);
+    svgEl.style.height = H + 'px';
+    svgEl.style.aspectRatio = '';
+  }
+
+  const plotBg = isMobile
+    ? `<rect x="0" y="0" width="${W}" height="${H}" fill="rgba(15,23,42,0.5)"/>`
+    : '';
 
   svgEl.innerHTML = `
-    <rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="transparent"/>
+    ${plotBg || `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`}
     ${yGridLines}
-    <line x1="${padL - 4}" x2="${padL - 4}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-    <line x1="${padL - 4}" x2="${W - padR}" y1="${padT + chartH}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <line x1="${axisLineX}" x2="${axisLineX}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <line x1="${axisLineX}" x2="${W - padR}" y1="${padT + chartH}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
     ${xLabels}
     ${zoneSeparators}
     
@@ -4382,19 +4507,37 @@ function renderScoreChart() {
     <g class="helpers-container">${hoverHelpers}</g>
     <g class="dots-container">${dotsGroup}</g>
     <g class="labels-container">${labelsGroup}</g>
-
-    <!-- Legends -->
-    <rect x="${padL}" y="${padT - 26}" width="10" height="10" rx="2" fill="#60a5fa"/>
-    <text x="${padL + 14}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Blue Zone</text>
-    <rect x="${padL + 80}" y="${padT - 26}" width="10" height="10" rx="2" fill="#34d399"/>
-    <text x="${padL + 94}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Green Zone</text>
-    <rect x="${padL + 170}" y="${padT - 26}" width="10" height="10" rx="2" fill="#f43f5e"/>
-    <text x="${padL + 184}" y="${padT - 17}" font-size="10" fill="rgba(255,255,255,0.5)" font-family="Inter,Sarabun,sans-serif">Red Zone</text>
+    ${legendMarkup}
   `;
 
-  // Make container scrollable on desktop only if it overflows, but hidden/responsive on mobile
-  svgEl.parentElement.style.overflowX = isMobile ? 'hidden' : 'auto';
-  svgEl.parentElement.style.overflowY = 'visible';
+  if (container) {
+    container.style.overflow = 'hidden';
+    container.style.paddingBottom = isMobile ? '0' : '8px';
+    container.style.width = '100%';
+    container.style.maxWidth = '100%';
+    container.style.boxSizing = 'border-box';
+    if (isMobile) {
+      container.style.minHeight = '0';
+      container.style.height = 'auto';
+      container.style.aspectRatio = `${W} / ${H}`;
+    } else {
+      container.style.aspectRatio = '';
+      container.style.minHeight = H + 'px';
+    }
+  }
+
+  if (container) {
+    requestAnimationFrame(() => {
+      const measuredW = Math.floor(container.getBoundingClientRect().width);
+      const renderedW = Number(svgEl.dataset.chartW || 0);
+      if (measuredW > 0 && Math.abs(measuredW - renderedW) > 1 && !svgEl.dataset.chartRecalc) {
+        svgEl.dataset.chartRecalc = '1';
+        renderScoreChart();
+        return;
+      }
+      delete svgEl.dataset.chartRecalc;
+    });
+  }
 
   // 7. Populate Highlight Dropdown
   const highlightSelect = document.getElementById('chart-highlight-select');
@@ -4412,51 +4555,7 @@ function renderScoreChart() {
     });
   }
 
-  // 8. Tooltip logic
-  const tooltip = document.getElementById('chart-tooltip');
-  const ttRank  = document.getElementById('tt-rank');
-  const ttName  = document.getElementById('tt-name');
-  const ttScore = document.getElementById('tt-score');
-  const ttZone  = document.getElementById('tt-zone');
-
-  svgEl.querySelectorAll('.trend-dot').forEach(dot => {
-    dot.addEventListener('mouseenter', () => {
-      const pName = dot.getAttribute('data-player');
-      const step = parseInt(dot.getAttribute('data-step'));
-      const score = parseFloat(dot.getAttribute('data-score'));
-      const rank = parseInt(dot.getAttribute('data-rank'));
-      
-      const p = processedPlayers.find(x => x.name === pName) || {};
-      let zoneLabel = '';
-      if (p.zone === 'blue')       zoneLabel = '<span style="color:#60a5fa">● Blue Zone</span>';
-      else if (p.zone === 'green') zoneLabel = '<span style="color:#34d399">● Green Zone</span>';
-      else                         zoneLabel = '<span style="color:#f43f5e">● Red Zone</span>';
-      
-      const dayLabel = step === 0 ? 'จุดเริ่มต้น' : `ผลการแข่งหลังจบวันที่ ${step}`;
-      let matchLabel = '';
-      if (step > 0) {
-        const match = finishedMatches[step - 1];
-        matchLabel = `<div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px;">แมตช์ที่ ${match.id}: ${match.home} vs ${match.away} (${match.homeScore}-${match.awayScore})</div>`;
-      }
-      
-      ttRank.innerHTML    = `อันดับ: ${rank || p.rank || '-'} <span style="margin-left:8px; color:rgba(255,255,255,0.45); font-size:10px;">(${dayLabel})</span>`;
-      ttName.textContent  = pName;
-      ttScore.innerHTML   = `${score.toFixed(1)} <span style="font-size:12px; font-weight:normal; color:var(--text-secondary);">คะแนนสะสม</span>`;
-      ttZone.innerHTML    = zoneLabel + matchLabel;
-      tooltip.style.display = 'block';
-    });
-
-    dot.addEventListener('mousemove', e => {
-      tooltip.style.left = (e.clientX + 14) + 'px';
-      tooltip.style.top  = (e.clientY - 10) + 'px';
-    });
-
-    dot.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
-    });
-  });
-
-  // 9. Attach mouseenter listeners to highlight
+  // 8. Attach mouseenter listeners to highlight
   svgEl.querySelectorAll('.trend-line, .trend-line-hover-helper, .trend-dot').forEach(el => {
     el.addEventListener('mouseenter', () => {
       const playerName = el.getAttribute('data-player');
@@ -5287,10 +5386,7 @@ function openPlayerDetails(name) {
   // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
   // This is the key fix: we open the popup immediately on any row click.
   // Even if later lookup or content building has issues, the user will see the drawer.
-  const overlay = document.getElementById('player-details-drawer-overlay');
-  if (overlay) {
-    overlay.classList.add('active');
-  } else {
+  if (!showPlayerDetailsDrawer()) {
     console.error('[openPlayerDetails] overlay element not found in DOM');
     return;
   }
@@ -5600,8 +5696,7 @@ function openPlayerDetails(name) {
             if (isSyncEnabled) {
               await saveToServer();
             }
-            const ov = document.getElementById('player-details-drawer-overlay');
-            if (ov) ov.classList.remove('active');
+            hidePlayerDetailsDrawer();
             recalculateAll();
             renderDashboard();
             renderLeaderboard();
@@ -5612,8 +5707,7 @@ function openPlayerDetails(name) {
       
       if (editBtn) {
         editBtn.onclick = () => {
-          const ov = document.getElementById('player-details-drawer-overlay');
-          if (ov) ov.classList.remove('active');
+          hidePlayerDetailsDrawer();
           openPlayerForm(player);
         };
       }
@@ -6196,27 +6290,24 @@ async function exportMatchesImage() {
   }
   
   // Close Modals buttons
-  document.getElementById('close-detail-btn').addEventListener('click', () => {
-    document.getElementById('player-details-drawer-overlay').classList.remove('active');
-  });
+  document.getElementById('close-detail-btn').addEventListener('click', hidePlayerDetailsDrawer);
   
   // Close player details drawer when clicking on the backdrop (outside the drawer)
   const playerDetailsOverlay = document.getElementById('player-details-drawer-overlay');
   if (playerDetailsOverlay) {
     playerDetailsOverlay.addEventListener('click', (e) => {
       if (e.target === playerDetailsOverlay) {
-        playerDetailsOverlay.classList.remove('active');
+        hidePlayerDetailsDrawer();
       }
     });
   }
 
+  attachPlayerDrawerScrollGuard();
+
   // Bottom close button inside player details (very easy to tap on mobile)
   const bottomCloseBtn = document.getElementById('player-detail-bottom-close-btn');
   if (bottomCloseBtn) {
-    bottomCloseBtn.addEventListener('click', () => {
-      const overlay = document.getElementById('player-details-drawer-overlay');
-      if (overlay) overlay.classList.remove('active');
-    });
+    bottomCloseBtn.addEventListener('click', hidePlayerDetailsDrawer);
   }
 
   // === Safe outside-close for player stats drawer (mobile friendly) ===
@@ -6233,7 +6324,7 @@ async function exportMatchesImage() {
     mobileHeader.addEventListener('click', () => {
       const overlay = document.getElementById('player-details-drawer-overlay');
       if (overlay && overlay.classList.contains('active')) {
-        setTimeout(() => overlay.classList.remove('active'), 0);
+        setTimeout(hidePlayerDetailsDrawer, 0);
       }
     });
   }
@@ -6252,7 +6343,7 @@ async function exportMatchesImage() {
       const drawer = overlay.querySelector('.drawer');
       if (drawer && !drawer.contains(e.target)) {
         setTimeout(() => {
-          if (overlay.classList.contains('active')) overlay.classList.remove('active');
+          if (overlay.classList.contains('active')) hidePlayerDetailsDrawer();
         }, 0);
       }
     });

@@ -283,9 +283,9 @@
     {
       "home": "เม็กซิโก",
       "away": "เกาหลีใต้",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-19",
       "id": 28

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <link rel="stylesheet" href="style.css?v=20260619-m2col">
+  <link rel="stylesheet" href="style.css?v=20260619-chartfull">
 </head>
 <body>
   
@@ -161,7 +161,7 @@
               Score Trend
             </div>
           </div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">แกน X = วันแข่ง, แกน Y = อันดับ — วางเมาส์ที่จุดหรือเส้นเพื่อดูรายละเอียดและไฮไลท์</div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">แกน X = วันแข่ง, แกน Y = อันดับ — เลือกผู้เล่นเพื่อไฮไลท์เส้นกราฟ</div>
           
           <!-- Player highlight filter -->
           <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
@@ -173,14 +173,8 @@
             </div>
           </div>
 
-          <div id="chart-svg-container" style="position: relative; overflow-x: hidden; overflow-y: visible; padding-bottom: 8px; width: 100%;">
-            <svg id="score-chart-svg" style="display: block; width: 100%; height: 380px;"></svg>
-            <div id="chart-tooltip" style="position:fixed; background:rgba(15,23,42,0.96); border:1px solid rgba(255,255,255,0.12); padding:10px 14px; border-radius:10px; font-size:13px; pointer-events:none; display:none; z-index:9999; box-shadow:0 4px 24px rgba(0,0,0,0.5);">
-              <div id="tt-rank" style="color:var(--text-secondary); font-size:11px; margin-bottom:2px;"></div>
-              <div id="tt-name" style="font-weight:700; margin-bottom:4px;"></div>
-              <div id="tt-score" style="color:var(--primary); font-weight:700; font-size:16px;"></div>
-              <div id="tt-zone" style="margin-top:4px;"></div>
-            </div>
+          <div id="chart-svg-container" style="position: relative; overflow: hidden; width: 100%; max-width: 100%; box-sizing: border-box;">
+            <svg id="score-chart-svg" style="display: block; width: 100%;"></svg>
           </div>
         </div>
 
@@ -198,8 +192,8 @@
                      <tr>
                        <th>อันดับ</th>
                        <th>ผู้เล่น</th>
-                       <th style="text-align: center;">นัดที่เตะรวม</th>
-                       <th style="text-align: center;">ทาย</th>
+                       <th style="text-align: center;" title="นัดที่เตะรวม">นัด</th>
+                       <th style="text-align: center;" title="ทายผลประตูชิง">ทาย</th>
                        <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
                        <th style="text-align: center;">จ่าย</th>
@@ -252,8 +246,8 @@
                     <tr>
                       <th>อันดับ</th>
                       <th>ผู้เล่น</th>
-                      <th style="text-align: center;">นัดที่เตะรวม</th>
-                      <th style="text-align: center;">ทาย</th>
+                      <th style="text-align: center;" title="นัดที่เตะรวม">นัด</th>
+                      <th style="text-align: center;" title="ทายผลประตูชิง">ทาย</th>
                       <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
                        <th style="text-align: center;">จ่าย</th>
@@ -684,7 +678,7 @@
 
   </div>
 
-  <script src="app.js?v=20260619-m2col"></script>
+  <script src="app.js?v=20260619-notooltip"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

@@ -732,6 +732,38 @@ h1 {
   max-width: 640px;
 }
 
+/* Chart card — graph full-bleed left/right inside the card */
+#chart-card {
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+#chart-card > :not(#chart-svg-container) {
+  padding-left: 24px;
+  padding-right: 24px;
+  box-sizing: border-box;
+}
+
+#chart-card #chart-svg-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#score-chart-svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 /* Cards */
 .card {
   background: var(--bg-card);
@@ -938,27 +970,33 @@ h1 {
 
 #leaderboard th:nth-child(2), #top-leaders-table th:nth-child(2),
 #leaderboard td:nth-child(2), #top-leaders-table td:nth-child(2) {
-  width: 24% !important;
+  width: 25% !important;
   min-width: 0 !important;
 }
 
 #leaderboard th:nth-child(3), #top-leaders-table th:nth-child(3),
 #leaderboard td:nth-child(3), #top-leaders-table td:nth-child(3) {
-  width: 16% !important;
+  width: 9% !important;
   min-width: 0 !important;
+  max-width: 2.5rem !important;
   text-align: center !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
 }
 
 #leaderboard th:nth-child(4), #top-leaders-table th:nth-child(4),
 #leaderboard td:nth-child(4), #top-leaders-table td:nth-child(4) {
-  width: 12% !important;
+  width: 5% !important;
   min-width: 0 !important;
+  max-width: 1.5rem !important;
   text-align: center !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
 }
 
 #leaderboard th:nth-child(5), #top-leaders-table th:nth-child(5),
 #leaderboard td:nth-child(5), #top-leaders-table td:nth-child(5) {
-  width: 10% !important;
+  width: 14% !important;
   min-width: 0 !important;
   max-width: 5.5rem !important;
   text-align: center !important;
@@ -968,7 +1006,7 @@ h1 {
 
 #leaderboard th:nth-child(6), #top-leaders-table th:nth-child(6),
 #leaderboard td:nth-child(6), #top-leaders-table td:nth-child(6) {
-  width: 18% !important;
+  width: 27% !important;
   min-width: 0 !important;
   text-align: center !important;
 }
@@ -977,7 +1015,7 @@ h1 {
 #leaderboard td:nth-child(7), #top-leaders-table td:nth-child(7) {
   width: 11% !important;
   min-width: 0 !important;
-  max-width: 4.25rem !important;
+  max-width: none !important;
   text-align: center !important;
   padding-left: 4px !important;
   padding-right: 4px !important;
@@ -1002,6 +1040,35 @@ h1 {
 
 .table-payout-cell--free {
   color: #34d399 !important;
+}
+
+.table-matches-cell,
+.table-guess-cell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.table-matches-cell {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.table-guess-cell {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary);
+}
+
+#leaderboard th:nth-child(3),
+#top-leaders-table th:nth-child(3),
+#leaderboard th:nth-child(4),
+#top-leaders-table th:nth-child(4) {
+  font-size: 9px !important;
+  letter-spacing: 0.2px !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
 }
 
 .table-score-cell {
@@ -1349,7 +1416,9 @@ h1 {
   }
 
   .table-score-cell,
-  .table-payout-cell {
+  .table-payout-cell,
+  .table-matches-cell,
+  .table-guess-cell {
     font-size: 9px !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
@@ -1874,8 +1943,28 @@ tr.leader-second-row {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding-right: 4px;
   padding-bottom: 12px;
+}
+
+/* Lock page scroll while player stats drawer is open */
+html.player-drawer-open,
+body.player-drawer-open {
+  overflow: hidden;
+}
+
+body.player-drawer-open {
+  position: fixed;
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+#player-details-drawer-overlay {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .player-details-drawer__actions {
@@ -2353,6 +2442,41 @@ tr.leader-second-row {
     margin-bottom: 14px;
   }
 
+  #chart-card {
+    padding: 16px 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  #chart-card > :not(#chart-svg-container) {
+    padding-left: 16px;
+    padding-right: 16px;
+    box-sizing: border-box;
+  }
+
+  #chart-card #chart-svg-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+  }
+
+  #score-chart-svg {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    vertical-align: top;
+  }
+
   /* Dashboard stat cards — 2 columns on mobile */
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2694,6 +2818,15 @@ tr.leader-second-row {
   .card {
     padding: 14px;
     border-radius: 10px;
+  }
+
+  #chart-card {
+    padding: 14px 0;
+  }
+
+  #chart-card > :not(#chart-svg-container) {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   /* Dashboard stat cards even more compact */
