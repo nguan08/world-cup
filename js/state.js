@@ -1,0 +1,26 @@
+// Shared mutable application state (single object for cross-module mutation)
+export const app = {
+  ADMIN_PASSWORD: '123456',
+  matches: [],
+  players: [],
+  isAdmin: false,
+  isSyncEnabled: false,
+  simulationScores: {},
+  lastDataRefreshTime: null,
+  autoRefreshTimer: null,
+  AUTO_REFRESH_INTERVAL_MS: 2 * 60 * 1000,
+  teamPoints: {},
+  processedPlayers: [],
+  manualEliminatedTeams: new Set(),
+  lastHighlightPlayer: '',
+  teamMatchesPlayedCounts: {},
+  elCache: {},
+  _playerDrawerSavedScrollY: 0,
+  _playerDrawerScrollLocked: false,
+  chartHoverPlayer: '',
+  chartPulseAnimPlayer: '',
+  statsSortState: { key: 'points', dir: 'desc' },
+  statsSortHandlersReady: false,
+  _rankSpeechVoice: null,
+  _maxPopularityCache: null
+};

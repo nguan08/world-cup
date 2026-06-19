@@ -2,9 +2,10 @@
   "name": "world-cup",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "js/main.js",
   "scripts": {
     "start": "node server.js",
+    "build:js": "node scripts/build-js-modules.mjs && node scripts/fix-scoring.mjs",
     "scrape": "node update-scores.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

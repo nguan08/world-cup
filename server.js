@@ -17,7 +17,8 @@ const MIME_TYPES = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.webp': 'image/webp'
+  '.webp': 'image/webp',
+  '.webmanifest': 'application/manifest+json'
 };
 
 const server = http.createServer((req, res) => {
@@ -119,8 +120,14 @@ const server = http.createServer((req, res) => {
     // Read and serve file
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const headers = { 'Content-Type': contentType };
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    if (requestPath === '/sw.js') {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Service-Worker-Allowed'] = '/';
+    }
+
+    res.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(res);
   });
 });

@@ -1,3128 +1,51 @@
-// LEGACY monolith — active entry is js/main.js (ES modules). Kept for reference/rollback.
-// app.js - World Cup Prediction Web App core logic
-
-const TEAMS = [
-  // BLUE ZONE
-  { name: 'สเปน', zone: 'blue', multiplier: 1.0 },
-  { name: 'ฝรั่งเศส', zone: 'blue', multiplier: 1.0 },
-  { name: 'บราซิล', zone: 'blue', multiplier: 1.1 },
-  { name: 'อาร์เจนตินา', zone: 'blue', multiplier: 1.1 },
-  { name: 'อังกฤษ', zone: 'blue', multiplier: 1.1 },
-  { name: 'เยอรมนี', zone: 'blue', multiplier: 1.2 },
-  { name: 'โปรตุเกส', zone: 'blue', multiplier: 1.2 },
-  { name: 'เบลเยียม', zone: 'blue', multiplier: 1.3 },
-  { name: 'เนเธอร์แลนด์', zone: 'blue', multiplier: 1.3 },
-
-  // GREEN ZONE
-  { name: 'สวิตเซอร์แลนด์', zone: 'green', multiplier: 1.4 },
-  { name: 'อุรุกวัย', zone: 'green', multiplier: 1.4 },
-  { name: 'เม็กซิโก', zone: 'green', multiplier: 1.5 },
-  { name: 'สหรัฐอเมริกา', zone: 'green', multiplier: 1.5 },
-  { name: 'โมร็อกโก', zone: 'green', multiplier: 1.5 },
-  { name: 'นอร์เวย์', zone: 'green', multiplier: 1.6 },
-  { name: 'โคลอมเบีย', zone: 'green', multiplier: 1.6 },
-  { name: 'สาธารณรัฐเช็ก', zone: 'green', multiplier: 1.7 },
-  { name: 'โครเอเชีย', zone: 'green', multiplier: 1.7 },
-  { name: 'ตุรกี', zone: 'green', multiplier: 1.7 },
-
-  // YELLOW ZONE
-  { name: 'แคนาดา', zone: 'yellow', multiplier: 1.8 },
-  { name: 'ญี่ปุ่น', zone: 'yellow', multiplier: 1.8 },
-  { name: 'เอกวาดอร์', zone: 'yellow', multiplier: 1.8 },
-  { name: 'บอสเนีย', zone: 'yellow', multiplier: 1.9 },
-  { name: 'อียิปต์', zone: 'yellow', multiplier: 1.9 },
-  { name: 'ออสเตรีย', zone: 'yellow', multiplier: 1.9 },
-  { name: 'อิหร่าน', zone: 'yellow', multiplier: 2.0 },
-  { name: 'ไอเวอรีโคสต์', zone: 'yellow', multiplier: 2.0 },
-  { name: 'เกาหลีใต้', zone: 'yellow', multiplier: 2.1 },
-  { name: 'แอลจีเรีย', zone: 'yellow', multiplier: 2.1 },
-
-  // LIGHT ORANGE ZONE
-  { name: 'ปารากวัย', zone: 'grey', multiplier: 2.2 },
-  { name: 'สวีเดน', zone: 'grey', multiplier: 2.2 },
-
-  { name: 'สกอตแลนด์', zone: 'grey', multiplier: 2.3 },
-  { name: 'เซเนกัล', zone: 'grey', multiplier: 2.4 },
-  { name: 'กานา', zone: 'grey', multiplier: 2.4 },
-  { name: 'ออสเตรเลีย', zone: 'grey', multiplier: 2.5 },
-  { name: 'ซาอุดีอาระเบีย', zone: 'grey', multiplier: 2.5 },
-
-  { name: 'แอฟริกาใต้', zone: 'grey', multiplier: 2.6 },
-  { name: 'ตูนิเซีย', zone: 'grey', multiplier: 2.6 },
-
-  // RED-ORANGE ZONE
-  { name: 'นิวซีแลนด์', zone: 'red-orange', multiplier: 2.7 },
-  { name: 'ปานามา', zone: 'red-orange', multiplier: 2.7 },
-  { name: 'กาตาร์', zone: 'red-orange', multiplier: 2.8 },
-  { name: 'จอร์แดน', zone: 'red-orange', multiplier: 2.8 },
-  { name: 'อุซเบกิสถาน', zone: 'red-orange', multiplier: 2.8 },
-  { name: 'อิรัก', zone: 'red-orange', multiplier: 2.9 },
-  { name: 'คูราเซา', zone: 'red-orange', multiplier: 2.9 },
-  { name: 'เคปเวิร์ด', zone: 'red-orange', multiplier: 3.0 },
-  { name: 'คองโก', zone: 'grey', multiplier: 2.3 },
-  { name: 'เฮติ', zone: 'red-orange', multiplier: 3.0 },
-
-];
-
-const TEAM_WC_GROUP_MEMBERS = {
-  A: ['เม็กซิโก', 'แอฟริกาใต้', 'เกาหลีใต้', 'สาธารณรัฐเช็ก'],
-  B: ['แคนาดา', 'บอสเนีย', 'กาตาร์', 'สวิตเซอร์แลนด์'],
-  C: ['บราซิล', 'โมร็อกโก', 'เฮติ', 'สกอตแลนด์'],
-  D: ['สหรัฐอเมริกา', 'ปารากวัย', 'ออสเตรเลีย', 'ตุรกี'],
-  E: ['เยอรมนี', 'คูราเซา', 'ไอเวอรีโคสต์', 'เอกวาดอร์'],
-  F: ['เนเธอร์แลนด์', 'ญี่ปุ่น', 'สวีเดน', 'ตูนิเซีย'],
-  G: ['สเปน', 'เคปเวิร์ด', 'ซาอุดีอาระเบีย', 'อุรุกวัย'],
-  H: ['เบลเยียม', 'อิหร่าน', 'นิวซีแลนด์', 'อียิปต์'],
-  I: ['ฝรั่งเศส', 'เซเนกัล', 'อิรัก', 'นอร์เวย์'],
-  J: ['อาร์เจนตินา', 'แอลจีเรีย', 'ออสเตรีย', 'จอร์แดน'],
-  K: ['โปรตุเกส', 'คองโก', 'อุซเบกิสถาน', 'โคลอมเบีย'],
-  L: ['อังกฤษ', 'โครเอเชีย', 'กานา', 'ปานามา']
-};
-
-const TEAM_WC_GROUPS = Object.fromEntries(
-  Object.entries(TEAM_WC_GROUP_MEMBERS).flatMap(([group, teams]) =>
-    teams.map(team => [team, group])
-  )
-);
-
-TEAMS.forEach(team => {
-  team.wcGroup = TEAM_WC_GROUPS[team.name] || null;
-});
-
-function getTeamWcGroup(teamName) {
-  return TEAM_WC_GROUPS[teamName] || TEAMS.find(t => t.name === teamName)?.wcGroup || '';
-}
-
-function formatWcGroupLabel(group) {
-  return group ? `กลุ่ม ${group}` : '-';
-}
-
-function formatZoneDisplayLabel(zone) {
-  if (zone === 'red-orange') return 'red';
-  return zone || '';
-}
-
-function getZoneBadgeClass(zone) {
-  if (!zone) return 'grey';
-  if (zone === 'red-orange') return 'red';
-  return zone;
-}
-
-function getWcGroupBadgeHtml(group, extraClass = '') {
-  if (!group) return '<span class="wc-group-badge wc-group-badge--empty">-</span>';
-  return `<span class="wc-group-badge ${extraClass}" title="${formatWcGroupLabel(group)}">${group}</span>`;
-}
-
-const TEAM_FLAG_CODES = {
-  'สเปน': 'es', 'ฝรั่งเศส': 'fr', 'บราซิล': 'br', 'อาร์เจนตินา': 'ar',
-  'อังกฤษ': 'gb-eng', 'เยอรมนี': 'de', 'โปรตุเกส': 'pt', 'เบลเยียม': 'be',
-  'เนเธอร์แลนด์': 'nl', 'สวิตเซอร์แลนด์': 'ch', 'อุรุกวัย': 'uy', 'เม็กซิโก': 'mx',
-  'สหรัฐอเมริกา': 'us', 'โมร็อกโก': 'ma', 'นอร์เวย์': 'no', 'โคลอมเบีย': 'co',
-  'สาธารณรัฐเช็ก': 'cz', 'โครเอเชีย': 'hr', 'ตุรกี': 'tr', 'แคนาดา': 'ca',
-  'ญี่ปุ่น': 'jp', 'เอกวาดอร์': 'ec', 'บอสเนีย': 'ba', 'อียิปต์': 'eg',
-  'ออสเตรีย': 'at', 'อิหร่าน': 'ir', 'ไอเวอรีโคสต์': 'ci', 'เกาหลีใต้': 'kr',
-  'แอลจีเรีย': 'dz', 'ปารากวัย': 'py', 'สวีเดน': 'se', 'สกอตแลนด์': 'gb-sct',
-  'เซเนกัล': 'sn', 'กานา': 'gh', 'ออสเตรเลีย': 'au', 'ซาอุดีอาระเบีย': 'sa',
-  'แอฟริกาใต้': 'za', 'ตูนิเซีย': 'tn', 'นิวซีแลนด์': 'nz', 'ปานามา': 'pa',
-  'กาตาร์': 'qa', 'จอร์แดน': 'jo', 'อุซเบกิสถาน': 'uz', 'อิรัก': 'iq',
-  'คูราเซา': 'cw', 'เคปเวิร์ด': 'cv', 'คองโก': 'cd', 'เฮติ': 'ht'
-};
-
-function getTeamFlagUrl(teamName) {
-  const code = TEAM_FLAG_CODES[teamName];
-  return code ? `https://flagcdn.com/w80/${code}.png` : null;
-}
-
-function getTeamFlagHtml(teamName) {
-  const url = getTeamFlagUrl(teamName);
-  if (url) {
-    return `<img src="${url}" alt="${teamName}" class="team-flag" loading="lazy" width="44" height="44">`;
-  }
-  return `<div class="team-avatar" title="${teamName}">${teamName.slice(0, 2)}</div>`;
-}
-
-const INITIAL_MATCHES = [
-  {
-    "home": "เม็กซิโก",
-    "away": "แอฟริกาใต้",
-    "homeScore": 2,
-    "awayScore": 0,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-12",
-    "id": 1
-  },
-  {
-    "home": "เกาหลีใต้",
-    "away": "สาธารณรัฐเช็ก",
-    "homeScore": 2,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-12",
-    "id": 2,
-    "penaltyWinner": null
-  },
-  {
-    "home": "แคนาดา",
-    "away": "บอสเนีย",
-    "homeScore": 1,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-13",
-    "id": 3,
-    "penaltyWinner": null
-  },
-  {
-    "home": "สหรัฐอเมริกา",
-    "away": "ปารากวัย",
-    "homeScore": 4,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-13",
-    "id": 4,
-    "penaltyWinner": null
-  },
-  {
-    "home": "กาตาร์",
-    "away": "สวิตเซอร์แลนด์",
-    "homeScore": 1,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-14",
-    "id": 5,
-    "penaltyWinner": null
-  },
-  {
-    "home": "บราซิล",
-    "away": "โมร็อกโก",
-    "homeScore": 1,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-14",
-    "id": 6,
-    "penaltyWinner": null
-  },
-  {
-    "home": "เฮติ",
-    "away": "สกอตแลนด์",
-    "homeScore": 0,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-14",
-    "id": 7,
-    "penaltyWinner": null
-  },
-  {
-    "home": "ออสเตรเลีย",
-    "away": "ตุรกี",
-    "homeScore": 2,
-    "awayScore": 0,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-14",
-    "id": 8,
-    "penaltyWinner": null
-  },
-  {
-    "home": "เยอรมนี",
-    "away": "คูราเซา",
-    "homeScore": 7,
-    "awayScore": 1,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-15",
-    "id": 9,
-    "penaltyWinner": null
-  },
-  {
-    "home": "เนเธอร์แลนด์",
-    "away": "ญี่ปุ่น",
-    "homeScore": 2,
-    "awayScore": 2,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-15",
-    "id": 10,
-    "penaltyWinner": null
-  },
-  {
-    "home": "ไอเวอรีโคสต์",
-    "away": "เอกวาดอร์",
-    "homeScore": 1,
-    "awayScore": 0,
-    "status": "finished",
-    "isKnockout": false,
-    "date": "2026-06-15",
-    "id": 11,
-    "penaltyWinner": null
-  },
-  {
-    "home": "สวีเดน",
-    "away": "ตูนิเซีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-15",
-    "id": 12
-  },
-  {
-    "home": "สเปน",
-    "away": "เคปเวิร์ด",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-15",
-    "id": 13
-  },
-  {
-    "home": "เบลเยียม",
-    "away": "อียิปต์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-16",
-    "id": 14
-  },
-  {
-    "home": "ซาอุดีอาระเบีย",
-    "away": "อุรุกวัย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-16",
-    "id": 15
-  },
-  {
-    "home": "อิหร่าน",
-    "away": "นิวซีแลนด์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-16",
-    "id": 16
-  },
-  {
-    "home": "ฝรั่งเศส",
-    "away": "เซเนกัล",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-17",
-    "id": 17
-  },
-  {
-    "home": "อิรัก",
-    "away": "นอร์เวย์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-17",
-    "id": 18
-  },
-  {
-    "home": "อาร์เจนตินา",
-    "away": "แอลจีเรีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-17",
-    "id": 19
-  },
-  {
-    "home": "ออสเตรีย",
-    "away": "จอร์แดน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-17",
-    "id": 20
-  },
-  {
-    "home": "โปรตุเกส",
-    "away": "คองโก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-18",
-    "id": 21
-  },
-  {
-    "home": "อังกฤษ",
-    "away": "โครเอเชีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-18",
-    "id": 22
-  },
-  {
-    "home": "กานา",
-    "away": "ปานามา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-18",
-    "id": 23
-  },
-  {
-    "home": "อุซเบกิสถาน",
-    "away": "โคลอมเบีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-18",
-    "id": 24
-  },
-  {
-    "home": "สาธารณรัฐเช็ก",
-    "away": "แอฟริกาใต้",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-18",
-    "id": 25
-  },
-  {
-    "home": "สวิตเซอร์แลนด์",
-    "away": "บอสเนีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-19",
-    "id": 26
-  },
-  {
-    "home": "แคนาดา",
-    "away": "กาตาร์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-19",
-    "id": 27
-  },
-  {
-    "home": "เม็กซิโก",
-    "away": "เกาหลีใต้",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-19",
-    "id": 28
-  },
-  {
-    "home": "สหรัฐอเมริกา",
-    "away": "ออสเตรเลีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-20",
-    "id": 29
-  },
-  {
-    "home": "สกอตแลนด์",
-    "away": "โมร็อกโก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-20",
-    "id": 30
-  },
-  {
-    "home": "บราซิล",
-    "away": "เฮติ",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-20",
-    "id": 31
-  },
-  {
-    "home": "ตุรกี",
-    "away": "ปารากวัย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-20",
-    "id": 32
-  },
-  {
-    "home": "เนเธอร์แลนด์",
-    "away": "สวีเดน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-21",
-    "id": 33
-  },
-  {
-    "home": "เยอรมนี",
-    "away": "ไอเวอรีโคสต์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-21",
-    "id": 34
-  },
-  {
-    "home": "เอกวาดอร์",
-    "away": "คูราเซา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-21",
-    "id": 35
-  },
-  {
-    "home": "ตูนิเซีย",
-    "away": "ญี่ปุ่น",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-21",
-    "id": 36
-  },
-  {
-    "home": "สเปน",
-    "away": "ซาอุดีอาระเบีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-21",
-    "id": 37
-  },
-  {
-    "home": "เบลเยียม",
-    "away": "อิหร่าน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-22",
-    "id": 38
-  },
-  {
-    "home": "อุรุกวัย",
-    "away": "เคปเวิร์ด",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-22",
-    "id": 39
-  },
-  {
-    "home": "นิวซีแลนด์",
-    "away": "อียิปต์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-22",
-    "id": 40
-  },
-  {
-    "home": "อาร์เจนตินา",
-    "away": "ออสเตรีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-23",
-    "id": 41
-  },
-  {
-    "home": "ฝรั่งเศส",
-    "away": "อิรัก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-23",
-    "id": 42
-  },
-  {
-    "home": "นอร์เวย์",
-    "away": "เซเนกัล",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-23",
-    "id": 43
-  },
-  {
-    "home": "จอร์แดน",
-    "away": "แอลจีเรีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-23",
-    "id": 44
-  },
-  {
-    "home": "โปรตุเกส",
-    "away": "อุซเบกิสถาน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-24",
-    "id": 45
-  },
-  {
-    "home": "อังกฤษ",
-    "away": "กานา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-24",
-    "id": 46
-  },
-  {
-    "home": "ปานามา",
-    "away": "โครเอเชีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-24",
-    "id": 47
-  },
-  {
-    "home": "โคลอมเบีย",
-    "away": "คองโก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-24",
-    "id": 48
-  },
-  {
-    "home": "สวิตเซอร์แลนด์",
-    "away": "แคนาดา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 49
-  },
-  {
-    "home": "บอสเนีย",
-    "away": "กาตาร์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 50
-  },
-  {
-    "home": "โมร็อกโก",
-    "away": "เฮติ",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 51
-  },
-  {
-    "home": "สกอตแลนด์",
-    "away": "บราซิล",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 52
-  },
-  {
-    "home": "แอฟริกาใต้",
-    "away": "เกาหลีใต้",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 53,
-    "penaltyWinner": null
-  },
-  {
-    "home": "สาธารณรัฐเช็ก",
-    "away": "เม็กซิโก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-25",
-    "id": 54,
-    "penaltyWinner": null
-  },
-  {
-    "home": "คูราเซา",
-    "away": "ไอเวอรีโคสต์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 55,
-    "penaltyWinner": null
-  },
-  {
-    "home": "เอกวาดอร์",
-    "away": "เยอรมนี",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 56,
-    "penaltyWinner": null
-  },
-  {
-    "home": "ตูนิเซีย",
-    "away": "เนเธอร์แลนด์",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 57,
-    "penaltyWinner": null
-  },
-  {
-    "home": "ญี่ปุ่น",
-    "away": "สวีเดน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 58,
-    "penaltyWinner": null
-  },
-  {
-    "home": "ตุรกี",
-    "away": "สหรัฐอเมริกา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 59
-  },
-  {
-    "home": "ปารากวัย",
-    "away": "ออสเตรเลีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-26",
-    "id": 60
-  },
-  {
-    "home": "นอร์เวย์",
-    "away": "ฝรั่งเศส",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 61
-  },
-  {
-    "home": "เซเนกัล",
-    "away": "อิรัก",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 62
-  },
-  {
-    "home": "เคปเวิร์ด",
-    "away": "ซาอุดีอาระเบีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 63
-  },
-  {
-    "home": "อุรุกวัย",
-    "away": "สเปน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 64
-  },
-  {
-    "home": "นิวซีแลนด์",
-    "away": "เบลเยียม",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 65
-  },
-  {
-    "home": "อียิปต์",
-    "away": "อิหร่าน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-27",
-    "id": 66
-  },
-  {
-    "home": "ปานามา",
-    "away": "อังกฤษ",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 67
-  },
-  {
-    "home": "โครเอเชีย",
-    "away": "กานา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 68
-  },
-  {
-    "home": "โคลอมเบีย",
-    "away": "โปรตุเกส",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 69
-  },
-  {
-    "home": "คองโก",
-    "away": "อุซเบกิสถาน",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 70
-  },
-  {
-    "home": "แอลจีเรีย",
-    "away": "ออสเตรีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 71
-  },
-  {
-    "home": "จอร์แดน",
-    "away": "อาร์เจนตินา",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": false,
-    "date": "2026-06-28",
-    "id": 72
-  },
-  {
-    "id": 100,
-    "home": "เยอรมนี",
-    "away": "โครเอเชีย",
-    "homeScore": null,
-    "awayScore": null,
-    "status": "pending",
-    "isKnockout": true,
-    "isFinal": true,
-    "date": "2026-07-19"
-  }
-];
-
-const INITIAL_PLAYERS = [
-  {
-    "name": "ท่านฮั้ว TheHua",
-    "teams": [
-      "สเปน",
-      "อาร์เจนตินา",
-      "เบลเยียม",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "ปานามา",
-      "กาตาร์",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 2,
-    "targetScore": 57.7
-  },
-  {
-    "name": "SNACK Arsenal",
-    "teams": [
-      "สเปน",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "ญี่ปุ่น",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "กานา",
-      "ออสเตรเลีย",
-      "นิวซีแลนด์",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 57.2
-  },
-  {
-    "name": "เจได ชิวชิว",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "ออสเตรเลีย",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 55.6
-  },
-  {
-    "name": "รุ้ง มิลตัน",
-    "teams": [
-      "บราซิล",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "เนเธอร์แลนด์",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "ญี่ปุ่น",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "กานา",
-      "นิวซีแลนด์"
-    ],
-    "guess": 3,
-    "targetScore": 49.7
-  },
-  {
-    "name": "ป๊อป Y8",
-    "teams": [
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 49.7
-  },
-  {
-    "name": "ติ๊กไร่เพื่อนคุณ",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "สหรัฐอเมริกา",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "บอสเนีย",
-      "ออสเตรีย",
-      "ปารากวัย",
-      "สกอตแลนด์",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 47.8
-  },
-  {
-    "name": "ฟอร์ด",
-    "teams": [
-      "เยอรมนี",
-      "โปรตุเกส",
-      "เบลเยียม",
-      "เนเธอร์แลนด์",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "กาตาร์"
-    ],
-    "guess": 4,
-    "targetScore": 41.3
-  },
-  {
-    "name": "ยี่ Wondermilk",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "ตุรกี",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "เซเนกัล",
-      "กาตาร์",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 41.2
-  },
-  {
-    "name": "บูม เจ้าสัว",
-    "teams": [
-      "สเปน",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "ญี่ปุ่น",
-      "อิหร่าน",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "สกอตแลนด์",
-      "นิวซีแลนด์"
-    ],
-    "guess": 4,
-    "targetScore": 40.3
-  },
-  {
-    "name": "คุ้ง 77",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "เยอรมนี",
-      "สวิตเซอร์แลนด์",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "บอสเนีย",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "เซเนกัล",
-      "นิวซีแลนด์"
-    ],
-    "guess": 3,
-    "targetScore": 39.8
-  },
-  {
-    "name": "P ศรีไฮ่ทง Y9",
-    "teams": [
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "ไอเวอรีโคสต์",
-      "ปารากวัย",
-      "สวีเดน",
-      "เซเนกัล",
-      "กาตาร์"
-    ],
-    "guess": 4,
-    "targetScore": 39.5
-  },
-  {
-    "name": "แฟม แฟมมิลี่",
-    "teams": [
-      "สเปน",
-      "บราซิล",
-      "เยอรมนี",
-      "เบลเยียม",
-      "อุรุกวัย",
-      "สาธารณรัฐเช็ก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "กาตาร์",
-      "จอร์แดน"
-    ],
-    "guess": 5,
-    "targetScore": 39.2
-  },
-  {
-    "name": "ทอมมี่",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "เยอรมนี",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สกอตแลนด์",
-      "กาตาร์",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 38.9
-  },
-  {
-    "name": "กว้าง Y9",
-    "teams": [
-      "สเปน",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "เยอรมนี",
-      "สวิตเซอร์แลนด์",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 2,
-    "targetScore": 38.9
-  },
-  {
-    "name": "กอล์ฟ BRY",
-    "teams": [
-      "สเปน",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "เม็กซิโก",
-      "โคลอมเบีย",
-      "สาธารณรัฐเช็ก",
-      "ญี่ปุ่น",
-      "บอสเนีย",
-      "เกาหลีใต้",
-      "กานา",
-      "ตูนิเซีย",
-      "ปานามา",
-      "กาตาร์",
-      "คูราเซา"
-    ],
-    "guess": 3,
-    "targetScore": 38.8
-  },
-  {
-    "name": "แบงค์ บอนไซ",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อุรุกวัย",
-      "สหรัฐอเมริกา",
-      "โมร็อกโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อิหร่าน",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "ซาอุดีอาระเบีย",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 37.2
-  },
-  {
-    "name": "ท๊อป หนองกี่",
-    "teams": [
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อังกฤษ",
-      "เบลเยียม",
-      "สหรัฐอเมริกา",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "เซเนกัล",
-      "ซาอุดีอาระเบีย",
-      "กาตาร์",
-      "จอร์แดน"
-    ],
-    "guess": 3,
-    "targetScore": 37.1
-  },
-  {
-    "name": "บูม ชัยออโต้แอร์",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "เยอรมนี",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "อิหร่าน",
-      "สวีเดน",
-      "ออสเตรเลีย",
-      "กาตาร์",
-      "อิรัก"
-    ],
-    "guess": 5,
-    "targetScore": 37.1
-  },
-  {
-    "name": "แอน นางรอง",
-    "teams": [
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "จอร์แดน",
-      "อุซเบกิสถาน",
-      "อิรัก"
-    ],
-    "guess": 5,
-    "targetScore": 36.7
-  },
-  {
-    "name": "ป๋ากาย อันดา",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "สวีเดน",
-      "เซเนกัล",
-      "นิวซีแลนด์",
-      "กาตาร์"
-    ],
-    "guess": 4,
-    "targetScore": 36.5
-  },
-  {
-    "name": "เก้ง โฟโต้",
-    "teams": [
-      "สเปน",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "เนเธอร์แลนด์",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "ออสเตรเลีย",
-      "นิวซีแลนด์",
-      "ปานามา"
-    ],
-    "guess": 5,
-    "targetScore": 36.4
-  },
-  {
-    "name": "น้องกิ๊ก คนสวย",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "นิวซีแลนด์"
-    ],
-    "guess": 5,
-    "targetScore": 36.4
-  },
-  {
-    "name": "บิว น้ำแข็งพรพงษ์",
-    "teams": [
-      "โปรตุเกส",
-      "เบลเยียม",
-      "เนเธอร์แลนด์",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "โครเอเชีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "แอลจีเรีย",
-      "ออสเตรเลีย",
-      "ตูนิเซีย",
-      "แอฟริกาใต้",
-      "คูราเซา",
-      "เคปเวิร์ด",
-      "เฮติ"
-    ],
-    "guess": 3,
-    "targetScore": 36.1
-  },
-  {
-    "name": "DJ.นอตตี้",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สกอตแลนด์",
-      "กาตาร์",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 35.6
-  },
-  {
-    "name": "เจนนี่",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "ปานามา",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 35.6
-  },
-  {
-    "name": "JOJOO",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "เยอรมนี",
-      "เม็กซิโก",
-      "สหรัฐอเมริกา",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สกอตแลนด์",
-      "กาตาร์",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 35.6
-  },
-  {
-    "name": "ติน YEC9",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "สวีเดน",
-      "กาตาร์",
-      "จอร์แดน"
-    ],
-    "guess": 5,
-    "targetScore": 35.3
-  },
-  {
-    "name": "อิ๋ม เอลซ่า",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "เบลเยียม",
-      "สวิตเซอร์แลนด์",
-      "นอร์เวย์",
-      "สาธารณรัฐเช็ก",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สกอตแลนด์",
-      "ออสเตรเลีย",
-      "คูราเซา"
-    ],
-    "guess": 4,
-    "targetScore": 34.7
-  },
-  {
-    "name": "เฮียโอม SHELL",
-    "teams": [
-      "อาร์เจนตินา",
-      "เยอรมนี",
-      "โปรตุเกส",
-      "เนเธอร์แลนด์",
-      "สวิตเซอร์แลนด์",
-      "สหรัฐอเมริกา",
-      "โครเอเชีย",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "ซาอุดีอาระเบีย",
-      "นิวซีแลนด์",
-      "ปานามา",
-      "จอร์แดน"
-    ],
-    "guess": 3,
-    "targetScore": 34.4
-  },
-  {
-    "name": "ก้อง พุทไธสง",
-    "teams": [
-      "บราซิล",
-      "อังกฤษ",
-      "เยอรมนี",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "ตุรกี",
-      "ญี่ปุ่น",
-      "บอสเนีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "กานา",
-      "ออสเตรเลีย",
-      "จอร์แดน",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 33.7
-  },
-  {
-    "name": "ต้น เซียงกง",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "สาธารณรัฐเช็ก",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "แอลจีเรีย",
-      "สกอตแลนด์",
-      "ซาอุดีอาระเบีย",
-      "นิวซีแลนด์"
-    ],
-    "guess": 4,
-    "targetScore": 33.0
-  },
-  {
-    "name": "YEAR",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "เม็กซิโก",
-      "โคลอมเบีย",
-      "ตุรกี",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "ตูนิเซีย",
-      "อิรัก"
-    ],
-    "guess": 3,
-    "targetScore": 32.8
-  },
-  {
-    "name": "ลิษา ยาคลูท์",
-    "teams": [
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "กานา",
-      "ซาอุดีอาระเบีย",
-      "กาตาร์",
-      "จอร์แดน",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 32.6
-  },
-  {
-    "name": "มิ้ง คิงส์ยนต์",
-    "teams": [
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "นิวซีแลนด์",
-      "ปานามา"
-    ],
-    "guess": 5,
-    "targetScore": 31.7
-  },
-  {
-    "name": "มง มงคล",
-    "teams": [
-      "บราซิล",
-      "เบลเยียม",
-      "เนเธอร์แลนด์",
-      "เม็กซิโก",
-      "นอร์เวย์",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "แอลจีเรีย",
-      "ปารากวัย",
-      "สวีเดน",
-      "ปานามา",
-      "จอร์แดน"
-    ],
-    "guess": 3,
-    "targetScore": 31.1
-  },
-  {
-    "name": "เตย ซูริเกี๊ยวซ่า",
-    "teams": [
-      "สเปน",
-      "บราซิล",
-      "เยอรมนี",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "ตุรกี",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "แอฟริกาใต้",
-      "กาตาร์",
-      "จอร์แดน"
-    ],
-    "guess": 3,
-    "targetScore": 31.0
-  },
-  {
-    "name": "เมย์ แกรนด์มา",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "โปรตุเกส",
-      "โมร็อกโก",
-      "ตุรกี",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อิหร่าน",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "แอฟริกาใต้",
-      "กาตาร์",
-      "จอร์แดน"
-    ],
-    "guess": 4,
-    "targetScore": 31.0
-  },
-  {
-    "name": "สปัด สปีด",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "เยอรมนี",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ปารากวัย",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "นิวซีแลนด์",
-      "จอร์แดน"
-    ],
-    "guess": 2,
-    "targetScore": 30.7
-  },
-  {
-    "name": "โจ้ Y9",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "แอลจีเรีย",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 30.5
-  },
-  {
-    "name": "นู๋เดือนฉาย",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "โปรตุเกส",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "อิหร่าน",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "สวีเดน",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 30.2
-  },
-  {
-    "name": "ปาร์ค & บลูลี่",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "เซเนกัล",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 29.9
-  },
-  {
-    "name": "ฟอง LaPaz",
-    "teams": [
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "เซเนกัล",
-      "ออสเตรเลีย",
-      "กาตาร์",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 5,
-    "targetScore": 28.7
-  },
-  {
-    "name": "ง้วน จองหงวน",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "เยอรมนี",
-      "เนเธอร์แลนด์",
-      "สวิตเซอร์แลนด์",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สกอตแลนด์",
-      "กานา",
-      "จอร์แดน"
-    ],
-    "guess": 3,
-    "targetScore": 28.4
-  },
-  {
-    "name": "ปาล์ม ฟาร์มไก่",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "ตุรกี",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "บอสเนีย",
-      "อียิปต์",
-      "อิหร่าน",
-      "สกอตแลนด์",
-      "เซเนกัล",
-      "อิรัก"
-    ],
-    "guess": 3,
-    "targetScore": 27.4
-  },
-  {
-    "name": "คุณแม่ปิ๊บปอย",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "เยอรมนี",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "ออสเตรีย",
-      "สวีเดน",
-      "เซเนกัล",
-      "กาตาร์"
-    ],
-    "guess": 3,
-    "targetScore": 24.6
-  },
-  {
-    "name": "กระติก",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "สวิตเซอร์แลนด์",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "อิหร่าน",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "ซาอุดีอาระเบีย",
-      "นิวซีแลนด์",
-      "อิรัก"
-    ],
-    "guess": 5,
-    "targetScore": 23.9
-  },
-  {
-    "name": "ป๋าเซฟ พ่อลูกอ่อน",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "คองโก",
-      "นิวซีแลนด์"
-    ],
-    "guess": 3,
-    "targetScore": 23.4
-  },
-  {
-    "name": "ยาหยี",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อียิปต์",
-      "เกาหลีใต้",
-      "ปารากวัย",
-      "เซเนกัล",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 6,
-    "targetScore": 22.7
-  },
-  {
-    "name": "ฟาร์ มิลแลนด์",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "โมร็อกโก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "อิหร่าน",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "กานา",
-      "ปานามา"
-    ],
-    "guess": 5,
-    "targetScore": 22.5
-  },
-  {
-    "name": "นวล โรงกลึง",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อังกฤษ",
-      "สวิตเซอร์แลนด์",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "เซเนกัล",
-      "กานา",
-      "นิวซีแลนด์"
-    ],
-    "guess": 3,
-    "targetScore": 22.5
-  },
-  {
-    "name": "บิ๊ก บางพระ",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "เยอรมนี",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "ปานามา",
-      "กาตาร์",
-      "อุซเบกิสถาน",
-      "อิรัก"
-    ],
-    "guess": 3,
-    "targetScore": 22.1
-  },
-  {
-    "name": "ปอร์เช่ สัมมาชีพ",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "แอลจีเรีย",
-      "เซเนกัล",
-      "กานา",
-      "เคปเวิร์ด"
-    ],
-    "guess": 2,
-    "targetScore": 20.4
-  },
-  {
-    "name": "กอล์ฟ สตึก Y9",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อังกฤษ",
-      "สวิตเซอร์แลนด์",
-      "อุรุกวัย",
-      "เม็กซิโก",
-      "โครเอเชีย",
-      "อียิปต์",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "ปารากวัย",
-      "สวีเดน",
-      "เซเนกัล",
-      "นิวซีแลนด์"
-    ],
-    "guess": 3,
-    "targetScore": 19.4
-  },
-  {
-    "name": "ซัน CALTEX",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "บราซิล",
-      "เยอรมนี",
-      "อุรุกวัย",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "โคลอมเบีย",
-      "ญี่ปุ่น",
-      "อียิปต์",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "เซเนกัล",
-      "ปานามา"
-    ],
-    "guess": 4,
-    "targetScore": 18.3
-  },
-  {
-    "name": "วริษฐ์",
-    "teams": [
-      "ฝรั่งเศส",
-      "บราซิล",
-      "อาร์เจนตินา",
-      "โปรตุเกส",
-      "อุรุกวัย",
-      "ตุรกี",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "กานา",
-      "แอฟริกาใต้",
-      "จอร์แดน"
-    ],
-    "guess": 2,
-    "targetScore": 18.1
-  },
-  {
-    "name": "ปาล์ม Y9",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "เบลเยียม",
-      "ตุรกี",
-      "สาธารณรัฐเช็ก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "สวีเดน",
-      "สกอตแลนด์",
-      "ตูนิเซีย",
-      "แอฟริกาใต้",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 4,
-    "targetScore": 16.9
-  },
-  {
-    "name": "มีน หนองกี่",
-    "teams": [
-      "สเปน",
-      "บราซิล",
-      "เยอรมนี",
-      "โปรตุเกส",
-      "สวิตเซอร์แลนด์",
-      "เม็กซิโก",
-      "ตุรกี",
-      "ญี่ปุ่น",
-      "ออสเตรีย",
-      "อิหร่าน",
-      "ไอเวอรีโคสต์",
-      "เซเนกัล",
-      "กานา",
-      "อุซเบกิสถาน",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 16.7
-  },
-  {
-    "name": "เบ็นซ์ โซล่าเซลล์",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "อุรุกวัย",
-      "สหรัฐอเมริกา",
-      "นอร์เวย์",
-      "โครเอเชีย",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "สวีเดน",
-      "เซเนกัล",
-      "จอร์แดน"
-    ],
-    "guess": 2,
-    "targetScore": 15.9
-  },
-  {
-    "name": "ฟิล์ม มิลแลนด์",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อังกฤษ",
-      "โปรตุเกส",
-      "นอร์เวย์",
-      "ตุรกี",
-      "สาธารณรัฐเช็ก",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "เกาหลีใต้",
-      "สวีเดน",
-      "กานา",
-      "อิรัก"
-    ],
-    "guess": 5,
-    "targetScore": 15.6
-  },
-  {
-    "name": "ประธานบอม Miles",
-    "teams": [
-      "สเปน",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "เยอรมนี",
-      "โมร็อกโก",
-      "นอร์เวย์",
-      "สาธารณรัฐเช็ก",
-      "แคนาดา",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "แอลจีเรีย",
-      "สวีเดน",
-      "กานา",
-      "นิวซีแลนด์",
-      "อุซเบกิสถาน"
-    ],
-    "guess": 3,
-    "targetScore": 13.3
-  },
-  {
-    "name": "เมย์ ดงบุริ แชมป์เก่า",
-    "teams": [
-      "สเปน",
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "อังกฤษ",
-      "อุรุกวัย",
-      "นอร์เวย์",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "เอกวาดอร์",
-      "ออสเตรีย",
-      "แอลจีเรีย",
-      "ออสเตรเลีย",
-      "นิวซีแลนด์",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 12.5
-  },
-  {
-    "name": "เป้ Y9",
-    "teams": [
-      "ฝรั่งเศส",
-      "อาร์เจนตินา",
-      "เยอรมนี",
-      "อุรุกวัย",
-      "โคลอมเบีย",
-      "โครเอเชีย",
-      "ญี่ปุ่น",
-      "ไอเวอรีโคสต์",
-      "เกาหลีใต้",
-      "เซเนกัล",
-      "กานา",
-      "ซาอุดีอาระเบีย",
-      "ตูนิเซีย",
-      "อิรัก",
-      "เคปเวิร์ด"
-    ],
-    "guess": 3,
-    "targetScore": 10.5
-  }
-];
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-const ADMIN_PASSWORD = '123456';
-
-// State variables
-let matches = [];
-let players = [];
-let isAdmin = false;
-let isSyncEnabled = false;
-
-// Simulation state (local only, not saved to server/localStorage)
-let simulationScores = {};
-
-// Auto-refresh state
-let lastDataRefreshTime = null;
-let autoRefreshTimer = null;
-const AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
-
-function initAdminState() {
-  isAdmin = sessionStorage.getItem('worldcup_isAdmin') === 'true';
-  updateAdminUI();
-}
-
-function updateAdminUI() {
-  const openAddPlayerBtn = document.getElementById('open-add-player-btn');
-  const openAddMatchBtn = document.getElementById('open-add-match-btn');
-  const adminStatusText = document.getElementById('admin-status-text');
-  const adminLoginToggleBtn = document.getElementById('admin-login-toggle-btn');
-  const resetAllBtn = document.getElementById('reset-all-btn');
-  
-  if (isAdmin) {
-    if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'block';
-    if (openAddMatchBtn) openAddMatchBtn.style.display = 'block';
-    if (adminStatusText) {
-      adminStatusText.textContent = 'แอดมิน';
-      adminStatusText.style.color = 'var(--zone-green)';
-    }
-    if (adminLoginToggleBtn) {
-      adminLoginToggleBtn.textContent = 'ออกจากระบบ';
-      adminLoginToggleBtn.classList.remove('btn-secondary');
-      adminLoginToggleBtn.classList.add('btn-primary');
-      adminLoginToggleBtn.style.background = 'linear-gradient(135deg, var(--accent), #e11d48)';
-    }
-    if (resetAllBtn) resetAllBtn.style.display = 'block';
-  } else {
-    if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'none';
-    if (openAddMatchBtn) openAddMatchBtn.style.display = 'none';
-    if (adminStatusText) {
-      adminStatusText.textContent = 'ผู้เข้าชม';
-      adminStatusText.style.color = 'var(--text-muted)';
-    }
-    if (adminLoginToggleBtn) {
-      adminLoginToggleBtn.textContent = 'เข้าสู่ระบบแอดมิน';
-      adminLoginToggleBtn.classList.remove('btn-primary');
-      adminLoginToggleBtn.classList.add('btn-secondary');
-      adminLoginToggleBtn.style.background = 'rgba(255, 255, 255, 0.05)';
-    }
-    if (resetAllBtn) resetAllBtn.style.display = 'none';
-  }
+// UI, rendering, events, player drawer, team popup
+import {
+  TEAMS, TEAM_WC_GROUP_MEMBERS, INITIAL_MATCHES, INITIAL_PLAYERS,
+  getTeamWcGroup, formatWcGroupLabel, formatZoneDisplayLabel,
+  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml
+} from './constants.js';
+import { app } from './state.js';
+import { escapeHtml, getCachedEl, debounce } from './utils.js';
+import {
+  calculateTeamPoints, calculatePredictionPoints, processPlayers,
+  recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
+  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated
+} from './scoring.js';
+import {
+  initData, clearCachedData,
+  setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
+} from './sync.js';
+import { saveToServer } from './persist.js';
+import { setRecalcHook } from './scoring.js';
+import { initAdminState, updateAdminUI } from './admin.js';
+import { initPWA } from './pwa.js';
+import { initNotifications, notifyDataUpdate } from './notifications.js';
 
 
-  // Re-render leaderboard and dashboard to show/hide edit column
-  if (document.getElementById('dashboard') && document.getElementById('dashboard').classList.contains('active')) {
-    renderDashboard();
-  }
-  if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) {
-    renderLeaderboard({forceRecalc: false});
-  }
-  // Always update the admin column header visibility even if not on those tabs
 
-}
 
 // Initialize data from server data.json and/or localstorage
-function clearCachedData() {
-  const cachedKeys = [
-    'worldcup_matches',
-    'worldcup_players',
-    'worldcup_eliminated_teams',
-    'worldcup_manually_edited_matches',
-    'worldcup_deleted_matches'
-  ];
-  cachedKeys.forEach(key => localStorage.removeItem(key));
-}
+// Calculate team points from app.matches
 
-async function initData() {
-  let serverData = { matches: [], players: [], eliminatedTeams: [] };
-  
-  // 1. Detect if synchronization backend is enabled
-  window.isSyncEnabled = false;
-  try {
-    const statusRes = await fetch('/api/status');
-    if (statusRes.ok) {
-      const statusData = await statusRes.json();
-      if (statusData.sync) {
-        isSyncEnabled = true;
-        window.isSyncEnabled = true;
-      }
-    }
-  } catch (e) {
-    console.log('[Sync] Synchronization backend is disabled (static pages or offline)');
-  }
-
-  // 2. Fetch server data with cache busting to ensure the latest file is loaded
-  try {
-    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) {
-      serverData = await res.json();
-    }
-  } catch (e) {
-    console.error('Failed to fetch data.json from server:', e);
-  }
-
-  const hasServerData = serverData.matches && serverData.matches.length > 0;
-  if (hasServerData) {
-    const localMatchesStr = localStorage.getItem('worldcup_matches');
-    const serverMatchesStr = JSON.stringify(serverData.matches || []);
-    if (localMatchesStr !== serverMatchesStr) {
-      // Server data newer than cache — localStorage refreshed below
-      clearCachedData();
-    }
-  }
-
-  // 3. Load database state
-  if (isSyncEnabled && serverData.matches && serverData.matches.length > 0) {
-
-    matches = serverData.matches;
-    players = serverData.players || [];
-    manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
-    
-    // Fallback sync to localstorage so offline fallback is close to last saved state
-    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
-    localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
-  } else {
-
-    const storedMatches = localStorage.getItem('worldcup_matches');
-    const storedPlayers = localStorage.getItem('worldcup_players');
-    
-    // Load override lists from localStorage with safety try-catch
-    let manuallyEditedMatches = [];
-    try {
-      manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
-      if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
-    } catch (e) {
-      console.error('Failed to parse manually edited matches:', e);
-    }
-
-    let deletedMatches = [];
-    try {
-      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
-      if (!Array.isArray(deletedMatches)) deletedMatches = [];
-    } catch (e) {
-      console.error('Failed to parse deleted matches:', e);
-    }
-    
-    if (serverData.matches && serverData.matches.length > 0) {
-      matches = serverData.matches.filter(m => !deletedMatches.some(id => id == m.id));
-
-      // Preserve any locally manually edited matches on top of the latest server data
-      if (storedMatches) {
-        const localMatches = JSON.parse(storedMatches);
-        localMatches.forEach(lm => {
-          if (manuallyEditedMatches.some(id => id == lm.id)) {
-            const idx = matches.findIndex(m => m.id == lm.id);
-            if (idx !== -1) {
-              matches[idx] = { ...matches[idx], ...lm };
-            } else {
-              matches.push(lm);
-            }
-          }
-        });
-      }
-
-      // Migrate: add dates from INITIAL_MATCHES or server matches if missing
-      matches.forEach(m => {
-        if (!m.date) {
-          const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
-          if (initialMatch && initialMatch.date) {
-            m.date = initialMatch.date;
-          }
-        }
-      });
-
-      localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-    } else if (storedMatches) {
-      matches = JSON.parse(storedMatches);
-      
-      // Auto-sync matches from server data (for automated scrapes)
-      let updated = false;
-      if (serverData.matches && serverData.matches.length > 0) {
-        serverData.matches.forEach(sm => {
-          // Skip syncing if match is deleted by user (using loose comparison for safety)
-          if (deletedMatches.some(id => id == sm.id)) return;
-          
-          const lmIdx = matches.findIndex(m => m.id == sm.id);
-          if (lmIdx !== -1) {
-            const lm = matches[lmIdx];
-            
-            // Skip syncing if match was manually edited by user (using loose comparison for safety)
-            if (manuallyEditedMatches.some(id => id == sm.id)) return;
-            
-            // If server match is finished but local match is pending, auto-update local match
-            if (sm.status === 'finished' && lm.status === 'pending') {
-              matches[lmIdx] = { ...lm, ...sm };
-              updated = true;
-            }
-          } else {
-            // If it's a new match from server not present in local matches, add it
-            matches.push(sm);
-            updated = true;
-          }
-        });
-      }
-      
-      // Migrate: add dates from INITIAL_MATCHES or server matches if missing
-      matches.forEach(m => {
-        if (!m.date) {
-          const initialMatch = INITIAL_MATCHES.find(im => im.id == m.id) || (serverData.matches && serverData.matches.find(sm => sm.id == m.id));
-          if (initialMatch && initialMatch.date) {
-            m.date = initialMatch.date;
-            updated = true;
-          }
-        }
-      });
-      
-      if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-    } else {
-      matches = [...INITIAL_MATCHES];
-      // Filter out deleted matches if any exist (using loose comparison for safety)
-      if (deletedMatches.length > 0) {
-        matches = matches.filter(m => !deletedMatches.some(id => id == m.id));
-      }
-      localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-    }
-    
-    if (storedPlayers) {
-      players = JSON.parse(storedPlayers);
-      
-      // Auto-sync players from server data if there are new ones
-      let updated = false;
-      if (serverData.players && serverData.players.length > 0) {
-        serverData.players.forEach(sp => {
-          if (!players.some(p => p.name === sp.name)) {
-            players.push(sp);
-            updated = true;
-          }
-        });
-      }
-      if (updated) localStorage.setItem('worldcup_players', JSON.stringify(players));
-    } else {
-      players = (serverData.players && serverData.players.length > 0) ? serverData.players : [...INITIAL_PLAYERS];
-      localStorage.setItem('worldcup_players', JSON.stringify(players));
-    }
-  }
-
-  loadEliminatedTeams();
-  lastDataRefreshTime = new Date();
-}
-
-// Sync local changes (matches and players) back to server data.json
-async function saveToServer() {
-  try {
-    const payload = {
-      matches: matches,
-      players: players,
-      eliminatedTeams: Array.from(manualEliminatedTeams)
-    };
-    // Include admin password token for server-side auth on mutations (only when isAdmin)
-    if (isAdmin) {
-      payload.adminPassword = ADMIN_PASSWORD;
-    }
-    const response = await fetch('/api/save', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    if (response.ok) {
-      console.log('Successfully synced data to server data.json');
-    } else if (response.status === 401 || response.status === 403) {
-      console.warn('Server refused save (admin auth required):', response.status);
-      // Do not clear isAdmin here (UX); server enforces
-    } else {
-      console.warn('Server refused to save data:', response.statusText);
-    }
-  } catch (e) {
-    // Fail silently in offline or static hosting environments
-    console.log('Offline/Static hosting: skipped syncing to server.');
-  }
-}
-
-// Calculate team points from matches
-function calculateTeamPoints(targetMatches = matches) {
-  const teamScores = {};
-  
-  // Initialize all teams with 0 points
-  TEAMS.forEach(team => {
-    teamScores[team.name] = {
-      points: 0,
-      played: 0,
-      wins: 0,
-      draws: 0,
-      losses: 0,
-      goalsFor: 0,
-      goalsAgainst: 0
-    };
-  });
-  
-  // Compute match points
-  targetMatches.forEach(match => {
-    const isSimulated = simulationScores[match.id];
-    if (match.status !== 'finished' && !isSimulated) return;
-    
-    const h = isSimulated ? isSimulated.homeScore : match.homeScore;
-    const a = isSimulated ? isSimulated.awayScore : match.awayScore;
-    
-    if (h === null || a === null) return;
-
-    // Add stats to teams
-    if (teamScores[match.home]) {
-      teamScores[match.home].played++;
-      teamScores[match.home].goalsFor += h;
-      teamScores[match.home].goalsAgainst += a;
-    }
-    if (teamScores[match.away]) {
-      teamScores[match.away].played++;
-      teamScores[match.away].goalsFor += a;
-      teamScores[match.away].goalsAgainst += h;
-    }
-    
-    let homeResPoints = 0;
-    let awayResPoints = 0;
-    
-    if (h > a) {
-      homeResPoints = 3; // Win
-      awayResPoints = 1; // Loss
-      if (teamScores[match.home]) teamScores[match.home].wins++;
-      if (teamScores[match.away]) teamScores[match.away].losses++;
-    } else if (h < a) {
-      homeResPoints = 1; // Loss
-      awayResPoints = 3; // Win
-      if (teamScores[match.home]) teamScores[match.home].losses++;
-      if (teamScores[match.away]) teamScores[match.away].wins++;
-    } else {
-      // Draw (in normal time or 120 mins)
-      if (match.isKnockout && match.penaltyWinner) {
-        // Knockout draw decided by penalties
-        if (match.penaltyWinner === 'home') {
-          homeResPoints = 3;
-          awayResPoints = 1;
-          if (teamScores[match.home]) teamScores[match.home].wins++;
-          if (teamScores[match.away]) teamScores[match.away].losses++;
-        } else {
-          homeResPoints = 1;
-          awayResPoints = 3;
-          if (teamScores[match.home]) teamScores[match.home].losses++;
-          if (teamScores[match.away]) teamScores[match.away].wins++;
-        }
-      } else {
-        // Normal draw
-        homeResPoints = 2;
-        awayResPoints = 2;
-        if (teamScores[match.home]) teamScores[match.home].draws++;
-        if (teamScores[match.away]) teamScores[match.away].draws++;
-      }
-    }
-    
-    // Calculate final points based on multiplier: (resultPoints + goals) * multiplier
-    const hTeam = TEAMS.find(t => t.name === match.home);
-    const aTeam = TEAMS.find(t => t.name === match.away);
-    
-    if (hTeam && teamScores[match.home]) {
-      teamScores[match.home].points += (homeResPoints + h) * hTeam.multiplier;
-    }
-    if (aTeam && teamScores[match.away]) {
-      teamScores[match.away].points += (awayResPoints + a) * aTeam.multiplier;
-    }
-  });
-  
-  // Format numbers
-  for (const name in teamScores) {
-    teamScores[name].points = parseFloat(teamScores[name].points.toFixed(2));
-  }
-  
-  return teamScores;
-}
-
-// Calculate final prediction score for a user
-function calculatePredictionPoints(user, finalMatch) {
-  if (!finalMatch || finalMatch.status !== 'finished') return 0;
-  
-  const totalGoals = finalMatch.homeScore + finalMatch.awayScore;
-  if (user.guess !== totalGoals) return 0; // Guess incorrect
-  
-  // Guess is correct, calculate points: (A_goals * A_mult) + (B_goals * B_mult)
-  // Rule: 0 and 1 goals = 1 goal
-  const rawHomeGoals = finalMatch.homeScore;
-  const rawAwayGoals = finalMatch.awayScore;
-  
-  const calcHomeGoals = rawHomeGoals <= 1 ? 1 : rawHomeGoals;
-  const calcAwayGoals = rawAwayGoals <= 1 ? 1 : rawAwayGoals;
-  
-  const hTeam = TEAMS.find(t => t.name === finalMatch.home);
-  const aTeam = TEAMS.find(t => t.name === finalMatch.away);
-  
-  const hMult = hTeam ? hTeam.multiplier : 1;
-  const aMult = aTeam ? aTeam.multiplier : 1;
-  
-  let score = (calcHomeGoals * hMult) + (calcAwayGoals * aMult);
-  
-  // Divide by 2 if score exceeds 7 points
-  if (score > 7) {
-    score = score / 2;
-  }
-  
-  return parseFloat(score.toFixed(2));
-}
-
-// Calculate player total score & sort them
-function processPlayers(teamScores) {
-  const finalMatch = matches.find(m => m.isFinal);
-  
-  const processed = players.map(player => {
-    let teamsScore = 0;
-    const teamBreakdown = [];
-    
-    player.teams.forEach(teamName => {
-      const tScore = teamScores[teamName] ? teamScores[teamName].points : 0;
-      teamsScore += tScore;
-      
-      const teamObj = TEAMS.find(t => t.name === teamName);
-      teamBreakdown.push({
-        name: teamName,
-        zone: teamObj ? teamObj.zone : 'blue',
-        multiplier: teamObj ? teamObj.multiplier : 1,
-        points: tScore
-      });
-    });
-    
-    const predictionScore = calculatePredictionPoints(player, finalMatch);
-    const totalScore = parseFloat((teamsScore + predictionScore).toFixed(2));
-    
-    return {
-      ...player,
-      teamsScore: parseFloat(teamsScore.toFixed(2)),
-      predictionScore,
-      totalScore,
-      teamBreakdown
-    };
-  });
-  
-  // Sort players by total score descending.
-  // We need to implement the boundary tie-breaker:
-  // "หมายเหตุ: หากคะแนนเท่ากัน ให้ปัดลงในโซนที่ ต่ำกว่า"
-  // First, do a primary sort by score descending.
-  processed.sort((a, b) => b.totalScore - a.totalScore);
-  
-  // Determine rankings
-  let currentRank = 1;
-  for (let i = 0; i < processed.length; i++) {
-    if (i > 0 && processed[i].totalScore < processed[i - 1].totalScore) {
-      currentRank = i + 1;
-    }
-    processed[i].rank = currentRank;
-  }
-  
-  // Partition into zones based on ranks/scores:
-  // Blue: top 20%
-  // Green: 25 players
-  // Red: bottom (the rest)
-  const total = processed.length;
-  const blueCount = 12; 
-  const greenCount = 25; 
-  
-  // Rough indexes for boundaries
-  const blueBoundaryIndex = blueCount - 1; 
-  const greenBoundaryIndex = blueCount + greenCount - 1; 
-  
-  // Get boundary scores
-  const blueCutoffScore = processed[blueBoundaryIndex] ? processed[blueBoundaryIndex].totalScore : 0;
-  const greenCutoffScore = processed[greenBoundaryIndex] ? processed[greenBoundaryIndex].totalScore : 0;
-  
-  // Assign initial zones and handle demotions for ties
-  processed.forEach((p, idx) => {
-    let zone = 'red';
-    
-    if (idx < blueCount) {
-      zone = 'blue';
-    } else if (idx < blueCount + greenCount) {
-      zone = 'green';
-    } else {
-      zone = 'red';
-    }
-    
-    p.zone = zone;
-  });
-  
-  // Apply tie-breaker: "หากคะแนนเท่ากัน ให้ปัดลงในโซนที่ ต่ำกว่า"
-  // If a Blue player has the same score as the cutoff of Green, demote them to Green!
-  // If a Green player has the same score as the cutoff of Red, demote them to Red!
-  processed.forEach(p => {
-    if (p.zone === 'blue' && p.totalScore === blueCutoffScore) {
-      const hasGreenWithSameScore = processed.some(x => x.zone === 'green' && x.totalScore === p.totalScore);
-      if (hasGreenWithSameScore && p.rank > blueCount) {
-        p.zone = 'green';
-      }
-    }
-    if (p.zone === 'green' && p.totalScore === greenCutoffScore) {
-      const hasRedWithSameScore = processed.some(x => x.zone === 'red' && x.totalScore === p.totalScore);
-      if (hasRedWithSameScore && p.rank > (blueCount + greenCount)) {
-        p.zone = 'red';
-      }
-    }
-  });
-  
-  // Assign party payouts:
-  // - Last place pays 1500
-  // - Second to last pays 1200
-  // - Red Zone players pay 1000, except the TOP Red Zone player who is exempt.
-  // - Bottom 2 Green Zone players pay extra (let's display them as paying 300 Baht or highlight them).
-  
-  // Find bottom and second-to-last
-  const lastIndex = total - 1;
-  const secondLastIndex = total - 2;
-  
-  // Find Red Zone players and calculate average score
-  const redZonePlayers = processed.filter(p => p.zone === 'red');
-  
-  let closestToAvgPlayer = null;
-  if (redZonePlayers.length > 0) {
-    const avgScore = redZonePlayers.reduce((sum, p) => sum + p.totalScore, 0) / redZonePlayers.length;
-    closestToAvgPlayer = redZonePlayers.reduce((closest, p) => {
-      const currentDiff = Math.abs(p.totalScore - avgScore);
-      const closestDiff = Math.abs(closest.totalScore - avgScore);
-      return currentDiff < closestDiff ? p : closest;
-    });
-  }
-  
-  // Find the top of Red Zone (first player in Red Zone) - DEPRECATED, use closest to avg instead
-  let topRedPlayer = null;
-  for (let i = 0; i < total; i++) {
-    if (processed[i].zone === 'red') {
-      topRedPlayer = processed[i];
-      break;
-    }
-  }
-  
-  // Find Green Zone players and calculate average score for the special charge rule
-  const greenPlayers = processed.filter(p => p.zone === 'green');
-  let closestToAvgGreen = null;
-  if (greenPlayers.length > 0) {
-    const greenAvgScore = greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length;
-    closestToAvgGreen = greenPlayers.reduce((closest, p) => {
-      if (!closest) return p;
-      const currentDiff = Math.abs(p.totalScore - greenAvgScore);
-      const closestDiff = Math.abs(closest.totalScore - greenAvgScore);
-      return currentDiff < closestDiff ? p : closest;
-    }, null);
-  }
-  
-  // Find overall average score for the all-player charging rule
-  let closestToAvgAll = null;
-  if (total > 0) {
-    const overallAvgScore = processed.reduce((sum, p) => sum + p.totalScore, 0) / total;
-    closestToAvgAll = processed.reduce((closest, p) => {
-      if (!closest) return p;
-      const currentDiff = Math.abs(p.totalScore - overallAvgScore);
-      const closestDiff = Math.abs(closest.totalScore - overallAvgScore);
-      return currentDiff < closestDiff ? p : closest;
-    }, null);
-  }
-  
-  processed.forEach((p, idx) => {
-    p.payout = 0;
-    p.payoutLabel = 'ไม่ต้องจ่าย';
-    
-    if (p.zone === 'red') {
-      p.payout = 1000;
-      p.payoutLabel = 'จ่าย 1,000 บาท';
-      
-      // Closest to Red Zone average exemption
-      if (closestToAvgPlayer && p.name === closestToAvgPlayer.name) {
-        p.payout = 0;
-        p.payoutLabel = 'ยกเว้นไม่ต้องจ่าย (ใกล้ค่าเฉลี่ย Red Zone)';
-      }
-      
-      // Second to last
-      if (idx === secondLastIndex) {
-        p.payout = 1200;
-        p.payoutLabel = 'รองบ๊วย จ่าย 1,200 บาท';
-      }
-      
-      // Last place
-      if (idx === lastIndex) {
-        p.payout = 1500;
-        p.payoutLabel = 'บ๊วย จ่าย 1,500 บาท';
-      }
-    } else if (p.zone === 'green') {
-      // Closest to Green Zone average - must pay 1000
-      if (closestToAvgGreen && p.name === closestToAvgGreen.name) {
-        p.payout = 1000;
-        p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ย Green Zone)';
-      }
-    } else if (p.zone === 'blue') {
-      p.payoutLabel = 'สิทธิ์เลือกสถานที่ (ไม่ต้องจ่าย)';
-    }
-    
-    // Closest to overall average - must pay 1000
-    if (closestToAvgAll && p.name === closestToAvgAll.name) {
-      p.payout = 1000;
-      p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ยทั้งหมด)';
-    }
-  });
-  
-  return processed;
-}
-
-// Global calculated state
-let teamPoints = {};
-let processedPlayers = [];
-let manualEliminatedTeams = new Set();
-let lastHighlightPlayer = "";
-let teamMatchesPlayedCounts = {};
-let elCache = {};
-function getCachedEl(id) {
-  if (!elCache[id]) elCache[id] = document.getElementById(id);
-  return elCache[id];
-}
-function debounce(fn, delay = 120) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-function updateTeamMatchesPlayedCounts() {
-  teamMatchesPlayedCounts = {};
-  matches.filter(m => m.status === 'finished').forEach(m => {
-    teamMatchesPlayedCounts[m.home] = (teamMatchesPlayedCounts[m.home] || 0) + 1;
-    teamMatchesPlayedCounts[m.away] = (teamMatchesPlayedCounts[m.away] || 0) + 1;
-  });
-}
-function getPlayerTotalMatchesPlayed(playerTeams) {
-  if (!playerTeams) return 0;
-  return playerTeams.reduce((sum, teamName) => sum + (teamMatchesPlayedCounts[teamName] || 0), 0);
-}
-
-// Load manual eliminated teams
-function loadEliminatedTeams() {
-  if (isSyncEnabled) return; // Do not load from localstorage if sync is enabled
-  const stored = localStorage.getItem('worldcup_eliminated_teams');
-  if (stored) {
-    try {
-      manualEliminatedTeams = new Set(JSON.parse(stored));
-    } catch(e) {
-      manualEliminatedTeams = new Set();
-    }
-  } else {
-    manualEliminatedTeams = new Set();
-  }
-}
-
-// Save manual eliminated teams
-async function saveEliminatedTeams() {
-  localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
-  if (isSyncEnabled) {
-    await saveToServer();
-  }
-}
-
-// Check if a team is eliminated (auto-calculated from knockout losses + manual overrides)
-function isTeamEliminated(teamName) {
-  // 1. Check manual override
-  if (manualEliminatedTeams.has(teamName)) return true;
-
-  // 2. Check auto-detect from knockout losses
-  for (const match of matches) {
-    if (match.status === 'finished' && match.isKnockout) {
-      const h = match.homeScore;
-      const a = match.awayScore;
-      if (h > a && match.away === teamName) return true;
-      if (h < a && match.home === teamName) return true;
-      if (h === a) {
-        if (match.penaltyWinner === 'home' && match.away === teamName) return true;
-        if (match.penaltyWinner === 'away' && match.home === teamName) return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-function recalculateAll() {
-  if (typeof resetTeamPopularityCache === 'function') resetTeamPopularityCache();
-  teamPoints = calculateTeamPoints();
-  processedPlayers = processPlayers(teamPoints);
-  updateTeamMatchesPlayedCounts();
-}
-
-function refreshActivePage() {
-  const activePage = document.querySelector('.page.active');
-  if (!activePage) return;
-  const id = activePage.id;
-  if (id === 'dashboard') renderDashboard();
-  else if (id === 'leaderboard') renderLeaderboard({ forceRecalc: false });
-  else if (id === 'matches') renderMatches();
-  else if (id === 'statistics') renderStatistics();
-  else if (id === 'players') renderPlayers();
-  else if (id === 'teams') renderTeamsMatrix();
-  else if (id === 'tools') renderTools();
-  else if (id === 'payout') renderPayout();
-}
-
-function formatSyncTime(date) {
-  if (!date) return '—';
-  return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function updateDataSyncStatus(status = 'idle', extra = '') {
-  const el = document.getElementById('data-sync-status');
-  if (!el) return;
-  if (status === 'updating') {
-    el.textContent = 'กำลังอัปเดตข้อมูล...';
-    el.className = 'data-sync-status data-sync-status--updating';
-    return;
-  }
-  if (status === 'updated') {
-    el.textContent = `อัปเดตล่าสุด ${formatSyncTime(lastDataRefreshTime)}${extra ? ' · ' + extra : ''}`;
-    el.className = 'data-sync-status data-sync-status--updated';
-    return;
-  }
-  const syncLabel = isSyncEnabled ? 'ซิงค์อัตโนมัติ' : 'อัปเดตอัตโนมัติ';
-  el.textContent = lastDataRefreshTime
-    ? `อัปเดตล่าสุด ${formatSyncTime(lastDataRefreshTime)} · ${syncLabel} ทุก 2 นาที`
-    : `${syncLabel} ทุก 2 นาที`;
-  el.className = 'data-sync-status';
-}
-
-function mergeServerDataIntoLocal(serverData) {
-  if (!serverData || !serverData.matches) return false;
-
-  let updated = false;
-
-  if (isSyncEnabled && serverData.matches.length > 0) {
-    const newMatchesStr = JSON.stringify(serverData.matches);
-    const newPlayersStr = JSON.stringify(serverData.players || []);
-    if (JSON.stringify(matches) !== newMatchesStr || JSON.stringify(players) !== newPlayersStr) {
-      matches = serverData.matches;
-      players = serverData.players || [];
-      manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
-      localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-      localStorage.setItem('worldcup_players', JSON.stringify(players));
-      localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
-      updated = true;
-    }
-    return updated;
-  }
-
-  let manuallyEditedMatches = [];
-  let deletedMatches = [];
-  try {
-    manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
-    if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
-    deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
-    if (!Array.isArray(deletedMatches)) deletedMatches = [];
-  } catch (e) {
-    manuallyEditedMatches = [];
-    deletedMatches = [];
-  }
-
-  serverData.matches.forEach(sm => {
-    if (deletedMatches.some(id => id == sm.id)) return;
-    const lmIdx = matches.findIndex(m => m.id == sm.id);
-    if (lmIdx !== -1) {
-      if (manuallyEditedMatches.some(id => id == sm.id)) return;
-      const lm = matches[lmIdx];
-      if (sm.status === 'finished' && lm.status === 'pending') {
-        matches[lmIdx] = { ...lm, ...sm };
-        updated = true;
-      } else if (JSON.stringify(lm) !== JSON.stringify(sm) && sm.status === 'finished') {
-        matches[lmIdx] = { ...lm, ...sm };
-        updated = true;
-      }
-    } else {
-      matches.push(sm);
-      updated = true;
-    }
-  });
-
-  if (serverData.players && serverData.players.length > 0) {
-    serverData.players.forEach(sp => {
-      if (!players.some(p => p.name === sp.name)) {
-        players.push(sp);
-        updated = true;
-      }
-    });
-  }
-
-  if (updated) {
-    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
-  }
-
-  return updated;
-}
-
-async function pollServerData() {
-  if (document.hidden) return;
-  try {
-    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
-    const serverData = await res.json();
-    const changed = mergeServerDataIntoLocal(serverData);
-    if (changed) {
-      updateDataSyncStatus('updating');
-      recalculateAll();
-      refreshActivePage();
-      lastDataRefreshTime = new Date();
-      updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
-    }
-  } catch (e) {
-    // Offline — skip silently
-  }
-}
-
-function setupAutoRefresh() {
-  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  lastDataRefreshTime = new Date();
-  updateDataSyncStatus();
-  autoRefreshTimer = setInterval(pollServerData, AUTO_REFRESH_INTERVAL_MS);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) pollServerData();
-  });
-}
 
 // Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
-let _playerDrawerSavedScrollY = 0;
-let _playerDrawerScrollLocked = false;
-
 function lockScrollForPlayerDrawer() {
-  if (_playerDrawerScrollLocked) return;
-  _playerDrawerScrollLocked = true;
-  _playerDrawerSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  if (app._playerDrawerScrollLocked) return;
+  app._playerDrawerScrollLocked = true;
+  app._playerDrawerSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
   document.documentElement.classList.add('player-drawer-open');
   document.body.classList.add('player-drawer-open');
   document.body.style.overflow = '';
-  document.body.style.top = `-${_playerDrawerSavedScrollY}px`;
+  document.body.style.top = `-${app._playerDrawerSavedScrollY}px`;
 }
 
 function unlockScrollForPlayerDrawer() {
-  if (!_playerDrawerScrollLocked) return;
-  _playerDrawerScrollLocked = false;
+  if (!app._playerDrawerScrollLocked) return;
+  app._playerDrawerScrollLocked = false;
   document.documentElement.classList.remove('player-drawer-open');
   document.body.classList.remove('player-drawer-open');
   document.body.style.top = '';
-  window.scrollTo(0, _playerDrawerSavedScrollY);
+  window.scrollTo(0, app._playerDrawerSavedScrollY);
 
   const sidebar = document.getElementById('sidebar');
   if (sidebar && sidebar.classList.contains('active')) {
@@ -3357,19 +280,19 @@ function setupNavigation() {
 
 function handleSimulationScoreChange(matchId, isHome, val) {
   const score = val === '' ? null : parseInt(val);
-  if (!simulationScores[matchId]) {
-    const m = matches.find(x => x.id == matchId);
-    simulationScores[matchId] = {
+  if (!app.simulationScores[matchId]) {
+    const m = app.matches.find(x => x.id == matchId);
+    app.simulationScores[matchId] = {
       homeScore: m.homeScore,
       awayScore: m.awayScore
     };
   }
-  if (isHome) simulationScores[matchId].homeScore = score;
-  else simulationScores[matchId].awayScore = score;
+  if (isHome) app.simulationScores[matchId].homeScore = score;
+  else app.simulationScores[matchId].awayScore = score;
 
   // If both scores are null, remove simulation for this match
-  if (simulationScores[matchId].homeScore === null && simulationScores[matchId].awayScore === null) {
-    delete simulationScores[matchId];
+  if (app.simulationScores[matchId].homeScore === null && app.simulationScores[matchId].awayScore === null) {
+    delete app.simulationScores[matchId];
   }
 
   if (window._simTimeout) clearTimeout(window._simTimeout);
@@ -3397,7 +320,7 @@ function buildLiveMatchCard(m, index, options = {}) {
   if (mode === 'matches') card.classList.add('matches-page-card');
   card.dataset.matchId = String(m.id);
 
-  const isSimulated = simulationScores[m.id];
+  const isSimulated = app.simulationScores[m.id];
   const isFinished = m.status === 'finished';
   const hTeamObj = TEAMS.find(t => t.name === m.home);
   const aTeamObj = TEAMS.find(t => t.name === m.away);
@@ -3422,7 +345,7 @@ function buildLiveMatchCard(m, index, options = {}) {
 
     const homeScoreVal = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
     const awayScoreVal = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
-    const adminAttr = isAdmin ? '' : 'disabled';
+    const adminAttr = app.isAdmin ? '' : 'disabled';
 
     scoreCenterHtml = `
       <div class="match-score-row">
@@ -3442,7 +365,7 @@ function buildLiveMatchCard(m, index, options = {}) {
       matchesExtras += `
         <div class="penalty-ui" style="display: ${showPenalty ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
           <label style="font-size: 11px; color: var(--text-secondary);">ผู้ชนะการยิงจุดโทษ (Penalty Winner):</label>
-          <select class="penalty-select" data-match-id="${m.id}" ${isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
+          <select class="penalty-select" data-match-id="${m.id}" ${app.isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
             <option value="">-- เลือกผู้ชนะจุดโทษ --</option>
             <option value="home" ${m.penaltyWinner === 'home' ? 'selected' : ''}>${m.home}</option>
             <option value="away" ${m.penaltyWinner === 'away' ? 'selected' : ''}>${m.away}</option>
@@ -3453,7 +376,7 @@ function buildLiveMatchCard(m, index, options = {}) {
 
     matchesExtras += `
       <div class="match-card-admin-footer">
-        <div style="display:${isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap; margin-top: 12px;">
+        <div style="display:${app.isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap; margin-top: 12px;">
           <button class="btn btn-secondary save-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1;">บันทึกผล</button>
           <button class="btn btn-secondary clear-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1; background-color: rgba(244,63,94,0.05); color: var(--accent); border-color: rgba(244,63,94,0.1)">ล้างผล</button>
         </div>
@@ -3549,7 +472,7 @@ function renderRecentMatches() {
   tomorrow.setDate(now.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
+  const recent = app.matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
 
   if (recent.length === 0) {
     container.className = 'live-matches-container';
@@ -4054,15 +977,15 @@ function renderDashboard() {
   recalculateAll();
   
   const totalEl = getCachedEl('stat-total-players');
-  if (totalEl) totalEl.textContent = processedPlayers.length;
+  if (totalEl) totalEl.textContent = app.processedPlayers.length;
   
-  const leader = processedPlayers[0];
+  const leader = app.processedPlayers[0];
   const leaderEl = getCachedEl('stat-leader-score');
   if (leaderEl) leaderEl.textContent = leader ? leader.totalScore.toFixed(1) : '0.0';
   
-  const playedCount = matches.filter(m => m.status === 'finished').length;
+  const playedCount = app.matches.filter(m => m.status === 'finished').length;
   const playedEl = getCachedEl('stat-played-matches');
-  if (playedEl) playedEl.textContent = `${playedCount} / ${matches.length}`;
+  if (playedEl) playedEl.textContent = `${playedCount} / ${app.matches.length}`;
 
   // ── Score Distribution Line Chart ──────────────────────────
   renderScoreChart();
@@ -4076,7 +999,7 @@ function renderDashboard() {
   tbody.innerHTML = '';
 
   const fragment = document.createDocumentFragment();
-  const topPlayers = processedPlayers.slice(0, 10);
+  const topPlayers = app.processedPlayers.slice(0, 10);
   topPlayers.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
@@ -4298,7 +1221,7 @@ function renderLeaderboard(options = {}) {
     if (cb.checked) selectedTeams.push(cb.value);
   });
 
-  let filtered = processedPlayers || [];
+  let filtered = app.processedPlayers || [];
 
   if (searchInput) {
     filtered = filtered.filter(p => p.name.toLowerCase().includes(searchInput));
@@ -4320,7 +1243,7 @@ function renderLeaderboard(options = {}) {
 
   const fragment = document.createDocumentFragment();
 
-  const allRanks = [...new Set((processedPlayers || []).map(pl => pl.rank))].sort((a, b) => a - b);
+  const allRanks = [...new Set((app.processedPlayers || []).map(pl => pl.rank))].sort((a, b) => a - b);
   const maxRank = allRanks.length ? allRanks[allRanks.length - 1] : 0;
   const secondLastRank = allRanks.length >= 2 ? allRanks[allRanks.length - 2] : 0;
   const isSadLastRank = (rank) => maxRank > 2 && rank === maxRank;
@@ -4416,7 +1339,7 @@ function renderLeaderboard(options = {}) {
       nameTd.textContent = p.name;
     }
 
-    // Total matches played by selected teams
+    // Total app.matches played by selected teams
     const teamsTd = document.createElement('td');
     teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
     teamsTd.className = 'table-matches-cell';
@@ -4475,7 +1398,7 @@ function renderLeaderboard(options = {}) {
   tbody.appendChild(fragment);
 
   // === Global average summary moved OUTSIDE the table (below it), slightly larger ===
-  const fullPlayers = processedPlayers || [];
+  const fullPlayers = app.processedPlayers || [];
   const avgNoteEl = getCachedEl('leaderboard-avg-note');
   if (avgNoteEl) avgNoteEl.innerHTML = ''; // clear previous
 
@@ -4497,27 +1420,27 @@ function renderLeaderboard(options = {}) {
   }
 }
 
-// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished matches, matching github version)
+// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished app.matches, matching github version)
 function renderScoreChart() {
   const svgEl = getCachedEl('score-chart-svg');
-  if (!svgEl || !processedPlayers.length) return;
+  if (!svgEl || !app.processedPlayers.length) return;
 
   clearChartPulseLayer(svgEl);
-  chartHoverPlayer = '';
+  app.chartHoverPlayer = '';
 
-  // 1. Get finished matches sorted chronologically
-  const finishedMatches = matches
+  // 1. Get finished app.matches sorted chronologically
+  const finishedMatches = app.matches
     .filter(m => m.status === 'finished')
     .sort((a, b) => a.id - b.id);
   const stepsCount = finishedMatches.length;
 
-  // 2. Cache historical rank and score for all players
-  const playerRankHistory = players.map(p => {
-    const curr = processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
+  // 2. Cache historical rank and score for all app.players
+  const playerRankHistory = app.players.map(p => {
+    const curr = app.processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
       name: p.name,
       zone: curr.zone,
-      ranks: [1], // start all players tied at rank 1 before any finished matches
+      ranks: [1], // start all app.players tied at rank 1 before any finished app.matches
       scores: [0]
     };
   });
@@ -4564,7 +1487,7 @@ function renderScoreChart() {
     if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
 
     const scoreBoard = playerRankHistory.map(ph => {
-      const playerObj = players.find(p => p.name === ph.name);
+      const playerObj = app.players.find(p => p.name === ph.name);
       let teamsScore = 0;
       playerObj.teams.forEach(teamName => {
         teamsScore += teamScores[teamName] || 0;
@@ -4629,7 +1552,7 @@ function renderScoreChart() {
   const H = isMobile ? padT + chartH + padB + mobileEdgeGuard : 380;
   const xLabelY = padT + chartH + (isMobile ? 12 : 18);
 
-  const maxRank = processedPlayers.length || 1;
+  const maxRank = app.processedPlayers.length || 1;
 
   // Scale functions (rank 1 at top, maxRank at bottom)
   const plotRightX = padL + chartW;
@@ -4842,8 +1765,8 @@ function renderScoreChart() {
     ${legendMarkup}
   `;
 
-  chartPulseAnimPlayer = '';
-  chartHoverPlayer = '';
+  app.chartPulseAnimPlayer = '';
+  app.chartHoverPlayer = '';
 
   if (container) {
     container.style.overflow = isMobile ? 'visible' : 'hidden';
@@ -4874,10 +1797,10 @@ function renderScoreChart() {
   // 7. Populate Highlight Dropdown
   const highlightSelect = document.getElementById('chart-highlight-select');
   if (highlightSelect) {
-    const currentVal = highlightSelect.value || lastHighlightPlayer;
+    const currentVal = highlightSelect.value || app.lastHighlightPlayer;
     highlightSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
     
-    const sortedForSelect = [...processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const sortedForSelect = [...app.processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
     sortedForSelect.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.name;
@@ -4890,7 +1813,7 @@ function renderScoreChart() {
   bindChartHoverInteractions();
 
   // Trigger initial highlight if there was a selected player
-  const initialHl = highlightSelect ? highlightSelect.value : lastHighlightPlayer;
+  const initialHl = highlightSelect ? highlightSelect.value : app.lastHighlightPlayer;
   if (initialHl) {
     highlightPlayerInChart(initialHl);
   }
@@ -4917,8 +1840,7 @@ const CHART_ZONE_PULSE = {
   }
 };
 
-let chartHoverPlayer = '';
-let chartPulseAnimPlayer = '';
+
 
 function chartFindPlayerEl(svgEl, selector, playerName) {
   return [...svgEl.querySelectorAll(selector)].find(el => el.getAttribute('data-player') === playerName) || null;
@@ -4931,7 +1853,7 @@ function getChartZonePulseStyle(zone) {
 function clearChartPulseLayer(svgEl) {
   const layer = svgEl && svgEl.querySelector('.chart-pulse-layer');
   if (layer) layer.remove();
-  chartPulseAnimPlayer = '';
+  app.chartPulseAnimPlayer = '';
 }
 
 function extendChartPulsePathToPlotEnd(pathD, svgEl) {
@@ -5004,7 +1926,7 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
     layer.classList.add('chart-pulse-running');
   });
 
-  chartPulseAnimPlayer = playerName;
+  app.chartPulseAnimPlayer = playerName;
 }
 
 function resolveChartHoverTarget(node, stopAt) {
@@ -5058,15 +1980,15 @@ function bindChartHoverInteractions() {
       if (!target) return;
 
       const playerName = target.getAttribute('data-player');
-      if (!playerName || playerName === chartHoverPlayer) return;
+      if (!playerName || playerName === app.chartHoverPlayer) return;
 
-      chartHoverPlayer = playerName;
+      app.chartHoverPlayer = playerName;
       highlightPlayerInChart(playerName);
     });
   });
 
   container.addEventListener('mouseleave', () => {
-    chartHoverPlayer = '';
+    app.chartHoverPlayer = '';
     const hlSelect = document.getElementById('chart-highlight-select');
     highlightPlayerInChart(hlSelect ? hlSelect.value : '');
   });
@@ -5082,7 +2004,7 @@ function setChartLinePulse(playerName) {
     return;
   }
 
-  if (chartPulseAnimPlayer === playerName && svgEl.querySelector('.chart-pulse-layer')) {
+  if (app.chartPulseAnimPlayer === playerName && svgEl.querySelector('.chart-pulse-layer')) {
     return;
   }
 
@@ -5105,7 +2027,7 @@ function highlightPlayerInChart(playerName) {
     highlightSelect.value = playerName;
   }
   
-  lastHighlightPlayer = playerName || "";
+  app.lastHighlightPlayer = playerName || "";
 
   if (!playerName) {
     // Revert to default
@@ -5120,7 +2042,7 @@ function highlightPlayerInChart(playerName) {
     });
     svgEl.querySelectorAll('.trend-end-label').forEach(label => {
       const pName = label.getAttribute('data-player');
-      const pObj = processedPlayers.find(p => p.name === pName);
+      const pObj = app.processedPlayers.find(p => p.name === pName);
       const isMobileLabel = label.getAttribute('text-anchor') === 'end';
       const lastR = pObj ? pObj.rank : 99;
       if (pObj && lastR <= 5 && !isMobileLabel) {
@@ -5255,9 +2177,9 @@ function showCustomConfirm(message, onConfirm) {
 // Delete a match (admin only)
 function deleteMatch(matchId) {
   showCustomConfirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?', async () => {
-    matches = matches.filter(m => m.id != matchId);
+    app.matches = app.matches.filter(m => m.id != matchId);
     
-    // Track deleted matches to persist on page loads with safety try-catch
+    // Track deleted app.matches to persist on page loads with safety try-catch
     let deletedMatches = [];
     try {
       deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
@@ -5271,7 +2193,7 @@ function deleteMatch(matchId) {
       localStorage.setItem('worldcup_deleted_matches', JSON.stringify(deletedMatches));
     }
     
-    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
     await saveToServer();
     recalculateAll();
     renderMatches();
@@ -5336,8 +2258,8 @@ function renderMatches() {
   const grid = document.getElementById('matches-grid');
   grid.innerHTML = '';
   
-  // Sort matches by date then by id
-  const sortedMatches = [...matches].sort((a, b) => {
+  // Sort app.matches by date then by id
+  const sortedMatches = [...app.matches].sort((a, b) => {
     const dateA = a.date || '9999-12-31';
     const dateB = b.date || '9999-12-31';
     if (dateA !== dateB) return dateA.localeCompare(dateB);
@@ -5378,7 +2300,7 @@ function renderMatches() {
   document.querySelectorAll('.score-input').forEach(input => {
     input.addEventListener('input', (e) => {
       const matchId = parseInt(e.target.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match && match.isKnockout) {
         const card = e.target.closest('.match-card');
         const homeInput = card.querySelector('.home-score-input');
@@ -5414,7 +2336,7 @@ function renderMatches() {
       const homeScore = parseInt(hVal);
       const awayScore = parseInt(aVal);
       
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = homeScore;
         match.awayScore = awayScore;
@@ -5447,7 +2369,7 @@ function renderMatches() {
           localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
         
-        localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         await saveToServer();
         alert('บันทึกสกอร์การแข่งขันเรียบร้อย!');
         recalculateAll();
@@ -5461,7 +2383,7 @@ function renderMatches() {
       e.preventDefault();
       e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = null;
         match.awayScore = null;
@@ -5482,7 +2404,7 @@ function renderMatches() {
           localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
         
-        localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         await saveToServer();
         alert('ล้างข้อมูลสกอร์เรียบร้อย!');
         recalculateAll();
@@ -5526,7 +2448,7 @@ function renderPlayers() {
   const tbody = document.getElementById('players-tbody');
   tbody.innerHTML = '';
 
-  let filtered = processedPlayers || [];
+  let filtered = app.processedPlayers || [];
 
   // Filter by name
   if (searchInput) {
@@ -5593,8 +2515,7 @@ function renderPlayers() {
   });
 }
 
-let statsSortState = { key: 'points', dir: 'desc' };
-let statsSortHandlersReady = false;
+
 
 const STATS_ZONE_ORDER = { blue: 0, green: 1, yellow: 2, grey: 3, 'red-orange': 4 };
 const STATS_ZONE_META = [
@@ -5686,7 +2607,7 @@ function compareStatsRows(a, b, key, dir) {
   return cmp * mult;
 }
 
-function sortStatsArray(statsArray, sortState = statsSortState) {
+function sortStatsArray(statsArray, sortState = app.statsSortState) {
   return [...statsArray].sort((a, b) => compareStatsRows(a, b, sortState.key, sortState.dir));
 }
 
@@ -5803,12 +2724,12 @@ function renderTeamSelections(statsArray, mode = 'both') {
 
 function updateStatsSortUI() {
   document.querySelectorAll('#statistics-table .stats-sort-btn').forEach(btn => {
-    const isActive = btn.dataset.sort === statsSortState.key;
+    const isActive = btn.dataset.sort === app.statsSortState.key;
     btn.classList.toggle('is-active', isActive);
     const arrow = btn.querySelector('.stats-sort-arrow');
     if (arrow) {
       arrow.textContent = isActive
-        ? (statsSortState.dir === 'asc' ? '↑' : '↓')
+        ? (app.statsSortState.dir === 'asc' ? '↑' : '↓')
         : '⇅';
     }
     btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
@@ -5816,8 +2737,8 @@ function updateStatsSortUI() {
 }
 
 function setupStatsSortHandlers() {
-  if (statsSortHandlersReady) return;
-  statsSortHandlersReady = true;
+  if (app.statsSortHandlersReady) return;
+  app.statsSortHandlersReady = true;
 
   const table = document.getElementById('statistics-table');
   if (table) {
@@ -5827,11 +2748,11 @@ function setupStatsSortHandlers() {
       e.preventDefault();
       const key = btn.dataset.sort;
       if (!key) return;
-      if (statsSortState.key === key) {
-        statsSortState.dir = statsSortState.dir === 'asc' ? 'desc' : 'asc';
+      if (app.statsSortState.key === key) {
+        app.statsSortState.dir = app.statsSortState.dir === 'asc' ? 'desc' : 'asc';
       } else {
         const numericKeys = new Set(['played', 'wins', 'draws', 'losses', 'goalsFor', 'multiplier', 'points']);
-        statsSortState = {
+        app.statsSortState = {
           key,
           dir: numericKeys.has(key) ? 'desc' : 'asc'
         };
@@ -6027,10 +2948,10 @@ function renderStatistics() {
 }
 
 function getProcessedPlayersWithoutSimulation() {
-  const saved = JSON.parse(JSON.stringify(simulationScores));
-  simulationScores = {};
+  const saved = JSON.parse(JSON.stringify(app.simulationScores));
+  app.simulationScores = {};
   const baseline = processPlayers(calculateTeamPoints());
-  simulationScores = saved;
+  app.simulationScores = saved;
   return baseline;
 }
 
@@ -6046,7 +2967,7 @@ function renderPayout() {
   const tbody = document.getElementById('payout-tbody');
   if (!summaryEl || !tbody) return;
 
-  const paying = processedPlayers.filter(p => p.payout > 0);
+  const paying = app.processedPlayers.filter(p => p.payout > 0);
   const totalCollected = paying.reduce((sum, p) => sum + p.payout, 0);
   const count1000 = paying.filter(p => p.payout === 1000).length;
   const count1200 = paying.filter(p => p.payout === 1200).length;
@@ -6077,7 +2998,7 @@ function renderPayout() {
 
   tbody.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  processedPlayers.forEach(p => {
+  app.processedPlayers.forEach(p => {
     const tr = document.createElement('tr');
     if (p.payout > 0) tr.classList.add('tools-payout-row--due');
     const zoneCls = getZoneBadgeClass(p.zone);
@@ -6101,14 +3022,14 @@ function populateCompareSelects() {
 
   const prevA = selA.value;
   const prevB = selB.value;
-  const options = processedPlayers.map(p =>
+  const options = app.processedPlayers.map(p =>
     `<option value="${escapeHtml(p.name)}">#${p.rank} ${escapeHtml(p.name)} (${p.totalScore.toFixed(1)})</option>`
   ).join('');
 
   selA.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
   selB.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
-  if (prevA && processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
-  if (prevB && processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
+  if (prevA && app.processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
+  if (prevB && app.processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
 }
 
 function renderToolsCompare() {
@@ -6142,8 +3063,8 @@ function renderToolsCompareResult() {
     return;
   }
 
-  const playerA = processedPlayers.find(p => p.name === nameA);
-  const playerB = processedPlayers.find(p => p.name === nameB);
+  const playerA = app.processedPlayers.find(p => p.name === nameA);
+  const playerB = app.processedPlayers.find(p => p.name === nameB);
   if (!playerA || !playerB) return;
 
   const teamsA = new Set(playerA.teams || []);
@@ -6223,13 +3144,13 @@ function renderToolsSimulator() {
   if (clearBtn && !clearBtn._simBound) {
     clearBtn._simBound = true;
     clearBtn.addEventListener('click', () => {
-      simulationScores = {};
+      app.simulationScores = {};
       recalculateAll();
       renderTools();
     });
   }
 
-  const pending = matches.filter(m => m.status !== 'finished').sort((a, b) => {
+  const pending = app.matches.filter(m => m.status !== 'finished').sort((a, b) => {
     if (a.date && b.date) return a.date.localeCompare(b.date);
     return a.id - b.id;
   });
@@ -6242,7 +3163,7 @@ function renderToolsSimulator() {
   }
 
   pending.forEach(m => {
-    const sim = simulationScores[m.id];
+    const sim = app.simulationScores[m.id];
     const hVal = sim ? (sim.homeScore !== null ? sim.homeScore : '') : '';
     const aVal = sim ? (sim.awayScore !== null ? sim.awayScore : '') : '';
     const hZone = getTeamZoneByName(m.home);
@@ -6268,7 +3189,7 @@ function renderToolsSimulator() {
     matchesEl.appendChild(row);
   });
 
-  const hasSim = Object.keys(simulationScores).length > 0;
+  const hasSim = Object.keys(app.simulationScores).length > 0;
   if (!deltaWrap || !deltaTbody) return;
   if (!hasSim) {
     deltaWrap.style.display = 'none';
@@ -6280,7 +3201,7 @@ function renderToolsSimulator() {
   const baselineRank = {};
   baseline.forEach(p => { baselineRank[p.name] = p.rank; });
 
-  const movers = processedPlayers
+  const movers = app.processedPlayers
     .map(p => ({
       name: p.name,
       actual: baselineRank[p.name],
@@ -6436,13 +3357,13 @@ function buildPlayerTeamItemHtml(tb, options = {}) {
 }
 
 // ── Rank sound effects (playful TTS + silly tones) ───────────────────────
-let _rankSpeechVoice = null;
+
 
 function initRankSoundVoices() {
   if (!('speechSynthesis' in window)) return;
   const pickVoice = () => {
     const voices = window.speechSynthesis.getVoices();
-    _rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
+    app._rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
       || voices.find(v => /th/i.test(v.lang || ''))
       || voices[0]
       || null;
@@ -6614,7 +3535,7 @@ function speakRankPhrase(type, options = {}) {
     const phrase = pool[index % pool.length];
     const utter = new SpeechSynthesisUtterance(phrase);
     utter.lang = 'th-TH';
-    if (_rankSpeechVoice) utter.voice = _rankSpeechVoice;
+    if (app._rankSpeechVoice) utter.voice = app._rankSpeechVoice;
 
     if (type === 'winner') {
       utter.rate = 0.92 + Math.random() * 0.08;
@@ -6688,9 +3609,9 @@ function openPlayerDetails(name) {
 
     // Lenient name lookup (trim + case-insensitive fallback for robustness)
     const lookupName = (name || '').trim();
-    let player = processedPlayers.find(p => p.name === lookupName);
+    let player = app.processedPlayers.find(p => p.name === lookupName);
     if (!player) {
-      player = processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
+      player = app.processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
     }
 
       if (!player) {
@@ -6749,7 +3670,7 @@ function openPlayerDetails(name) {
         
         let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
         tbList.forEach(tb => {
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           let wins = 0, draws = 0, losses = 0, goalsFor = 0;
           
           teamMatches.forEach(m => {
@@ -6833,7 +3754,7 @@ function openPlayerDetails(name) {
 
       // ── Per-team list with match history ────────────────────────────
       // Sort teams by the date they first played (เรียงตามวันที่เตะ) — oldest first.
-      // Teams with no finished matches go to the end.
+      // Teams with no finished app.matches go to the end.
       const grid = document.getElementById('detail-teams-grid');
       if (grid) {
         grid.innerHTML = '';
@@ -6842,7 +3763,7 @@ function openPlayerDetails(name) {
         // Pre-compute earliest play date for each team for stable sorting
         const teamEarliestDate = {};
         tbList.forEach(tb => {
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           if (teamMatches.length > 0) {
             const dates = teamMatches
               .map(m => m.date ? new Date(m.date).getTime() : Infinity)
@@ -6868,11 +3789,11 @@ function openPlayerDetails(name) {
             ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
             : '<span class="player-team-status player-team-status--in">อยู่</span>';
 
-          const elimToggleBtn = isAdmin
+          const elimToggleBtn = app.isAdmin
             ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
             : '';
 
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
 
           item.className = `player-team-item player-team-item--${tb.zone}`;
@@ -6885,10 +3806,10 @@ function openPlayerDetails(name) {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const team = btn.getAttribute('data-elim-team');
-            if (manualEliminatedTeams.has(team)) {
-              manualEliminatedTeams.delete(team);
+            if (app.manualEliminatedTeams.has(team)) {
+              app.manualEliminatedTeams.delete(team);
             } else {
-              manualEliminatedTeams.add(team);
+              app.manualEliminatedTeams.add(team);
             }
             await saveEliminatedTeams();
             recalculateAll();
@@ -6907,9 +3828,9 @@ function openPlayerDetails(name) {
       if (deleteBtn) {
         deleteBtn.onclick = () => {
           showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
-            players = players.filter(p => p.name !== name);
-            localStorage.setItem('worldcup_players', JSON.stringify(players));
-            if (isSyncEnabled) {
+            app.players = app.players.filter(p => p.name !== name);
+            localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+            if (app.isSyncEnabled) {
               await saveToServer();
             }
             hidePlayerDetailsDrawer();
@@ -6929,7 +3850,7 @@ function openPlayerDetails(name) {
       }
       
       if (deleteBtn && editBtn) {
-        if (isAdmin) {
+        if (app.isAdmin) {
           deleteBtn.style.display = 'block';
           editBtn.style.display = 'block';
         } else {
@@ -7120,13 +4041,13 @@ async function handleMatchFormSubmit() {
   if (isFinal) {
     nextId = 100;
   } else {
-    const ids = matches.filter(m => m.id < 100).map(m => m.id);
+    const ids = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
   }
   
   // Verify ID is unique
-  if (matches.some(m => m.id == nextId)) {
-    const allIds = matches.filter(m => m.id < 100).map(m => m.id);
+  if (app.matches.some(m => m.id == nextId)) {
+    const allIds = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
   }
   
@@ -7142,8 +4063,8 @@ async function handleMatchFormSubmit() {
     date: matchDate
   };
   
-  matches.push(newMatch);
-  localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+  app.matches.push(newMatch);
+  localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
   await saveToServer();
   
   closeMatchForm();
@@ -7155,7 +4076,25 @@ async function handleMatchFormSubmit() {
 }
 
 // SETUP EVENTS & DOM CONTENT LOADED
+export function refreshActivePage() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'dashboard') renderDashboard();
+  else if (id === 'leaderboard') renderLeaderboard({ forceRecalc: false });
+  else if (id === 'matches') renderMatches();
+  else if (id === 'statistics') renderStatistics();
+  else if (id === 'players') renderPlayers();
+  else if (id === 'teams') renderTeamsMatrix();
+  else if (id === 'tools') renderTools();
+  else if (id === 'payout') renderPayout();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  registerRefreshPage(refreshActivePage);
+  setRecalcHook(resetTeamPopularityCache);
+  initPWA();
+  initNotifications();
   await initData();
   updateDataSyncStatus();
   setupAutoRefresh();
@@ -7163,7 +4102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   attachTeamNameClickHandlers();
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
-  attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
+  attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, app.players table)
   
   // Initialize admin status
   initAdminState();
@@ -7172,10 +4111,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');
   if (adminToggleBtn) {
     adminToggleBtn.addEventListener('click', () => {
-      if (isAdmin) {
+      if (app.isAdmin) {
         // Logout
         showCustomConfirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?', () => {
-          isAdmin = false;
+          app.isAdmin = false;
           sessionStorage.setItem('worldcup_isAdmin', 'false');
           updateAdminUI();
           recalculateAll();
@@ -7216,14 +4155,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Export matches results to JPG (for finished matches summary)
+  // Export app.matches results to JPG (for finished matches summary)
   const exportMatchesBtn = document.getElementById('export-matches-btn');
   if (exportMatchesBtn) {
     exportMatchesBtn.addEventListener('click', async () => {
       try {
         await exportMatchesImage();
       } catch (err) {
-        console.error('Export matches failed', err);
+        console.error('Export app.matches failed', err);
         alert('การส่งออกภาพล้มเหลว');
       }
     });
@@ -7551,8 +4490,8 @@ async function exportStatisticsImage() {
 }
 
 async function exportMatchesImage() {
-  // Get only finished matches that have scores
-  const finishedMatches = matches
+  // Get only finished app.matches that have scores
+  const finishedMatches = app.matches
     .filter(m => m.status === 'finished' && m.homeScore != null && m.awayScore != null)
     .sort((a, b) => {
       const da = a.date || '9999-12-31';
@@ -7675,8 +4614,8 @@ async function exportMatchesImage() {
       const password = document.getElementById('admin-password-input').value;
       const errorMsg = document.getElementById('login-error-msg');
       
-      if (password === ADMIN_PASSWORD) {
-        isAdmin = true;
+      if (password === app.ADMIN_PASSWORD) {
+        app.isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
         updateAdminUI();
         errorMsg.style.display = 'none';
@@ -7730,7 +4669,7 @@ async function exportMatchesImage() {
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
   if (chartHighlightSelect) {
     chartHighlightSelect.addEventListener('change', (e) => {
-      chartHoverPlayer = '';
+      app.chartHoverPlayer = '';
       highlightPlayerInChart(e.target.value);
     });
   }
@@ -7875,32 +4814,32 @@ async function exportMatchesImage() {
     
     if (id) {
       // Edit mode (find by name)
-      if (id !== name && players.some(p => p.name === name)) {
+      if (id !== name && app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นใหม่นี้มีผู้ใช้งานอยู่แล้ว!');
         return;
       }
-      const pIdx = players.findIndex(p => p.name === id);
+      const pIdx = app.players.findIndex(p => p.name === id);
       if (pIdx !== -1) {
-        players[pIdx].name = name;
-        players[pIdx].guess = guess;
-        players[pIdx].teams = selectedTeams;
+        app.players[pIdx].name = name;
+        app.players[pIdx].guess = guess;
+        app.players[pIdx].teams = selectedTeams;
       }
     } else {
       // Add mode
       // Check duplicate name
-      if (players.some(p => p.name === name)) {
+      if (app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นนี้ถูกใช้งานแล้ว!');
         return;
       }
-      players.push({
+      app.players.push({
         name,
         teams: selectedTeams,
         guess
       });
     }
     
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
-    if (isSyncEnabled) {
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    if (app.isSyncEnabled) {
       await saveToServer();
     }
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
@@ -7935,20 +4874,20 @@ window.addEventListener('resize', debouncedResize);
 
 function getTeamPopularity(teamName) {
   let count = 0;
-  for (const p of players) {
+  for (const p of app.players) {
     if (p.teams && p.teams.includes(teamName)) count++;
   }
   return count;
 }
 
-let _maxPopularityCache = null;
+
 function getMaxPopularity() {
-  if (_maxPopularityCache !== null) return _maxPopularityCache;
+  if (app._maxPopularityCache !== null) return app._maxPopularityCache;
   let max = 1; // avoid div by zero
   TEAMS.forEach(t => {
     max = Math.max(max, getTeamPopularity(t.name));
   });
-  _maxPopularityCache = max;
+  app._maxPopularityCache = max;
   return max;
 }
 
@@ -7992,10 +4931,10 @@ function buildTeamBadgeHtml(teamName, zone, options = {}) {
 }
 
 function resetTeamPopularityCache() {
-  _maxPopularityCache = null;
+  app._maxPopularityCache = null;
 }
 
-// Reset cache when players update
+// Reset cache when app.players update
 const originalRenderPlayers = renderPlayers;
 renderPlayers = function() {
   resetTeamPopularityCache();
@@ -8062,7 +5001,7 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
 
-  const selectedBy = players
+  const selectedBy = app.players
     .filter(p => p.teams && p.teams.includes(teamName))
     .map(p => p.name)
     .sort((a, b) => a.localeCompare(b, 'th'));
@@ -8136,3 +5075,18 @@ window.showTeamSelectionPopup = function(teamName, event) {
 const badgeStyle = document.createElement('style');
 badgeStyle.innerHTML = '.team-badge { cursor: pointer !important; transition: filter 0.2s; } .team-badge:hover { filter: brightness(1.2); }';
 document.head.appendChild(badgeStyle);
+
+
+export {
+  handleSimulationScoreChange,
+  renderDashboard,
+  renderLeaderboard,
+  renderMatches,
+  renderPlayers,
+  renderStatistics,
+  renderTeamsMatrix,
+  renderTools,
+  renderPayout,
+  openPlayerDetails,
+  recalculateAll
+};
