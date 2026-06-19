@@ -6279,9 +6279,11 @@ function renderToolsSimulator() {
       <div class="tools-sim-match-body">
         <div class="tools-sim-team">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</div>
         <div class="tools-sim-scores">
-          <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
-          <span class="score-divider">:</span>
-          <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
+          <div class="tools-sim-score-row">
+            <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
+            <span class="score-divider">:</span>
+            <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
+          </div>
         </div>
         <div class="tools-sim-team">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</div>
       </div>
