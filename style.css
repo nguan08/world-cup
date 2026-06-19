@@ -2040,20 +2040,29 @@ table {
   font-size: 14px;
 }
 
-/* Players / Selections page — card, filter menu, shrink-with-table */
+/* Players / Selections page — fixed filter width, table shrinks independently */
+#players .players-card {
+  width: 100%;
+}
+
 .players-card__toolbar {
   margin-bottom: 24px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .players-search-group {
-  flex: 2 1 200px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .players-team-filter-dropdown {
-  flex: 1 1 260px;
-  min-width: 260px;
+  flex: 0 0 340px;
+  width: 340px;
+  min-width: 340px !important;
+  max-width: 340px;
   position: relative;
+  flex-shrink: 0 !important;
 }
 
 .players-team-filter-btn {
@@ -2064,7 +2073,10 @@ table {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  width: 100%;
+  width: 340px;
+  min-width: 340px !important;
+  max-width: 340px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2075,6 +2087,7 @@ table {
   font-size: 15px;
   height: 100%;
   min-height: 50px;
+  box-sizing: border-box;
 }
 
 .players-team-filter-btn__caret {
@@ -2131,8 +2144,7 @@ table {
 }
 
 #players .players-card__table-wrap--filtered {
-  width: max-content;
-  max-width: 100%;
+  width: 100%;
 }
 
 .players-empty-cell {
@@ -2387,16 +2399,25 @@ table {
     grid-template-columns: repeat(var(--players-team-cols, 3), max-content);
   }
 
-  #players .players-card__table-wrap--filtered {
-    width: 100%;
-  }
-
   #players .table-container.players-table-container--filtered {
     width: 100% !important;
   }
 
   #players .table-container.players-table-container--filtered #players-table {
     width: 100% !important;
+  }
+
+  .players-team-filter-dropdown {
+    flex: none;
+    width: 100%;
+    min-width: 100% !important;
+    max-width: none;
+  }
+
+  .players-team-filter-btn {
+    width: 100%;
+    min-width: 0 !important;
+    max-width: none;
   }
 
   .players-team-filter-menu {
