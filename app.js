@@ -6130,11 +6130,15 @@ function renderPayout() {
     tr.innerHTML = `
       <td data-label="#" class="payout-rank-cell">${p.rank}</td>
       <td data-label="ผู้เล่น" class="payout-player-cell">
-        <span class="payout-player-name">${escapeHtml(p.name)}</span>
-        <span class="payout-player-note">${escapeHtml(shortLabel)}</span>
+        <span class="payout-player-line">
+          <span class="payout-player-name">${escapeHtml(p.name)}</span>
+          <span class="payout-player-sep" aria-hidden="true">·</span>
+          <span class="payout-player-note">${escapeHtml(shortLabel)}</span>
+        </span>
       </td>
       <td data-label="โซน · คะแนน" class="payout-zone-score-cell">
         <span class="badge badge-${zoneCls}">${formatZoneDisplayLabel(p.zone)}</span>
+        <span class="payout-zone-score-sep" aria-hidden="true">·</span>
         <span class="payout-zone-score-val">${p.totalScore.toFixed(1)}</span>
       </td>
       <td data-label="เงิน" class="payout-amount-cell">${renderPayoutAmountChip(p.payout)}</td>
