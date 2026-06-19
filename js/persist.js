@@ -1,5 +1,5 @@
 import { app } from './state.js';
-import { getGitHubToken } from './admin.js';
+import { getGitHubToken, isValidGitHubToken } from './admin.js';
 import { notifyDataUpdate } from './notifications.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
 
@@ -25,14 +25,22 @@ function encodeBase64Utf8(str) {
   return btoa(binary);
 }
 
+function githubAuthHeaders(token) {
+  const auth = `Bearer ${token}`;
+  if (!/^[\x00-\xFF]*$/.test(auth)) {
+    throw new Error('GitHub Token มีอักขระไม่ถูกต้อง — วางเฉพาะ token (ขึ้นต้น ghp_ หรือ github_pat_)');
+  }
+  return {
+    Accept: 'application/vnd.github+json',
+    Authorization: auth,
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
 async function fetchGitHubFileSha(token) {
   const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}?ref=${GITHUB_BRANCH}`;
   const res = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
+    headers: githubAuthHeaders(token)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -49,10 +57,8 @@ async function saveToGitHub(payload, token) {
   const res = await fetch(url, {
     method: 'PUT',
     headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
+      ...githubAuthHeaders(token),
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       message: 'Update data.json via World Cup admin',
@@ -127,6 +133,12 @@ export async function saveToServer({ quiet = false } = {}) {
   if (!app.isAdmin || !token) {
     if (app.isAdmin && !token && !serverSaved) {
       console.warn('[Persist] Admin save skipped: no GitHub token configured');
+    }
+    return false;
+  }
+  if (!isValidGitHubToken(token)) {
+    if (!quiet) {
+      notifyAdminSave('GitHub Token ไม่ถูกต้อง — ต้องขึ้นต้นด้วย ghp_ หรือ github_pat_', true);
     }
     return false;
   }

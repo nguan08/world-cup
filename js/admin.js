@@ -3,13 +3,27 @@ import { getCachedEl } from './utils.js';
 
 const GITHUB_TOKEN_KEY = 'worldcup_githubToken';
 
+/** Strip invisible / non-ASCII chars from pasted PATs (fetch headers must be ISO-8859-1). */
+export function sanitizeGitHubToken(raw) {
+  return String(raw || '')
+    .trim()
+    .replace(/^\uFEFF/, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^\x21-\x7E]/g, '');
+}
+
+export function isValidGitHubToken(token) {
+  if (!token) return false;
+  return /^(ghp_|github_pat_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]+$/.test(token);
+}
+
 export function getGitHubToken() {
-  return sessionStorage.getItem(GITHUB_TOKEN_KEY) || '';
+  return sanitizeGitHubToken(sessionStorage.getItem(GITHUB_TOKEN_KEY) || '');
 }
 
 export function setGitHubToken(token) {
-  const trimmed = (token || '').trim();
-  if (trimmed) sessionStorage.setItem(GITHUB_TOKEN_KEY, trimmed);
+  const clean = sanitizeGitHubToken(token);
+  if (clean) sessionStorage.setItem(GITHUB_TOKEN_KEY, clean);
   else sessionStorage.removeItem(GITHUB_TOKEN_KEY);
 }
 
