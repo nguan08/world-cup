@@ -333,15 +333,8 @@ body {
   padding-bottom: 0;
 }
 
-#recent-matches-card .live-match-card {
+#recent-matches-card .matches-page-card {
   box-sizing: border-box;
-  border: none !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
-}
-
-#recent-matches-card .live-match-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 #recent-matches-card .live-matches-container.dashboard-matches-grid {
@@ -376,7 +369,7 @@ body {
     display: none;
   }
 
-  #recent-matches-card .live-match-card {
+  #recent-matches-card .matches-page-card {
     flex: unset;
     width: 100%;
     min-width: 0;
@@ -479,8 +472,8 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 2 columns visible — swipe advances by pairs (JS step = 2) */
-  #recent-matches-card .live-match-card {
+  /* 2 columns — same card format as matches page */
+  #recent-matches-card .matches-page-card {
     flex: 0 0 calc(50% - 3px);
     width: calc(50% - 3px);
     min-width: calc(50% - 3px);
@@ -488,102 +481,6 @@ body {
     scroll-snap-align: start;
     scroll-snap-stop: normal;
     touch-action: pan-x;
-    padding: 8px 6px !important;
-    border-radius: 14px !important;
-    border: none !important;
-  }
-
-  #recent-matches-card .live-match-card:hover {
-    transform: none;
-  }
-
-  #recent-matches-card .live-match-card .live-match-meta {
-    font-size: 7px;
-    margin-bottom: 2px;
-    flex-wrap: wrap;
-    gap: 2px;
-  }
-
-  #recent-matches-card .live-match-card .live-match-meta-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-
-  #recent-matches-card .live-match-card .live-match-status {
-    font-size: 6px;
-    padding: 1px 4px;
-  }
-
-  #recent-matches-card .live-match-card .live-match-teams {
-    display: none;
-  }
-
-  #recent-matches-card .live-match-card .match-body-grid {
-    gap: 4px !important;
-    margin-top: 2px !important;
-    grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr) !important;
-  }
-
-  #recent-matches-card .live-match-card .match-center-col {
-    min-width: min-content !important;
-    width: min-content !important;
-    flex-shrink: 0 !important;
-    z-index: 1;
-  }
-
-  #recent-matches-card .live-match-card .match-team-col {
-    overflow: hidden !important;
-    min-width: 0 !important;
-  }
-
-  #recent-matches-card .live-match-card .match-score-row {
-    flex-shrink: 0 !important;
-    flex-wrap: nowrap !important;
-    gap: 2px !important;
-    white-space: nowrap !important;
-  }
-
-  #recent-matches-card .live-match-card .score-num {
-    font-size: 14px !important;
-  }
-
-  #recent-matches-card .live-match-card .score-divider {
-    font-size: 9px !important;
-  }
-
-  #recent-matches-card .live-match-card .team-badge {
-    font-size: 7px !important;
-    padding: 2px 2px !important;
-    border-radius: 4px !important;
-    max-width: 100%;
-  }
-
-  #recent-matches-card .live-match-card .team-mult-label,
-  #recent-matches-card .live-match-card .team-group-label {
-    font-size: 6px !important;
-    line-height: 1.2;
-  }
-
-  #recent-matches-card .live-match-card .score-sim-input {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 11px !important;
-    line-height: 26px !important;
-    flex-shrink: 0 !important;
-    touch-action: manipulation;
-  }
-
-  #recent-matches-card .live-match-card .match-pts-row {
-    justify-content: center !important;
-    gap: 4px !important;
-    width: auto !important;
-    max-width: 100% !important;
-  }
-
-  #recent-matches-card .live-match-card .pts-label {
-    font-size: 6px !important;
   }
 }
 
@@ -2915,7 +2812,8 @@ tr.leader-second-row {
   gap: 20px;
 }
 
-.matches-grid .matches-page-card {
+.matches-grid .matches-page-card,
+#recent-matches-card .matches-page-card {
   flex: none !important;
   width: 100%;
   scroll-snap-align: unset;
@@ -2924,7 +2822,8 @@ tr.leader-second-row {
   gap: 0;
 }
 
-.matches-grid .matches-page-card .live-match-meta-label {
+.matches-grid .matches-page-card .live-match-meta-label,
+#recent-matches-card .matches-page-card .live-match-meta-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2932,7 +2831,8 @@ tr.leader-second-row {
   padding-right: 8px;
 }
 
-.matches-grid .matches-page-card .match-card-admin-footer {
+.matches-grid .matches-page-card .match-card-admin-footer,
+#recent-matches-card .matches-page-card .match-card-admin-footer {
   margin-top: auto;
 }
 

@@ -3575,8 +3575,15 @@ function renderRecentMatches() {
   });
 
   container.className = 'live-matches-container dashboard-matches-grid';
-  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { todayStr })));
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'matches' })));
+  setupMatchCardListeners();
   setupLiveMatchesCarousel();
+}
+
+function refreshMatchCardViews() {
+  recalculateAll();
+  if (document.getElementById('matches')?.classList.contains('active')) renderMatches();
+  if (document.getElementById('dashboard')?.classList.contains('active')) renderDashboard();
 }
 
 function setupLiveMatchesCarousel() {
@@ -5471,7 +5478,10 @@ function renderMatches() {
     });
   });
   
-  // Setup match event listeners
+  setupMatchCardListeners();
+}
+
+function setupMatchCardListeners() {
   document.querySelectorAll('.score-input').forEach(input => {
     input.addEventListener('input', (e) => {
       const matchId = parseInt(e.target.getAttribute('data-match-id'));
@@ -5547,8 +5557,7 @@ function renderMatches() {
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
         await saveToServer();
         alert('บันทึกสกอร์การแข่งขันเรียบร้อย!');
-        recalculateAll();
-        renderMatches();
+        refreshMatchCardViews();
       }
     });
   });
@@ -5582,13 +5591,11 @@ function renderMatches() {
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
         await saveToServer();
         alert('ล้างข้อมูลสกอร์เรียบร้อย!');
-        recalculateAll();
-        renderMatches();
+        refreshMatchCardViews();
       }
     });
   });
   
-  // Delete match button (admin)
   document.querySelectorAll('.delete-match-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
