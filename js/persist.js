@@ -2,11 +2,15 @@ import { app } from './state.js';
 import { getGitHubToken, isValidGitHubToken } from './admin.js';
 import { notifyDataUpdate } from './notifications.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
-
-const GITHUB_OWNER = 'nguan08';
-const GITHUB_REPO = 'world-cup';
-const GITHUB_PATH = 'data.json';
-const GITHUB_BRANCH = 'main';
+import {
+  GITHUB_BRANCH,
+  GITHUB_DATA_FILE,
+  GITHUB_REPO_FULL,
+  assertWorldCupFileMeta,
+  assertWorldCupRepo,
+  githubContentsUrl,
+  githubRepoApiUrl
+} from './github-config.js';
 
 function buildPayload() {
   const payload = {
@@ -28,7 +32,7 @@ function encodeBase64Utf8(str) {
 function githubAuthHeaders(token) {
   const auth = `Bearer ${token}`;
   if (!/^[\x00-\xFF]*$/.test(auth)) {
-    throw new Error('GitHub Token มีอักขระไม่ถูกต้อง — วางเฉพาะ token (ขึ้นต้น ghp_ หรือ github_pat_)');
+    throw new Error('GitHub Token มีอักขระไม่ถูกต้อง');
   }
   return {
     Accept: 'application/vnd.github+json',
@@ -37,31 +41,40 @@ function githubAuthHeaders(token) {
   };
 }
 
-async function fetchGitHubFileSha(token) {
-  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}?ref=${GITHUB_BRANCH}`;
-  const res = await fetch(url, {
-    headers: githubAuthHeaders(token)
-  });
+async function verifyWorldCupRepoAccess(token) {
+  const res = await fetch(githubRepoApiUrl(), { headers: githubAuthHeaders(token) });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `GitHub GET failed (${res.status})`);
+    throw new Error(err.message || `ไม่มีสิทธิ์เข้าถึง ${GITHUB_REPO_FULL} (${res.status})`);
+  }
+  const repo = await res.json();
+  assertWorldCupRepo(repo);
+}
+
+async function fetchGitHubFileSha(token) {
+  const url = `${githubContentsUrl(GITHUB_DATA_FILE)}?ref=${GITHUB_BRANCH}`;
+  const res = await fetch(url, { headers: githubAuthHeaders(token) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `อ่าน ${GITHUB_DATA_FILE} จาก world-cup ล้มเหลว (${res.status})`);
   }
   const data = await res.json();
+  assertWorldCupFileMeta(data);
   return data.sha;
 }
 
 async function saveToGitHub(payload, token) {
+  await verifyWorldCupRepoAccess(token);
   const sha = await fetchGitHubFileSha(token);
   const content = encodeBase64Utf8(JSON.stringify(payload, null, 2));
-  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
-  const res = await fetch(url, {
+  const res = await fetch(githubContentsUrl(GITHUB_DATA_FILE), {
     method: 'PUT',
     headers: {
       ...githubAuthHeaders(token),
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      message: 'Update data.json via World Cup admin',
+      message: 'Update world-cup data.json via admin',
       content,
       sha,
       branch: GITHUB_BRANCH
@@ -69,9 +82,11 @@ async function saveToGitHub(payload, token) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `GitHub PUT failed (${res.status})`);
+    throw new Error(err.message || `บันทึก world-cup/data.json ล้มเหลว (${res.status})`);
   }
-  return res.json();
+  const saved = await res.json();
+  assertWorldCupFileMeta(saved.content);
+  return saved;
 }
 
 function notifyAdminSave(message, isError = false) {
@@ -95,14 +110,13 @@ export async function sendBroadcastNotification(message) {
     localStorage.setItem('worldcup_lastBroadcastId', String(app.broadcast.id));
     notifyAdminSave('ส่งแจ้งเตือนถึงผู้ใช้ที่เปิดการแจ้งเตือนแล้ว');
   } else {
-    notifyAdminSave('ส่งแจ้งเตือนล้มเหลว — ตรวจสอบ GitHub Token', true);
+    notifyAdminSave('ส่งแจ้งเตือนล้มเหลว — ตรวจสอบสิทธิ์ repo world-cup', true);
   }
   return ok;
 }
 
 export async function saveToServer({ quiet = false } = {}) {
   const payload = buildPayload();
-  let serverSaved = false;
 
   if (isLocalDevHost()) {
     try {
@@ -125,32 +139,30 @@ export async function saveToServer({ quiet = false } = {}) {
         console.warn('Server refused to save data:', response.statusText);
       }
     } catch {
-      console.log('[Persist] Local /api/save unavailable — trying GitHub API fallback');
+      console.log('[Persist] Local /api/save unavailable — trying world-cup GitHub API');
     }
   }
 
   const token = getGitHubToken();
   if (!app.isAdmin || !token) {
-    if (app.isAdmin && !token && !serverSaved) {
-      console.warn('[Persist] Admin save skipped: no GitHub token configured');
+    if (app.isAdmin && !token) {
+      console.warn('[Persist] Admin save skipped: no GitHub token');
     }
     return false;
   }
   if (!isValidGitHubToken(token)) {
-    if (!quiet) {
-      notifyAdminSave('GitHub Token ไม่ถูกต้อง — ต้องขึ้นต้นด้วย ghp_ หรือ github_pat_', true);
-    }
+    if (!quiet) notifyAdminSave('GitHub Token ไม่ถูกต้อง', true);
     return false;
   }
 
   try {
     await saveToGitHub(payload, token);
-    console.log('Successfully synced data to GitHub data.json');
-    if (!quiet) notifyAdminSave('ซิงค์ข้อมูลลง GitHub สำเร็จ');
+    console.log(`Successfully synced to ${GITHUB_REPO_FULL}/${GITHUB_DATA_FILE}`);
+    if (!quiet) notifyAdminSave(`ซิงค์ ${GITHUB_REPO_FULL} สำเร็จ`);
     return true;
   } catch (e) {
-    console.error('[Persist] GitHub save failed:', e);
-    if (!quiet) notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
+    console.error('[Persist] world-cup GitHub save failed:', e);
+    if (!quiet) notifyAdminSave(`ซิงค์ world-cup ล้มเหลว: ${e.message}`, true);
     return false;
   }
 }

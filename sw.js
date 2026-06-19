@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v8';
+const CACHE_NAME = 'wc2026-v9';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
   'js/scoring.js',
   'js/sync.js',
   'js/persist.js',
+  'js/github-config.js',
   'js/admin.js',
   'js/notifications.js',
   'js/pwa.js',
