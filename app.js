@@ -6395,6 +6395,17 @@ function renderToolsCompare() {
   renderToolsCompareResult();
 }
 
+function getPlayerRemainingTeamCount(teams) {
+  if (!teams?.length) return 0;
+  return teams.filter(t => !isTeamEliminated(t)).length;
+}
+
+function formatCompareFinalGuess(player) {
+  const guess = player.guess;
+  const guessText = (guess != null && guess !== undefined && guess !== '') ? `${guess} ลูก` : '—';
+  return `${guessText} · ${player.predictionScore.toFixed(1)}`;
+}
+
 function renderToolsCompareResult() {
   const container = document.getElementById('tools-compare-result');
   const nameA = document.getElementById('compare-player-a')?.value;
@@ -6443,7 +6454,9 @@ function renderToolsCompareResult() {
         <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerA.zone)}</div>
         <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerA.totalScore.toFixed(1)}</strong></div>
         <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerA.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerA.predictionScore.toFixed(1)}</div>
+        <div class="tools-compare-stat"><span>แข่ง</span>${getPlayerTotalMatchesPlayed(playerA.teams)} นัด</div>
+        <div class="tools-compare-stat"><span>ทีมที่เหลือ</span>${getPlayerRemainingTeamCount(playerA.teams)} ทีม</div>
+        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${formatCompareFinalGuess(playerA)}</div>
       </div>
       <div class="tools-compare-mid">
         <div class="tools-compare-diff ${scoreDiff > 0 ? 'tools-compare-diff--up' : scoreDiff < 0 ? 'tools-compare-diff--down' : ''}">
@@ -6461,7 +6474,9 @@ function renderToolsCompareResult() {
         <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerB.zone)}</div>
         <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerB.totalScore.toFixed(1)}</strong></div>
         <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerB.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerB.predictionScore.toFixed(1)}</div>
+        <div class="tools-compare-stat"><span>แข่ง</span>${getPlayerTotalMatchesPlayed(playerB.teams)} นัด</div>
+        <div class="tools-compare-stat"><span>ทีมที่เหลือ</span>${getPlayerRemainingTeamCount(playerB.teams)} ทีม</div>
+        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${formatCompareFinalGuess(playerB)}</div>
       </div>
     </div>
     <div class="tools-compare-teams">

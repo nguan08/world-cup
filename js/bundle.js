@@ -3332,6 +3332,17 @@ function renderToolsCompare() {
   renderToolsCompareResult();
 }
 
+function getPlayerRemainingTeamCount(teams) {
+  if (!teams?.length) return 0;
+  return teams.filter(t => !isTeamEliminated(t)).length;
+}
+
+function formatCompareFinalGuess(player) {
+  const guess = player.guess;
+  const guessText = (guess != null && guess !== undefined && guess !== '') ? `${guess} ลูก` : '—';
+  return `<span class="compare-bench-guess-goals">${guessText}</span> · ${player.predictionScore.toFixed(1)}`;
+}
+
 function renderToolsCompareResult() {
   const container = document.getElementById('tools-compare-result');
   const nameA = document.getElementById('compare-player-a')?.value;
@@ -3408,6 +3419,11 @@ function renderToolsCompareResult() {
     return sortByPts(teams, player).map(t => compareTeamRow(t, player, side)).join('');
   };
 
+  const matchesPlayedA = getPlayerTotalMatchesPlayed(playerA.teams);
+  const matchesPlayedB = getPlayerTotalMatchesPlayed(playerB.teams);
+  const remainingA = getPlayerRemainingTeamCount(playerA.teams);
+  const remainingB = getPlayerRemainingTeamCount(playerB.teams);
+
   const betterA = (a, b) => (a > b ? ' is-winner' : a < b ? ' is-loser' : '');
   const betterRankA = playerA.rank < playerB.rank ? ' is-winner' : playerA.rank > playerB.rank ? ' is-loser' : '';
   const betterRankB = playerB.rank < playerA.rank ? ' is-winner' : playerB.rank > playerA.rank ? ' is-loser' : '';
@@ -3443,7 +3459,9 @@ function renderToolsCompareResult() {
       ${benchRow('โซน', zoneBadge(playerA.zone), zoneBadge(playerB.zone))}
       ${benchRow('คะแนนรวม', playerA.totalScore.toFixed(1), playerB.totalScore.toFixed(1), { highlight: true, winL: betterA(playerA.totalScore, playerB.totalScore), winR: betterA(playerB.totalScore, playerA.totalScore) })}
       ${benchRow('คะแนนทีม', playerA.teamsScore.toFixed(1), playerB.teamsScore.toFixed(1), { winL: betterA(playerA.teamsScore, playerB.teamsScore), winR: betterA(playerB.teamsScore, playerA.teamsScore) })}
-      ${benchRow('ทายนัดชิง', playerA.predictionScore.toFixed(1), playerB.predictionScore.toFixed(1), { winL: betterA(playerA.predictionScore, playerB.predictionScore), winR: betterA(playerB.predictionScore, playerA.predictionScore) })}
+      ${benchRow('แข่ง', `${matchesPlayedA} นัด`, `${matchesPlayedB} นัด`)}
+      ${benchRow('ทีมที่เหลือ', `${remainingA} ทีม`, `${remainingB} ทีม`, { winL: betterA(remainingA, remainingB), winR: betterA(remainingB, remainingA) })}
+      ${benchRow('ทายนัดชิง', formatCompareFinalGuess(playerA), formatCompareFinalGuess(playerB), { winL: betterA(playerA.predictionScore, playerB.predictionScore), winR: betterA(playerB.predictionScore, playerA.predictionScore) })}
     </div>
     <div class="compare-bench-teams">
       <div class="compare-bench-teams-col compare-bench-teams-col--left">

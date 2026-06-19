@@ -7092,6 +7092,11 @@ tr.leader-second-row {
   opacity: 0.8;
 }
 
+.compare-bench-guess-goals {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .compare-bench-row--highlight .compare-bench-cell {
   font-size: 15px;
 }
