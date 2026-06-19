@@ -2812,11 +2812,16 @@ tr.leader-second-row {
   gap: 20px;
 }
 
-.matches-grid .matches-page-card,
-#recent-matches-card .matches-page-card {
+.matches-grid .matches-page-card {
   flex: none !important;
   width: 100%;
   scroll-snap-align: unset;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+#recent-matches-card .matches-page-card {
   display: flex;
   flex-direction: column;
   gap: 0;
