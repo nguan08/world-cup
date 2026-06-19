@@ -3323,7 +3323,7 @@ function setupLiveMatchesCarousel() {
       },
 
       getScrollStep() {
-        return 3;
+        return this.isMobile() ? 2 : 3;
       },
 
       isCarouselActive() {

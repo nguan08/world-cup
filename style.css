@@ -461,12 +461,12 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 3 columns — full viewport width */
+  /* 2 columns — full viewport width */
   #recent-matches-card .live-match-card {
-    flex: 0 0 calc((100% - 16px) / 3);
-    width: calc((100% - 16px) / 3);
-    min-width: calc((100% - 16px) / 3);
-    max-width: calc((100% - 16px) / 3);
+    flex: 0 0 calc((100% - 8px) / 2);
+    width: calc((100% - 8px) / 2);
+    min-width: calc((100% - 8px) / 2);
+    max-width: calc((100% - 8px) / 2);
     scroll-snap-align: start;
     scroll-snap-stop: normal;
     touch-action: pan-x;
