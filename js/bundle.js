@@ -1224,6 +1224,21 @@ function initTeamFilter(config) {
   }
 }
 
+function setPlayersFilterEmptyState(isEmpty) {
+  const table = document.getElementById('players-table');
+  if (!table) return;
+  table.closest('.players-card')?.classList.toggle('players-card--empty', isEmpty);
+  table.closest('.players-card__table-wrap')?.classList.toggle('players-card__table-wrap--empty', isEmpty);
+  table.closest('.table-container')?.classList.toggle('players-table-container--empty', isEmpty);
+}
+
+function setLeaderboardFilterEmptyState(isEmpty) {
+  const tbody = document.getElementById('leaderboard-tbody');
+  if (!tbody) return;
+  tbody.closest('.leaderboard-card')?.classList.toggle('leaderboard-card--empty', isEmpty);
+  tbody.closest('.table-container')?.classList.toggle('leaderboard-table-container--empty', isEmpty);
+}
+
 function renderLeaderboard(options = {}) {
   const { forceRecalc = true } = options;
   if (forceRecalc) recalculateAll();
@@ -1256,6 +1271,14 @@ function renderLeaderboard(options = {}) {
   const tbody = getCachedEl('leaderboard-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
+
+  setLeaderboardFilterEmptyState(filtered.length === 0);
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr class="leaderboard-empty-row"><td colspan="7" class="table-filter-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>';
+    const avgNoteEl = getCachedEl('leaderboard-avg-note');
+    if (avgNoteEl) avgNoteEl.innerHTML = '';
+    return;
+  }
 
   const fragment = document.createDocumentFragment();
 
@@ -2478,9 +2501,9 @@ function renderPlayers() {
 
   const selectedTeamsSet = new Set(selectedTeams);
 
+  setPlayersFilterEmptyState(filtered.length === 0);
   if (filtered.length === 0) {
-    const emptyColspan = 3;
-    tbody.innerHTML = `<tr class="players-empty-row"><td colspan="${emptyColspan}" class="players-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>`;
+    tbody.innerHTML = '<tr class="players-empty-row"><td colspan="3" class="table-filter-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>';
     return;
   }
 
@@ -2504,22 +2527,12 @@ function renderPlayers() {
     teamsTd.className = 'players-teams-cell';
 
     const badgesWrapper = document.createElement('div');
-    badgesWrapper.className = isTeamFilterActive
-      ? 'players-teams-grid players-teams-grid--filtered'
-      : 'players-teams-grid';
-    if (isTeamFilterActive) {
-      badgesWrapper.style.setProperty('--players-team-cols', String(teamCols));
-    }
+    badgesWrapper.className = 'players-teams-grid';
 
-    const teamsToShow = isTeamFilterActive
-      ? selectedTeams
-          .map(teamName => p.teamBreakdown.find(tb => tb.name === teamName))
-          .filter(Boolean)
-      : p.teamBreakdown;
-
-    teamsToShow.forEach(tb => {
+    p.teamBreakdown.forEach(tb => {
       const badge = document.createElement('span');
-      badge.className = `team-badge team-${tb.zone} players-team-badge`;
+      const isFilterMatch = selectedTeamsSet.has(tb.name);
+      badge.className = `team-badge team-${tb.zone} players-team-badge${isFilterMatch ? ' players-team-badge--filter-match' : ''}`;
       badge.dataset.team = tb.name;
       badge.title = `${tb.name} · ${formatWcGroupLabel(getTeamWcGroup(tb.name))} · x${tb.multiplier || 1} · ${tb.points.toFixed(1)} คะแนน`;
       applyTeamPopularity(badge, tb.name);
