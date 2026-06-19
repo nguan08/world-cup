@@ -2151,14 +2151,6 @@ table {
   font-family: inherit;
 }
 
-.players-card__table-wrap {
-  width: 100%;
-}
-
-#players .players-card__table-wrap--filtered {
-  width: 100%;
-}
-
 .players-empty-cell {
   text-align: center !important;
   padding: 20px 12px !important;
@@ -2258,7 +2250,7 @@ table {
 
 .players-teams-grid {
   display: grid;
-  grid-template-columns: repeat(var(--players-team-cols, 5), minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 3px;
   width: 100%;
   padding: 5px;
@@ -2267,50 +2259,8 @@ table {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-#players .table-container.players-table-container--filtered {
-  width: fit-content !important;
-  max-width: 100% !important;
-}
-
-#players .table-container.players-table-container--filtered #players-table {
-  table-layout: auto !important;
-  width: auto !important;
-  max-width: 100% !important;
-}
-
-#players-table.players-table--filtered .players-col-name,
-#players-table.players-table--filtered .players-col-score {
-  width: 1% !important;
-}
-
-#players-table.players-table--filtered .players-col-teams {
-  width: auto !important;
-}
-
-#players-table.players-table--filtered .players-name-cell,
-#players-table.players-table--filtered .players-score-cell {
-  width: 1%;
-  white-space: nowrap;
-}
-
-#players-table.players-table--filtered .players-teams-cell {
-  width: auto;
-}
-
-#players-table.players-table--filtered .players-teams-grid {
-  width: max-content;
-  max-width: 100%;
-  grid-template-columns: repeat(var(--players-team-cols, 5), max-content);
-}
-
-#players-table.players-table--filtered .players-team-badge {
-  width: auto;
-  min-width: 0;
-  max-width: 140px;
-}
-
-#players-table.players-table--filtered .players-empty-cell {
-  width: auto !important;
+.players-teams-grid--filtered {
+  grid-template-columns: repeat(var(--players-team-cols, 5), minmax(0, 1fr));
 }
 
 .players-team-badge {
@@ -2407,16 +2357,8 @@ table {
     font-size: 6px;
   }
 
-  #players-table.players-table--filtered .players-teams-grid {
-    grid-template-columns: repeat(var(--players-team-cols, 3), max-content);
-  }
-
-  #players .table-container.players-table-container--filtered {
-    width: 100% !important;
-  }
-
-  #players .table-container.players-table-container--filtered #players-table {
-    width: 100% !important;
+  .players-teams-grid--filtered {
+    grid-template-columns: repeat(var(--players-team-cols, 3), minmax(0, 1fr));
   }
 
   #players .players-card__toolbar.search-bar {

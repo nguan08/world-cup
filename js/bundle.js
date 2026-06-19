@@ -2478,36 +2478,10 @@ function renderPlayers() {
 
   const isTeamFilterActive = selectedTeams.length > 0;
   const teamCols = isTeamFilterActive
-    ? (selectedTeams.length <= 5 ? Math.max(1, selectedTeams.length) : 5)
+    ? Math.min(5, Math.max(1, selectedTeams.length))
     : 5;
 
-  const table = document.getElementById('players-table');
-  const tableContainer = table?.closest('.table-container');
-  const tableWrap = table?.closest('.players-card__table-wrap');
-  const teamsTh = table?.querySelector('.players-teams-th');
-  const colTeams = table?.querySelector('.players-col-teams');
-
-  if (table) {
-    table.classList.toggle('players-table--filtered', isTeamFilterActive);
-    if (isTeamFilterActive) {
-      table.style.setProperty('--players-team-cols', String(teamCols));
-    } else {
-      table.style.removeProperty('--players-team-cols');
-    }
-  }
-  if (tableContainer) {
-    tableContainer.classList.toggle('players-table-container--filtered', isTeamFilterActive);
-  }
-  if (tableWrap) {
-    tableWrap.classList.toggle('players-card__table-wrap--filtered', isTeamFilterActive);
-  }
-  if (colTeams) {
-    if (isTeamFilterActive) {
-      colTeams.style.width = 'auto';
-    } else {
-      colTeams.style.removeProperty('width');
-    }
-  }
+  const teamsTh = document.getElementById('players-table')?.querySelector('.players-teams-th');
   if (teamsTh) {
     teamsTh.textContent = isTeamFilterActive ? `ทีม (${selectedTeams.length})` : 'ทีม (15)';
   }
@@ -2538,13 +2512,17 @@ function renderPlayers() {
     teamsTd.className = 'players-teams-cell';
 
     const badgesWrapper = document.createElement('div');
-    badgesWrapper.className = 'players-teams-grid';
+    badgesWrapper.className = isTeamFilterActive
+      ? 'players-teams-grid players-teams-grid--filtered'
+      : 'players-teams-grid';
     if (isTeamFilterActive) {
       badgesWrapper.style.setProperty('--players-team-cols', String(teamCols));
     }
 
     const teamsToShow = isTeamFilterActive
-      ? p.teamBreakdown.filter(tb => selectedTeams.includes(tb.name))
+      ? selectedTeams
+          .map(teamName => p.teamBreakdown.find(tb => tb.name === teamName))
+          .filter(Boolean)
       : p.teamBreakdown;
 
     teamsToShow.forEach(tb => {
