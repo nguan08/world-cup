@@ -7330,13 +7330,14 @@ function applyTeamPopularity(el, teamName) {
 }
 
 function buildTeamBadgeHtml(teamName, zone, options = {}) {
-  const { extraClass = '', extraStyle = '', tag = 'span', compact = false } = options;
+  const { extraClass = '', extraStyle = '', tag = 'span', compact = false, clickable = true } = options;
   const zc = getTeamZoneClass(zone || getTeamZoneByName(teamName));
   const compactClass = compact ? 'team-badge--compact' : '';
   const compactStyle = compact ? 'padding:1px 5px; font-size:10px; border-radius:3px;' : '';
   const popCount = getTeamPopularity(teamName);
   const title = popCount > 0 ? `ดูผู้เลือกทีมนี้ (${popCount} คน)` : 'ดูผู้เลือกทีมนี้';
-  return `<${tag} class="team-badge ${zc} ${compactClass} ${extraClass}" data-team="${escapeHtml(teamName)}" style="${getTeamPopStyleAttr(teamName)} ${compactStyle} ${extraStyle}" title="${title}">${escapeHtml(teamName)}</${tag}>`;
+  const dataTeamAttr = clickable ? ` data-team="${escapeHtml(teamName)}"` : '';
+  return `<${tag} class="team-badge ${zc} ${compactClass} ${extraClass}"${dataTeamAttr} style="${getTeamPopStyleAttr(teamName)} ${compactStyle} ${extraStyle}" title="${title}">${escapeHtml(teamName)}</${tag}>`;
 }
 
 function resetTeamPopularityCache() {
@@ -7367,6 +7368,20 @@ renderTeamsMatrix = function() {
     originalRenderTeamsMatrix.apply(this, arguments);
   }
 };
+
+function buildTeamPlayersPopupItemHtml(playerName) {
+  return `<li class="team-players-list-item" data-player="${escapeHtml(playerName)}" role="button" tabindex="0">${escapeHtml(playerName)}</li>`;
+}
+
+function closeTeamSelectionPopup() {
+  const popup = document.getElementById('team-selection-popup');
+  if (popup) popup.remove();
+  if (window._teamPopupCloseHandler) {
+    document.removeEventListener('click', window._teamPopupCloseHandler, true);
+    document.removeEventListener('pointerdown', window._teamPopupCloseHandler, true);
+    window._teamPopupCloseHandler = null;
+  }
+}
 
 function attachTeamNameClickHandlers() {
   if (window._teamNameClickBound) return;
@@ -7408,14 +7423,34 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const anchorY = event ? event.clientY : window.innerHeight / 2;
 
   const teamGroup = formatWcGroupLabel(getTeamWcGroup(teamName));
-  let html = '<h4>ผู้เลือก ' + escapeHtml(teamName) + ' · ' + escapeHtml(teamGroup) + ' (' + selectedBy.length + ' คน)</h4>';
+  const teamBadge = buildTeamBadgeHtml(teamName, getTeamZoneByName(teamName), {
+    extraClass: 'team-players-popup__team',
+    extraStyle: 'font-size:12px; padding:2px 6px;',
+    clickable: false
+  });
+  let html = `<h4><span class="team-players-popup__label">ผู้เลือก</span> ${teamBadge}<span class="team-players-popup__meta"> · ${escapeHtml(teamGroup)} (${selectedBy.length} คน)</span></h4>`;
   if (selectedBy.length === 0) {
     html += '<div>ไม่มีผู้เลือก</div>';
   } else {
-    html += '<ul class="team-players-list-small">' + selectedBy.map(n => '<li>' + escapeHtml(n) + '</li>').join('') + '</ul>';
+    html += '<ul class="team-players-list-small">' + selectedBy.map(buildTeamPlayersPopupItemHtml).join('') + '</ul>';
   }
   popup.innerHTML = html;
   document.body.appendChild(popup);
+
+  popup.querySelectorAll('.team-players-list-item[data-player]').forEach((li) => {
+    const openPlayer = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const playerName = li.getAttribute('data-player');
+      if (!playerName) return;
+      closeTeamSelectionPopup();
+      openPlayerDetails(playerName);
+    };
+    li.addEventListener('click', openPlayer);
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') openPlayer(e);
+    });
+  });
 
   const margin = 10;
   let left = anchorX;
@@ -7436,10 +7471,7 @@ window.showTeamSelectionPopup = function(teamName, event) {
     if (!document.getElementById('team-selection-popup')) return;
     if (popup.contains(e.target)) return;
     if (e.target.closest('.team-badge, .team-clickable, [data-team]')) return;
-    popup.remove();
-    document.removeEventListener('click', closeHandler, true);
-    document.removeEventListener('pointerdown', closeHandler, true);
-    window._teamPopupCloseHandler = null;
+    closeTeamSelectionPopup();
   };
 
   window._teamPopupCloseHandler = closeHandler;

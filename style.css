@@ -4109,11 +4109,30 @@ body.player-drawer-open {
 }
 
 .team-players-popup h4 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--primary);
+  font-size: 13px;
+  color: var(--text-secondary);
   border-bottom: 1px solid rgba(255,255,255,0.05);
-  padding-bottom: 4px;
+  padding-bottom: 6px;
+  line-height: 1.35;
+}
+
+.team-players-popup__label {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.team-players-popup__meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.team-players-popup__team {
+  cursor: default !important;
 }
 
 .team-players-list-small {
@@ -4123,10 +4142,35 @@ body.player-drawer-open {
   gap: 4px;
 }
 
-.team-players-list-small li {
+.team-players-list-item {
   color: var(--text-secondary);
-  padding: 2px 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
+
+.team-players-list-item:hover,
+.team-players-list-item:focus-visible {
+  color: #e2e8f0;
+  background: rgba(99, 102, 241, 0.14);
+  outline: none;
+}
+
+.stats-group-team-row.team-blue .stats-group-team-name { color: var(--zone-blue); }
+.stats-group-team-row.team-green .stats-group-team-name { color: var(--zone-green); }
+.stats-group-team-row.team-yellow .stats-group-team-name { color: var(--zone-yellow); }
+.stats-group-team-row.team-grey .stats-group-team-name { color: var(--zone-grey); }
+.stats-group-team-row.team-red-orange .stats-group-team-name { color: var(--zone-red-orange); }
+
+.stats-zone-team-chip.team-blue .stats-zone-team-name { color: var(--zone-blue); }
+.stats-zone-team-chip.team-green .stats-zone-team-name { color: var(--zone-green); }
+.stats-zone-team-chip.team-yellow .stats-zone-team-name { color: var(--zone-yellow); }
+.stats-zone-team-chip.team-grey .stats-zone-team-name { color: var(--zone-grey); }
+.stats-zone-team-chip.team-red-orange .stats-zone-team-name { color: var(--zone-red-orange); }
 
 
 /* Team Popularity Progress Bar by Zone */
