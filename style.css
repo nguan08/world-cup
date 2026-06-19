@@ -541,7 +541,9 @@ body {
 
   .live-match-card .match-score-row {
     flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
     gap: 4px !important;
+    white-space: nowrap !important;
   }
 
   .live-match-card .score-num {
@@ -5798,9 +5800,11 @@ html.pwa-standalone .mobile-header {
 .match-score-row {
   display: flex !important;
   flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
+  white-space: nowrap !important;
 }
 
 .score-num {
@@ -7138,7 +7142,9 @@ tr.leader-second-row {
 }
 
 .tools-sim-scores {
-  display: flex;
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   gap: 6px;
