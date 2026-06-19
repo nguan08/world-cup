@@ -467,29 +467,29 @@ body {
   }
 
   #recent-matches-card .live-matches-container.dashboard-matches-grid {
-    padding: 6px 12px 10px;
-    gap: 8px;
+    padding: 6px 10px 10px;
+    gap: 6px;
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    scroll-padding-inline: 12px;
+    scroll-padding-inline: 10px;
     touch-action: pan-x;
     cursor: default;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 1 card per swipe — room for score inputs without overlap */
+  /* 2 columns visible — swipe advances by pairs (JS step = 2) */
   #recent-matches-card .live-match-card {
-    flex: 0 0 calc(100% - 28px);
-    width: calc(100% - 28px);
-    min-width: calc(100% - 28px);
-    max-width: calc(100% - 28px);
+    flex: 0 0 calc(50% - 3px);
+    width: calc(50% - 3px);
+    min-width: calc(50% - 3px);
+    max-width: calc(50% - 3px);
     scroll-snap-align: start;
     scroll-snap-stop: normal;
     touch-action: pan-x;
-    padding: 10px 10px !important;
-    border-radius: 16px !important;
+    padding: 8px 6px !important;
+    border-radius: 14px !important;
     border: none !important;
   }
 
@@ -497,91 +497,93 @@ body {
     transform: none;
   }
 
-  .live-match-card .live-match-meta {
-    font-size: 8px;
-    margin-bottom: 2px;
-  }
-
-  .live-match-card .live-match-status {
+  #recent-matches-card .live-match-card .live-match-meta {
     font-size: 7px;
-    padding: 2px 5px;
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+    gap: 2px;
   }
 
-  .live-match-card .live-match-teams {
-    gap: 6px;
-    margin: 4px 0;
+  #recent-matches-card .live-match-card .live-match-meta-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
 
-  .live-match-card .team-flag {
-    width: 28px;
-    height: 28px;
+  #recent-matches-card .live-match-card .live-match-status {
+    font-size: 6px;
+    padding: 1px 4px;
   }
 
-  .live-match-card .live-match-vs {
-    font-size: 8px;
+  #recent-matches-card .live-match-card .live-match-teams {
+    display: none;
   }
 
-  .live-match-card .match-body-grid {
-    gap: 6px !important;
-    margin-top: 4px !important;
+  #recent-matches-card .live-match-card .match-body-grid {
+    gap: 4px !important;
+    margin-top: 2px !important;
     grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr) !important;
   }
 
-  .live-match-card .match-center-col {
+  #recent-matches-card .live-match-card .match-center-col {
     min-width: min-content !important;
     width: min-content !important;
     flex-shrink: 0 !important;
     z-index: 1;
   }
 
-  .live-match-card .match-team-col {
+  #recent-matches-card .live-match-card .match-team-col {
     overflow: hidden !important;
     min-width: 0 !important;
   }
 
-  .live-match-card .match-score-row {
+  #recent-matches-card .live-match-card .match-score-row {
     flex-shrink: 0 !important;
     flex-wrap: nowrap !important;
-    gap: 4px !important;
+    gap: 2px !important;
     white-space: nowrap !important;
   }
 
-  .live-match-card .score-num {
-    font-size: 18px !important;
+  #recent-matches-card .live-match-card .score-num {
+    font-size: 14px !important;
   }
 
-  .live-match-card .score-divider {
-    font-size: 10px !important;
+  #recent-matches-card .live-match-card .score-divider {
+    font-size: 9px !important;
   }
 
-  .live-match-card .team-badge {
-    font-size: 8px !important;
-    padding: 3px 3px !important;
-    border-radius: 4px !important;
-  }
-
-  .live-match-card .team-mult-label {
+  #recent-matches-card .live-match-card .team-badge {
     font-size: 7px !important;
+    padding: 2px 2px !important;
+    border-radius: 4px !important;
+    max-width: 100%;
   }
 
-  .live-match-card .score-sim-input {
-    width: 32px !important;
-    height: 32px !important;
-    font-size: 13px !important;
-    line-height: 32px !important;
+  #recent-matches-card .live-match-card .team-mult-label,
+  #recent-matches-card .live-match-card .team-group-label {
+    font-size: 6px !important;
+    line-height: 1.2;
+  }
+
+  #recent-matches-card .live-match-card .score-sim-input {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    line-height: 26px !important;
     flex-shrink: 0 !important;
     touch-action: manipulation;
   }
 
-  .live-match-card .match-pts-row {
+  #recent-matches-card .live-match-card .match-pts-row {
     justify-content: center !important;
-    gap: 6px !important;
+    gap: 4px !important;
     width: auto !important;
     max-width: 100% !important;
   }
 
-  .live-match-card .pts-label {
-    font-size: 7px !important;
+  #recent-matches-card .live-match-card .pts-label {
+    font-size: 6px !important;
   }
 }
 

@@ -597,6 +597,9 @@ function setupLiveMatchesCarousel() {
             closest = i;
           }
         });
+        if (this.isMobile() && closest % 2 === 1) {
+          closest = Math.max(0, closest - 1);
+        }
         return closest;
       },
 
@@ -748,25 +751,30 @@ function setupLiveMatchesCarousel() {
 
         this.pagination.classList.remove('is-hidden');
         const lm = this;
-        cards.forEach((_, i) => {
+        const pageCount = this.isMobile() ? Math.ceil(cards.length / 2) : cards.length;
+        for (let page = 0; page < pageCount; page++) {
+          const cardIndex = this.isMobile() ? page * 2 : page;
           const dot = document.createElement('button');
           dot.type = 'button';
           dot.className = 'carousel-dot';
           dot.setAttribute('role', 'tab');
-          dot.setAttribute('aria-label', `การแข่งขันที่ ${i + 1}`);
+          dot.setAttribute('aria-label', this.isMobile()
+            ? `หน้าการแข่งขัน ${page + 1}`
+            : `การแข่งขันที่ ${cardIndex + 1}`);
           dot.addEventListener('click', () => {
             lm.pauseAutoplayForUser();
-            lm.goToSlide(i, true);
+            lm.goToSlide(cardIndex, true);
           });
           this.pagination.appendChild(dot);
-        });
+        }
       },
 
       updatePagination() {
         if (!this.isCarouselActive() || !this.pagination || this.pagination.classList.contains('is-hidden')) return;
         const dots = this.pagination.querySelectorAll('.carousel-dot');
+        const activePage = this.isMobile() ? Math.floor(this.currentIndex / 2) : this.currentIndex;
         dots.forEach((dot, i) => {
-          const isActive = i === this.currentIndex;
+          const isActive = i === activePage;
           dot.classList.toggle('active', isActive);
           dot.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });
