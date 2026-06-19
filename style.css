@@ -2259,8 +2259,9 @@ table {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.players-teams-grid--filtered {
-  grid-template-columns: repeat(var(--players-team-cols, 5), minmax(0, 1fr));
+.players-team-badge--filter-match {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.15) !important;
+  filter: brightness(1.12);
 }
 
 .players-team-badge {

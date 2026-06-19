@@ -5559,15 +5559,7 @@ function renderPlayers() {
     filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
   }
 
-  const isTeamFilterActive = selectedTeams.length > 0;
-  const teamCols = isTeamFilterActive
-    ? Math.min(5, Math.max(1, selectedTeams.length))
-    : 5;
-
-  const teamsTh = document.getElementById('players-table')?.querySelector('.players-teams-th');
-  if (teamsTh) {
-    teamsTh.textContent = isTeamFilterActive ? `ทีม (${selectedTeams.length})` : 'ทีม (15)';
-  }
+  const selectedTeamsSet = new Set(selectedTeams);
 
   if (filtered.length === 0) {
     const emptyColspan = 3;
