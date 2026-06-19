@@ -48,17 +48,25 @@ export function initAdminState() {
   updateAdminUI();
 }
 
+function setBroadcastPanelVisible(visible) {
+  const broadcastPanel = document.getElementById('admin-broadcast-panel');
+  if (!broadcastPanel) return;
+  broadcastPanel.classList.toggle('admin-broadcast-panel--visible', visible);
+  broadcastPanel.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
 export function updateAdminUI() {
   const openAddPlayerBtn = document.getElementById('open-add-player-btn');
   const openAddMatchBtn = document.getElementById('open-add-match-btn');
   const adminLoginToggleBtn = document.getElementById('admin-login-toggle-btn');
   const resetAllBtn = document.getElementById('reset-all-btn');
-  const broadcastPanel = document.getElementById('admin-broadcast-panel');
+
+  document.documentElement.classList.toggle('is-admin', Boolean(app.isAdmin));
   
   if (app.isAdmin) {
     if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'block';
     if (openAddMatchBtn) openAddMatchBtn.style.display = 'block';
-    if (broadcastPanel) broadcastPanel.hidden = false;
+    setBroadcastPanelVisible(true);
     if (adminLoginToggleBtn) {
       adminLoginToggleBtn.textContent = 'ออก';
       adminLoginToggleBtn.classList.remove('btn-secondary');
@@ -76,7 +84,7 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = '';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'none';
-    if (broadcastPanel) broadcastPanel.hidden = true;
+    setBroadcastPanelVisible(false);
   }
 
 

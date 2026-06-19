@@ -13,7 +13,8 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=20260620-admin-broadcast">
+  <link rel="stylesheet" href="style.css?v=20260620-admin-broadcast2">
+  <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
 </head>
 <body>
 
@@ -108,7 +109,7 @@
             <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             เพิ่มผู้เล่นใหม่
           </button>
-          <div id="admin-broadcast-panel" class="admin-broadcast-panel" hidden>
+          <div id="admin-broadcast-panel" class="admin-broadcast-panel" aria-hidden="true">
             <div class="admin-broadcast-panel__label">ส่งแจ้งเตือนถึงทุกคน</div>
             <p class="admin-broadcast-panel__hint">เครื่องอื่นจะเห็นแถบม่วงด้านบนภายใน ~30 วินาที</p>
             <input type="text" id="admin-broadcast-message" class="admin-broadcast-panel__input" maxlength="200" placeholder="ข้อความ เช่น ผลอัปเดตแล้ว มาดูเลย!" autocomplete="off">
@@ -916,7 +917,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-push-mobile"></script>
+  <script type="module" src="js/main.js?v=20260620-admin-broadcast2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

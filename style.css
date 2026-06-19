@@ -3814,7 +3814,7 @@ html.has-broadcast-banner .main-content {
 }
 
 .admin-broadcast-panel {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 6px;
   padding: 10px;
@@ -3823,8 +3823,9 @@ html.has-broadcast-banner .main-content {
   background: rgba(99, 102, 241, 0.08);
 }
 
-.admin-broadcast-panel[hidden] {
-  display: none !important;
+html.is-admin .admin-broadcast-panel,
+.admin-broadcast-panel.admin-broadcast-panel--visible {
+  display: flex !important;
 }
 
 .admin-broadcast-panel__label {

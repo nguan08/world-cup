@@ -4474,6 +4474,7 @@ export function refreshActivePage() {
 document.addEventListener('DOMContentLoaded', async () => {
   registerRefreshPage(refreshActivePage);
   setRecalcHook(resetTeamPopularityCache);
+  initAdminState();
   initPWA();
   initNotifications();
   await initData();
@@ -4485,9 +4486,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, app.players table)
   attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
-  
-  // Initialize admin status
-  initAdminState();
   
   // Toggle Admin Login / Logout
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');
