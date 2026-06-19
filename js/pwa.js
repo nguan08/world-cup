@@ -1,5 +1,7 @@
 // PWA: service worker registration + install prompt
 
+const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
+
 let deferredInstallPrompt = null;
 let lastInstallTap = 0;
 
@@ -7,8 +9,15 @@ export function initPWA() {
   registerServiceWorker();
   setupInstallPrompt();
   ensureInstallModal();
+  applyStandaloneClass();
   refreshInstallButton();
+  renderPwaModeStatus();
   window.addEventListener('resize', refreshInstallButton);
+  window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
+    applyStandaloneClass();
+    renderPwaModeStatus();
+    refreshInstallButton();
+  });
 }
 
 function isStandaloneMode() {
@@ -44,6 +53,23 @@ function isMobileDevice() {
   return isIOS() || isAndroid() || isMobileLayout();
 }
 
+function isLocalOrLanHost() {
+  const host = location.hostname;
+  return host === 'localhost'
+    || host === '127.0.0.1'
+    || /^192\.168\./.test(host)
+    || /^10\./.test(host)
+    || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}
+
+function canInstallAsRealPwa() {
+  return window.isSecureContext && location.protocol === 'https:';
+}
+
+function applyStandaloneClass() {
+  document.documentElement.classList.toggle('pwa-standalone', isStandaloneMode());
+}
+
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
@@ -69,11 +95,13 @@ function setupInstallPrompt() {
     e.preventDefault();
     deferredInstallPrompt = e;
     refreshInstallButton();
+    renderPwaModeStatus();
   });
 
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
     refreshInstallButton();
+    renderPwaModeStatus();
   });
 }
 
@@ -107,10 +135,18 @@ function closeMobileSidebar() {
 async function onInstallButtonClick() {
   closeMobileSidebar();
 
+  if (!canInstallAsRealPwa()) {
+    showManualInstallHelp({ preferRedirect: true });
+    return;
+  }
+
   if (deferredInstallPrompt) {
     try {
       deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice?.outcome !== 'accepted') {
+        showManualInstallHelp();
+      }
     } catch (e) {
       console.warn('[PWA] Install prompt failed', e);
       showManualInstallHelp();
@@ -126,21 +162,44 @@ async function onInstallButtonClick() {
 function getInstallSteps() {
   const parts = [];
 
-  if (!window.isSecureContext) {
+  if (isStandaloneMode()) {
+    parts.push({
+      type: 'success',
+      html: '✅ เปิดจากแอปที่ติดตั้งแล้ว — ไม่มีแถบ URL ของ Chrome ด้านบน'
+    });
+    return parts;
+  }
+
+  if (!canInstallAsRealPwa()) {
     parts.push({
       type: 'warning',
-      html: '⚠️ ต้องเปิดผ่าน <strong>HTTPS</strong> ถึงจะติดตั้งแอปได้'
+      html: '⚠️ เปิดผ่าน <strong>HTTP</strong> (เช่น IP เครื่องเซิร์ฟเวอร์) จะได้แค่ <strong>ทางลัดเว็บ</strong> — หน้าตาเหมือนเดิม มีแถบ URL ของ Chrome'
+    });
+    parts.push({
+      type: 'info',
+      html: 'ติดตั้งแอปจริง (เต็มจอ ไม่มีแถบ URL) ต้องเปิดผ่าน <strong>HTTPS</strong> ก่อน:'
+    });
+    parts.push({
+      type: 'link',
+      url: PWA_INSTALL_URL,
+      label: PWA_INSTALL_URL
     });
   }
 
   if (isAndroid() && !isIOS()) {
     parts.push({
-      title: 'Android (Chrome)',
-      steps: [
-        'กด ⋮ มุมขวาบนของ Chrome',
-        'เลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"',
-        'กด "ติดตั้ง"'
-      ]
+      title: 'Android (Chrome) — ติดตั้งแอปจริง',
+      steps: canInstallAsRealPwa()
+        ? [
+            'กด ⋮ มุมขวาบน → เลือก <strong>"ติดตั้งแอป"</strong> (ไม่ใช่แค่ "เพิ่มไปยังหน้าจอหลัก")',
+            'กด "ติดตั้ง" แล้วเปิดจากไอคอน WC 2026 บนหน้าจอหลัก',
+            'ถ้าติดตั้งสำเร็จ: ไม่มีแถบ URL, สลับแอปเห็นเป็นแอปแยก (ไม่ใช่แท็บ Chrome)'
+          ]
+        : [
+            'เปิดลิงก์ HTTPS ด้านบนใน Chrome ก่อน',
+            'จากนั้นกด ⋮ → <strong>"ติดตั้งแอป"</strong>',
+            'อย่าใช้ "เพิ่มไปยังหน้าจอหลัก" จาก HTTP — จะได้แค่ทางลัดที่เปิดใน Chrome'
+          ]
     });
   } else if (isIOSChrome()) {
     parts.push({
@@ -155,17 +214,17 @@ function getInstallSteps() {
     parts.push({
       title: 'iPhone / iPad (Safari)',
       steps: [
-        'กดปุ่ม แชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่างหรือด้านบน',
+        'กดปุ่ม แชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น)',
         'เลื่อนลงแล้วเลือก "เพิ่มไปยังหน้าจอโฮม"',
-        'กด "เพิ่ม" มุมขวาบน'
+        'กด "เพิ่ม" มุมขวาบน — เปิดจากไอคอนจะไม่มีแถบ Safari'
       ]
     });
   } else if (isMobileLayout()) {
     parts.push({
       title: 'มือถือ / แท็บเล็ต',
       steps: [
-        'เปิดเมนูเบราว์เซอร์ (⋮ หรือ แชร์)',
-        'เลือก "เพิ่มไปยังหน้าจอหลัก" หรือ "ติดตั้งแอป"'
+        'เปิดผ่าน HTTPS ก่อน',
+        'เมนูเบราว์เซอร์ → "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"'
       ]
     });
   } else {
@@ -177,6 +236,16 @@ function getInstallSteps() {
       ]
     });
   }
+
+  parts.push({
+    type: 'check',
+    title: 'วิธีเช็คว่าติดตั้งสำเร็จ',
+    steps: [
+      'เปิดจากไอคอนบนหน้าจอหลัก (ไม่ใช่จากแท็บ Chrome)',
+      'ด้านบนไม่มีแถบ URL / ปุ่ม ⋮ ของ Chrome',
+      'กดปุ่มสลับแอป เห็นเป็นแอปแยก ไม่ใช่แท็บใน Chrome'
+    ]
+  });
 
   return parts;
 }
@@ -191,24 +260,20 @@ function ensureInstallModal() {
   overlay.style.justifyContent = 'center';
   overlay.style.alignItems = 'center';
   overlay.innerHTML = `
-    <div class="drawer" style="width: min(400px, 92vw); height: auto; max-height: 85vh; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(24px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 24px; overflow-y: auto;">
+    <div class="drawer pwa-install-modal" style="width: min(420px, 92vw); height: auto; max-height: 85vh; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(24px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 24px; overflow-y: auto;">
       <div class="drawer-header" style="margin-bottom: 16px; border-bottom: none; padding-bottom: 0;">
         <h2 style="font-size: 20px; color: var(--text-primary); margin: 0;">วิธีติดตั้งแอป</h2>
         <button type="button" class="close-btn" data-pwa-install-close aria-label="ปิด">×</button>
       </div>
-      <div data-pwa-install-body style="margin-bottom: 24px; color: var(--text-secondary); font-size: 14px; line-height: 1.6;"></div>
-      <div style="display: flex; gap: 12px; justify-content: flex-end;">
-        <button type="button" class="btn btn-primary" data-pwa-install-close style="padding: 10px 20px; font-size: 14px;">เข้าใจแล้ว</button>
-      </div>
+      <div data-pwa-install-body style="margin-bottom: 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.6;"></div>
+      <div data-pwa-install-actions style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;"></div>
     </div>
   `;
 
   const close = () => overlay.classList.remove('active');
-  overlay.querySelectorAll('[data-pwa-install-close]').forEach((el) => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      close();
-    });
+  overlay.querySelector('[data-pwa-install-close]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    close();
   });
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
@@ -217,16 +282,26 @@ function ensureInstallModal() {
   document.body.appendChild(overlay);
 }
 
-function showManualInstallHelp() {
+function showManualInstallHelp({ preferRedirect = false } = {}) {
   ensureInstallModal();
   const overlay = document.getElementById('pwa-install-modal-overlay');
   const body = overlay?.querySelector('[data-pwa-install-body]');
-  if (!overlay || !body) return;
+  const actions = overlay?.querySelector('[data-pwa-install-actions]');
+  if (!overlay || !body || !actions) return;
 
   const parts = getInstallSteps();
   body.innerHTML = parts.map((part) => {
-    if (part.type === 'warning') {
-      return `<p style="margin: 0 0 16px; padding: 12px; border-radius: 8px; background: rgba(251,191,36,0.15); color: #fbbf24;">${part.html}</p>`;
+    if (part.type === 'warning' || part.type === 'success' || part.type === 'info') {
+      const bg = part.type === 'success'
+        ? 'rgba(34,197,94,0.15)'
+        : part.type === 'info'
+          ? 'rgba(99,102,241,0.12)'
+          : 'rgba(251,191,36,0.15)';
+      const color = part.type === 'success' ? '#4ade80' : part.type === 'info' ? '#a5b4fc' : '#fbbf24';
+      return `<p style="margin: 0 0 12px; padding: 12px; border-radius: 8px; background: ${bg}; color: ${color};">${part.html}</p>`;
+    }
+    if (part.type === 'link') {
+      return `<p style="margin: 0 0 16px;"><a href="${part.url}" target="_blank" rel="noopener" style="color: #818cf8; word-break: break-all; font-weight: 600;">${part.label}</a></p>`;
     }
     const stepsHtml = part.steps.map((step, i) =>
       `<li style="margin-bottom: 8px;"><span style="color: var(--accent-primary); font-weight: 700;">${i + 1}.</span> ${step}</li>`
@@ -234,7 +309,52 @@ function showManualInstallHelp() {
     return `<p style="margin: 0 0 8px; font-weight: 700; color: var(--text-primary);">${part.title}</p><ol style="margin: 0 0 16px; padding-left: 20px;">${stepsHtml}</ol>`;
   }).join('');
 
+  const showOpenHttps = !canInstallAsRealPwa() || preferRedirect;
+  actions.innerHTML = `
+    ${showOpenHttps ? `<a class="btn btn-primary" href="${PWA_INSTALL_URL}" target="_blank" rel="noopener" style="padding: 10px 16px; font-size: 14px; text-decoration: none;">เปิดเวอร์ชัน HTTPS</a>` : ''}
+    <button type="button" class="btn btn-secondary" data-pwa-install-close style="padding: 10px 20px; font-size: 14px;">เข้าใจแล้ว</button>
+  `;
+  actions.querySelectorAll('[data-pwa-install-close]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      overlay.classList.remove('active');
+    });
+  });
+
   overlay.classList.add('active');
+}
+
+function renderPwaModeStatus() {
+  let box = document.getElementById('pwa-mode-status');
+  if (!box) {
+    const btn = document.getElementById('pwa-install-btn');
+    if (!btn) return;
+    box = document.createElement('div');
+    box.id = 'pwa-mode-status';
+    box.className = 'pwa-mode-status';
+    btn.parentElement?.insertBefore(box, btn);
+  }
+
+  if (isStandaloneMode()) {
+    box.className = 'pwa-mode-status pwa-mode-status--app';
+    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดแอป (ติดตั้งแล้ว)';
+    return;
+  }
+
+  if (!canInstallAsRealPwa() && isMobileDevice()) {
+    box.className = 'pwa-mode-status pwa-mode-status--warn';
+    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดเว็บ — ติดตั้งจริงต้องใช้ HTTPS';
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    box.className = 'pwa-mode-status pwa-mode-status--ready';
+    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> พร้อมติดตั้งแอป';
+    return;
+  }
+
+  box.className = 'pwa-mode-status pwa-mode-status--browser';
+  box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดเบราว์เซอร์';
 }
 
 function refreshInstallButton() {
@@ -245,6 +365,12 @@ function refreshInstallButton() {
 
   if (isStandaloneMode()) {
     btn.hidden = true;
+    return;
+  }
+
+  if (!canInstallAsRealPwa() && isMobileDevice()) {
+    btn.textContent = 'ติดตั้งแอป (เปิด HTTPS ก่อน)';
+    btn.hidden = false;
     return;
   }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v5';
+const CACHE_NAME = 'wc2026-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -68,6 +68,10 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstData(request) {
   try {
     const response = await fetch(request);
+    if (response.ok) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
     if (response.ok && request.url.includes('data.json')) {
       const clone = response.clone();
       const text = await clone.text();
