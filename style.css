@@ -2050,6 +2050,7 @@ table {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0;
+  min-height: calc(100vh - 120px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -2062,6 +2063,21 @@ table {
   max-width: 100% !important;
   min-width: 0;
   box-sizing: border-box;
+}
+
+#players .players-card__table-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 280px);
+}
+
+#players .players-table-container {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 300px);
 }
 
 #players .players-card__toolbar.search-bar {
@@ -2184,31 +2200,23 @@ table {
   width: 100% !important;
 }
 
-#players .players-card--empty {
-  min-height: calc(100vh - 120px);
+#players .players-card--empty .players-table-hint {
+  display: none;
 }
 
-#players .players-card--empty .players-card__table-wrap--empty {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 280px);
-}
-
-#players .players-card--empty .players-table-hint,
-#players .players-card--empty .players-table-container--empty {
-  display: none !important;
+#players .players-table-container--empty {
+  min-height: calc(100vh - 300px);
 }
 
 #players .players-filter-empty-panel {
-  flex: 1 1 auto;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: calc(100vh - 300px);
+  min-height: 100%;
   margin: 0;
-  border-top: 1px solid var(--border-subtle);
   background: rgba(15, 23, 42, 0.22);
 }
 

@@ -1234,17 +1234,20 @@ function setPlayersFilterEmptyState(isEmpty) {
   tableWrap.classList.toggle('players-card__table-wrap--empty', isEmpty);
   container.classList.toggle('players-table-container--empty', isEmpty);
 
-  let panel = tableWrap.querySelector('.players-filter-empty-panel');
+  tableWrap.querySelector('.players-filter-empty-panel')?.remove();
+
+  let panel = container.querySelector('.players-filter-empty-panel');
   if (isEmpty) {
     if (!panel) {
       panel = document.createElement('div');
       panel.className = 'players-filter-empty-panel';
       panel.setAttribute('role', 'status');
       panel.innerHTML = '<p class="players-filter-empty-message">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</p>';
-      tableWrap.appendChild(panel);
+      container.appendChild(panel);
     }
     panel.hidden = false;
-    container.hidden = true;
+    table.hidden = true;
+    container.hidden = false;
   } else {
     if (panel) panel.hidden = true;
     container.hidden = false;
