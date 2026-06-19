@@ -6960,11 +6960,17 @@ tr.leader-second-row {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.compare-bench-hint,
+.compare-bench-empty {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 .compare-bench-empty {
   padding: 28px 16px;
   text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
 }
 
 .compare-bench-verdict {
@@ -7753,11 +7759,7 @@ tr.leader-second-row {
 }
 
 .tools-sim-header__hint {
-  margin: 4px 0 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  line-height: 1.45;
+  margin: 3px 0 0;
 }
 
 .tools-clear-sim-btn {
@@ -8175,6 +8177,11 @@ td.tools-sim-scores {
   }
 
   .compare-bench-player-name {
+    font-size: 12px;
+  }
+
+  .compare-bench-hint,
+  .compare-bench-empty {
     font-size: 12px;
   }
 
