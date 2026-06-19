@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v15';
+const CACHE_NAME = 'wc2026-v16';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -183,7 +183,6 @@ self.addEventListener('push', (event) => {
       icon: iconUrl(),
       badge: iconUrl(),
       tag: payload.tag || 'wc-broadcast-push',
-      renotify: true,
       data: { url: payload.url || './' }
     })
   );

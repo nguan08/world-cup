@@ -233,11 +233,13 @@ function getInstallSteps() {
     });
   } else if (isIOS()) {
     parts.push({
-      title: 'iPhone / iPad (Safari)',
+      title: 'iPhone / iPad — แจ้งเตือนนอกแอป (ต้องใช้ Safari)',
       steps: [
-        'กดปุ่ม แชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น)',
-        'เลื่อนลงแล้วเลือก "เพิ่มไปยังหน้าจอโฮม"',
-        'กด "เพิ่ม" มุมขวาบน — เปิดจากไอคอนจะไม่มีแถบ Safari'
+        'เปิดเว็บนี้ใน <strong>Safari</strong> (Chrome บน iPhone ไม่รองรับ Push)',
+        'กดปุ่ม แชร์ → "เพิ่มไปยังหน้าจอโฮม"',
+        'เปิดจากไอคอน WC 2026 บนหน้าจอหลัก (ไม่ใช่แท็บ Safari)',
+        'ในแอป: เปิด sidebar → กด "เปิดการแจ้งเตือน"',
+        'ต้องใช้ iOS 16.4 ขึ้นไป'
       ]
     });
   } else if (isMobileLayout()) {

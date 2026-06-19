@@ -1,7 +1,14 @@
 // In-app toast + browser notifications for data updates
 
 import { resolveAppPath } from './app-path.js';
-import { canUseWebNotifications, isIOS, isMobileDevice, isStandalonePWA } from './device.js';
+import {
+  canUseWebNotifications,
+  getIOSPushBlockReason,
+  isIOS,
+  isIOSChrome,
+  isMobileDevice,
+  isStandalonePWA
+} from './device.js';
 import {
   isPushRegisteredLocally,
   showLocalPushTestNotification,
@@ -10,6 +17,7 @@ import {
 
 let toastTimer = null;
 let currentBannerId = 0;
+let notifRefreshUi = null;
 
 const SHOWN_BROADCAST_KEY = 'worldcup_shownBroadcastId';
 const PENDING_BROADCAST_KEY = 'worldcup_pendingBroadcast';
@@ -24,6 +32,8 @@ export function initNotifications() {
   ensureToastElement();
   bindBroadcastBannerClose();
   renderNotificationControls();
+  setupIOSPushBanner();
+  setupIOSPushListeners();
   flushPendingBroadcast();
 
   if ('serviceWorker' in navigator) {
@@ -280,18 +290,42 @@ function ensureToastElement() {
   return toast;
 }
 
-function pushStatusLabel(perm, pushResult = null) {
-  if (perm === 'unsupported') {
-    return isIOS() && !isStandalonePWA()
-      ? 'iOS: ติดตั้งแอปก่อน แล้วกดเปิดแจ้งเตือน'
-      : 'เบราว์เซอร์ไม่รองรับแจ้งเตือนนอกแอป';
+function iosPushStatusText() {
+  const block = getIOSPushBlockReason();
+  if (block === 'ios-use-safari') {
+    return 'iPhone: เปิดใน Safari แล้วเพิ่มไปหน้าจอโฮม (Chrome ไม่รองรับ Push)';
   }
-  if (perm === 'denied') return 'ถูกปฏิเสธ — เปิดในการตั้งค่าเบราว์เซอร์';
+  if (block === 'ios-need-pwa') {
+    return 'iPhone: ติดตั้งแอปก่อน แล้วเปิดจากไอคอนบนหน้าจอหลัก';
+  }
+  if (block === 'ios-need-update') {
+    return 'iPhone: ต้องอัปเดต iOS เป็น 16.4 ขึ้นไป';
+  }
+  if (isIOS() && isStandalonePWA()) {
+    return 'โหมดแอป iPhone — กดเปิดแจ้งเตือนด้านล่าง';
+  }
+  return '';
+}
+
+function pushStatusLabel(perm, pushResult = null) {
+  const iosText = iosPushStatusText();
+  if (perm === 'unsupported') {
+    return iosText || 'เบราว์เซอร์ไม่รองรับแจ้งเตือนนอกแอป';
+  }
+  if (perm === 'denied') {
+    return isIOS()
+      ? 'ถูกปฏิเสธ — ไปที่ ตั้งค่า → แจ้งเตือน → WC 2026'
+      : 'ถูกปฏิเสธ — เปิดในการตั้งค่าเบราว์เซอร์';
+  }
   if (perm !== 'granted') {
+    if (iosText) return iosText;
     return isMobileDevice() ? 'กดเปิดเพื่อรับแจ้งเตือนนอกแอป' : 'ยังไม่ได้เปิด';
   }
-  if (pushResult?.reason === 'ios-need-pwa') {
-    return 'อนุญาตแล้ว — ติดตั้งแอปก่อนเพื่อ Push นอกแอป';
+  if (pushResult?.reason === 'ios-need-pwa' || pushResult?.reason === 'ios-use-safari') {
+    return iosPushStatusText() || 'ติดตั้งแอปก่อนเพื่อ Push นอกแอป';
+  }
+  if (pushResult?.reason === 'ios-need-update') {
+    return 'ต้องอัปเดต iOS เป็น 16.4 ขึ้นไป';
   }
   if (pushResult?.reason === 'save-failed') {
     return `ลงทะเบียน Push ไม่สำเร็จ — ลองอีกครั้ง`;
@@ -315,7 +349,10 @@ function renderNotificationControls() {
 
     if (perm === 'unsupported') {
       btn.disabled = false;
-      btn.textContent = isIOS() && !isStandalonePWA() ? 'วิธีติดตั้งแอป' : 'ดูแถบแจ้งเตือนด้านบน';
+      const block = getIOSPushBlockReason();
+      if (block === 'ios-use-safari') btn.textContent = 'เปิดใน Safari';
+      else if (block) btn.textContent = 'วิธีติดตั้งแอป (iPhone)';
+      else btn.textContent = 'ดูแถบแจ้งเตือนด้านบน';
       return;
     }
     if (perm === 'denied') {
@@ -332,13 +369,21 @@ function renderNotificationControls() {
     btn.textContent = perm === 'granted' ? 'ลงทะเบียน Push นอกแอป' : 'เปิดการแจ้งเตือน';
   };
 
+  notifRefreshUi = refreshUi;
   refreshUi();
 
   btn.addEventListener('click', async () => {
     const perm = getNotificationPermission();
 
     if (perm === 'unsupported') {
-      if (isIOS() && !isStandalonePWA()) {
+      const block = getIOSPushBlockReason();
+      if (block === 'ios-use-safari') {
+        window.open('https://nguan08.github.io/world-cup/', '_blank', 'noopener');
+        notifyDataUpdate({
+          type: 'test',
+          message: 'เปิดลิงก์ใน Safari แล้วกด แชร์ → เพิ่มไปหน้าจอโฮม'
+        });
+      } else if (block) {
         import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
       } else {
         notifyDataUpdate({ type: 'broadcast', message: '📢 แจ้งเตือนในแอปทำงาน — ดูแถบสีม่วงด้านบน' });
@@ -377,9 +422,18 @@ function renderNotificationControls() {
       return;
     }
 
-    if (push.reason === 'ios-need-pwa') {
-      import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
-      notifyDataUpdate({ type: 'test', message: 'iPhone ต้องติดตั้งแอปก่อน จึงจะได้ Push นอกแอป' });
+    if (push.reason === 'ios-need-pwa' || push.reason === 'ios-use-safari' || push.reason === 'ios-need-update') {
+      if (push.reason === 'ios-use-safari') {
+        window.open('https://nguan08.github.io/world-cup/', '_blank', 'noopener');
+      } else {
+        import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
+      }
+      notifyDataUpdate({
+        type: 'test',
+        message: push.reason === 'ios-need-update'
+          ? 'อัปเดต iOS เป็น 16.4+ แล้วเปิดจากไอคอนแอปอีกครั้ง'
+          : 'iPhone: ติดตั้งจาก Safari แล้วเปิดจากไอคอน จึงจะได้ Push นอกแอป'
+      });
       return;
     }
 
@@ -390,6 +444,129 @@ function renderNotificationControls() {
         : 'ลงทะเบียน Push ไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'
     });
   });
+}
+
+function setupIOSPushListeners() {
+  if (!isIOS()) return;
+  const refresh = () => {
+    renderIOSPushBanner();
+    notifRefreshUi?.();
+  };
+  ['standalone', 'fullscreen', 'minimal-ui'].forEach((mode) => {
+    window.matchMedia(`(display-mode: ${mode})`).addEventListener('change', refresh);
+  });
+  window.addEventListener('pageshow', refresh);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh();
+  });
+}
+
+function renderIOSPushBanner() {
+  if (!isIOS()) return;
+  const block = getIOSPushBlockReason();
+  let bar = document.getElementById('ios-push-hint-bar');
+  if (!block) {
+    if (bar) {
+      bar.hidden = true;
+      bar.classList.remove('ios-push-hint-bar--visible');
+    }
+    document.documentElement.classList.remove('has-ios-push-hint');
+    return;
+  }
+
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'ios-push-hint-bar';
+    bar.className = 'ios-push-hint-bar';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML = `
+      <div class="ios-push-hint-bar__inner">
+        <span class="ios-push-hint-bar__icon" aria-hidden="true">📱</span>
+        <p class="ios-push-hint-bar__text" id="ios-push-hint-text"></p>
+        <button type="button" class="ios-push-hint-bar__btn" id="ios-push-hint-action">วิธีติดตั้ง</button>
+      </div>
+    `;
+    const broadcastBar = document.getElementById('broadcast-alert-bar');
+    if (broadcastBar?.parentNode) {
+      broadcastBar.parentNode.insertBefore(bar, broadcastBar.nextSibling);
+    } else {
+      document.body.prepend(bar);
+    }
+    injectIOSPushStyles();
+    bar.querySelector('#ios-push-hint-action')?.addEventListener('click', () => {
+      if (getIOSPushBlockReason() === 'ios-use-safari') {
+        window.open('https://nguan08.github.io/world-cup/', '_blank', 'noopener');
+      } else {
+        import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
+      }
+    });
+  }
+
+  const textEl = bar.querySelector('#ios-push-hint-text');
+  if (textEl) textEl.textContent = iosPushStatusText();
+  const actionBtn = bar.querySelector('#ios-push-hint-action');
+  if (actionBtn) {
+    actionBtn.textContent = getIOSPushBlockReason() === 'ios-use-safari' ? 'เปิด Safari' : 'วิธีติดตั้ง';
+  }
+  bar.hidden = false;
+  document.documentElement.classList.add('has-ios-push-hint');
+  requestAnimationFrame(() => bar.classList.add('ios-push-hint-bar--visible'));
+}
+
+function setupIOSPushBanner() {
+  renderIOSPushBanner();
+}
+
+function injectIOSPushStyles() {
+  if (document.getElementById('ios-push-hint-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'ios-push-hint-styles';
+  style.textContent = `
+    .ios-push-hint-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 99998;
+      padding: max(10px, env(safe-area-inset-top, 10px)) 12px 10px;
+      background: linear-gradient(135deg, rgba(30, 64, 175, 0.96), rgba(67, 56, 202, 0.96));
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+    .ios-push-hint-bar--visible { transform: translateY(0); }
+    .ios-push-hint-bar__inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .ios-push-hint-bar__text {
+      flex: 1;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #fff;
+      font-weight: 600;
+    }
+    .ios-push-hint-bar__btn {
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    html.has-ios-push-hint { scroll-padding-top: 56px; }
+    html.has-ios-push-hint .mobile-header { top: 52px; }
+    html.has-ios-push-hint.has-broadcast-banner .mobile-header { top: 104px; }
+  `;
+  document.head.appendChild(style);
 }
 
 function injectToastStyles() {

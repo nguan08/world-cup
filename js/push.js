@@ -3,7 +3,7 @@ import { GITHUB_PUSH_SUBS_FILE } from './github-config.js';
 import { getGitHubWriteToken } from './admin.js';
 import { app } from './state.js';
 import { fetchGitHubJsonFile, putGitHubJsonFile, githubAuthHeaders } from './github-api.js';
-import { isStandalonePWA, isIOS } from './device.js';
+import { canUseWebPush, getIOSPushBlockReason, isIOS } from './device.js';
 import { waitForServiceWorker } from './pwa.js';
 
 const LOCAL_SUB_KEY = 'worldcup_push_endpoint';
@@ -37,11 +37,10 @@ function isShaConflict(err) {
 }
 
 export async function subscribeAndRegisterPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!canUseWebPush()) {
+    const iosBlock = getIOSPushBlockReason();
+    if (iosBlock) return { ok: false, reason: iosBlock };
     return { ok: false, reason: 'unsupported' };
-  }
-  if (isIOS() && !isStandalonePWA()) {
-    return { ok: false, reason: 'ios-need-pwa' };
   }
   if (Notification.permission !== 'granted') {
     return { ok: false, reason: 'no-permission' };
