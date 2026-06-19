@@ -13,7 +13,7 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=20260620-live-match-2col">
+  <link rel="stylesheet" href="style.css?v=20260620-tools-sim-premium">
 </head>
 <body>
   
@@ -584,16 +584,35 @@
             </div>
           </div>
 
-          <div class="card tools-section tools-section--wide" id="tools-sim-section">
+          <div class="card tools-section tools-section--wide tools-section--sim" id="tools-sim-section">
             <div class="tools-sim-header">
-              <div class="card-title tools-section-title">จำลองผล <span class="tools-sim-hint">กรอกสกอร์นัดที่ยังไม่จบ — ไม่บันทึกลงระบบ</span></div>
-              <button type="button" class="btn btn-secondary tools-clear-sim-btn" id="tools-clear-sim-btn">ล้างจำลอง</button>
+              <div class="tools-sim-header__brand">
+                <div class="tools-sim-header__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+                </div>
+                <div class="tools-sim-header__copy">
+                  <div class="tools-sim-header__title-row">
+                    <h2 class="tools-sim-header__title">จำลองผล</h2>
+                    <span class="tools-sim-header__badge" id="tools-sim-count-badge" hidden>0 นัด</span>
+                  </div>
+                  <p class="tools-sim-header__hint">กรอกสกอร์นัดที่ยังไม่จบ — ไม่บันทึกลงระบบ</p>
+                </div>
+              </div>
+              <button type="button" class="tools-clear-sim-btn" id="tools-clear-sim-btn" disabled aria-label="ล้างการจำลองทั้งหมด">
+                <svg class="tools-clear-sim-btn__icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                <span>ล้างจำลอง</span>
+              </button>
             </div>
-            <div id="tools-sim-matches" class="tools-sim-matches"></div>
+            <div class="tools-sim-panel">
+              <div id="tools-sim-matches" class="tools-sim-matches"></div>
+            </div>
             <div id="tools-sim-delta-wrap" class="tools-sim-delta-wrap" style="display:none;">
-              <div class="tools-sim-delta-title">ผลกระทบต่ออันดับ</div>
-              <div class="table-container">
-                <table id="tools-sim-delta-table" class="data-table tools-compact-table">
+              <div class="tools-sim-delta-head">
+                <span class="tools-sim-delta-kicker">Impact</span>
+                <div class="tools-sim-delta-title">ผลกระทบต่ออันดับ</div>
+              </div>
+              <div class="table-container tools-sim-delta-table-wrap">
+                <table id="tools-sim-delta-table" class="data-table tools-compact-table tools-sim-delta-table">
                   <thead>
                     <tr>
                       <th>ผู้เล่น</th>
@@ -885,7 +904,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-constants-fix"></script>
+  <script type="module" src="js/main.js?v=20260620-tools-sim-premium"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

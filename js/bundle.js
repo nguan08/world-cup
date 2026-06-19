@@ -3431,6 +3431,20 @@ function renderToolsCompareResult() {
   `;
 }
 
+function updateToolsSimChrome(simCount) {
+  const clearBtn = document.getElementById('tools-clear-sim-btn');
+  const badge = document.getElementById('tools-sim-count-badge');
+  if (clearBtn) clearBtn.disabled = simCount === 0;
+  if (badge) {
+    if (simCount > 0) {
+      badge.hidden = false;
+      badge.textContent = `${simCount} นัด`;
+    } else {
+      badge.hidden = true;
+    }
+  }
+}
+
 function renderToolsSimulator() {
   const matchesEl = document.getElementById('tools-sim-matches');
   const deltaWrap = document.getElementById('tools-sim-delta-wrap');
@@ -3453,7 +3467,8 @@ function renderToolsSimulator() {
   });
 
   if (pending.length === 0) {
-    matchesEl.innerHTML = '<p class="tools-empty-hint">ไม่มีนัดที่รอแข่ง — จำลองผลไม่ได้ในขณะนี้</p>';
+    matchesEl.innerHTML = '<p class="tools-sim-empty">ไม่มีนัดที่รอแข่ง — จำลองผลไม่ได้ในขณะนี้</p>';
+    updateToolsSimChrome(0);
     if (deltaWrap) deltaWrap.style.display = 'none';
     return;
   }
@@ -3502,7 +3517,9 @@ function renderToolsSimulator() {
   matchesEl.innerHTML = '';
   matchesEl.appendChild(tableWrap);
 
-  const hasSim = Object.keys(app.simulationScores).length > 0;
+  const simCount = Object.keys(app.simulationScores).length;
+  updateToolsSimChrome(simCount);
+  const hasSim = simCount > 0;
   if (!deltaWrap || !deltaTbody) return;
   if (!hasSim) {
     deltaWrap.style.display = 'none';
