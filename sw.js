@@ -1,26 +1,32 @@
-const CACHE_NAME = 'wc2026-v6';
+const CACHE_NAME = 'wc2026-v7';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/js/main.js',
-  '/js/bundle.js',
-  '/js/constants.js',
-  '/js/state.js',
-  '/js/utils.js',
-  '/js/scoring.js',
-  '/js/sync.js',
-  '/js/persist.js',
-  '/js/admin.js',
-  '/js/notifications.js',
-  '/js/pwa.js',
-  '/favicon.svg',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  'index.html',
+  'style.css',
+  'js/main.js',
+  'js/bundle.js',
+  'js/constants.js',
+  'js/state.js',
+  'js/utils.js',
+  'js/scoring.js',
+  'js/sync.js',
+  'js/persist.js',
+  'js/admin.js',
+  'js/notifications.js',
+  'js/pwa.js',
+  'js/app-path.js',
+  'favicon.svg',
+  'manifest.webmanifest',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
 ];
 
 let lastDataHash = '';
+
+function iconUrl() {
+  const base = self.registration?.scope || self.location.href.replace(/sw\.js.*$/, '');
+  return new URL('icons/icon-192.png', base).href;
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,14 +44,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.pathname === '/data.json' || url.pathname.startsWith('/api/')) {
+  if (url.pathname.endsWith('/data.json') || url.pathname.includes('/api/')) {
     event.respondWith(networkFirstData(event.request));
     return;
   }
   if (event.request.method !== 'GET') return;
 
-  // Always fetch JS modules from network first (avoid stale bundles after deploy)
-  if (url.pathname.startsWith('/js/')) {
+  if (url.pathname.includes('/js/')) {
     event.respondWith(
       fetch(event.request)
         .then((res) => {
@@ -80,8 +85,8 @@ async function networkFirstData(request) {
         await notifyClients('มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่');
         await self.registration.showNotification('World Cup 2026 — อัปเดตข้อมูล', {
           body: 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่',
-          icon: '/icons/icon-192.png',
-          badge: '/icons/icon-192.png',
+          icon: iconUrl(),
+          badge: iconUrl(),
           tag: 'wc-data-update',
           renotify: true
         });

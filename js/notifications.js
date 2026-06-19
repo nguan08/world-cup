@@ -1,5 +1,7 @@
 // In-app toast + browser notifications for data updates
 
+import { resolveAppPath } from './app-path.js';
+
 let permissionRequested = false;
 let toastTimer = null;
 
@@ -44,8 +46,8 @@ export function notifyDataUpdate({ type = 'data', message } = {}) {
     try {
       const n = new Notification('World Cup 2026 — อัปเดตข้อมูล', {
         body: text,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
+        icon: resolveAppPath('icons/icon-192.png'),
+        badge: resolveAppPath('icons/icon-192.png'),
         tag: 'wc-data-update',
         renotify: true
       });

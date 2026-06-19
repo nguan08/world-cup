@@ -1,5 +1,7 @@
 // PWA: service worker registration + install prompt
 
+import { getAppBasePath, resolveAppPath } from './app-path.js';
+
 const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
 
 let deferredInstallPrompt = null;
@@ -73,7 +75,9 @@ function applyStandaloneClass() {
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const reg = await navigator.serviceWorker.register(resolveAppPath('sw.js'), {
+      scope: getAppBasePath()
+    });
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
       if (!worker) return;
