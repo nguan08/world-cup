@@ -2476,6 +2476,30 @@ function renderPlayers() {
     filtered = filtered.filter(p => p.teams && selectedTeams.every(t => p.teams.includes(t)));
   }
 
+  const isTeamFilterActive = selectedTeams.length > 0;
+  const teamCols = isTeamFilterActive
+    ? (selectedTeams.length <= 5 ? Math.max(1, selectedTeams.length) : 5)
+    : 5;
+
+  const table = document.getElementById('players-table');
+  const tableContainer = table?.closest('.table-container');
+  const teamsTh = table?.querySelector('.players-teams-th');
+
+  if (table) {
+    table.classList.toggle('players-table--filtered', isTeamFilterActive);
+    if (isTeamFilterActive) {
+      table.style.setProperty('--players-team-cols', String(teamCols));
+    } else {
+      table.style.removeProperty('--players-team-cols');
+    }
+  }
+  if (tableContainer) {
+    tableContainer.classList.toggle('players-table-container--filtered', isTeamFilterActive);
+  }
+  if (teamsTh) {
+    teamsTh.textContent = isTeamFilterActive ? `ทีม (${selectedTeams.length})` : 'ทีม (15)';
+  }
+
   filtered.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
@@ -2497,8 +2521,15 @@ function renderPlayers() {
 
     const badgesWrapper = document.createElement('div');
     badgesWrapper.className = 'players-teams-grid';
+    if (isTeamFilterActive) {
+      badgesWrapper.style.setProperty('--players-team-cols', String(teamCols));
+    }
 
-    p.teamBreakdown.forEach(tb => {
+    const teamsToShow = isTeamFilterActive
+      ? p.teamBreakdown.filter(tb => selectedTeams.includes(tb.name))
+      : p.teamBreakdown;
+
+    teamsToShow.forEach(tb => {
       const badge = document.createElement('span');
       badge.className = `team-badge team-${tb.zone} players-team-badge`;
       badge.dataset.team = tb.name;
@@ -3053,7 +3084,7 @@ function renderPayoutRosterItem(p) {
     ? `<span class="payout-roster-item__amount payout-roster-item__amount--due ${tier}">+฿${p.payout.toLocaleString('th-TH')}</span>`
     : `<span class="payout-roster-item__amount payout-roster-item__amount--free">ฟรี</span>`;
   return `
-    <div class="payout-roster-item payout-roster-item--zone-${zoneCls} ${p.payout > 0 ? 'payout-roster-item--due' : 'payout-roster-item--free'}" role="listitem" title="${escapeHtml(p.payoutLabel)}">
+    <div class="payout-roster-item payout-roster-item--zone-${zoneCls} ${p.payout > 0 ? 'payout-roster-item--due' : 'payout-roster-item--free'}" role="listitem" title="${escapeHtml(p.payoutLabel || '')}">
       <div class="payout-roster-item__rank-badge payout-roster-item__rank-badge--${zoneCls}">
         <span class="payout-roster-item__rank-label">#</span>
         <span class="payout-roster-item__rank-num">${p.rank}</span>
