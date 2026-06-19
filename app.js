@@ -3405,7 +3405,7 @@ function buildLiveMatchCard(m, index, options = {}) {
   const todayStr = options.todayStr || new Date().toISOString().split('T')[0];
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
-  if (mode === 'matches') card.classList.add('matches-page-card');
+  if (mode === 'matches' || mode === 'live') card.classList.add('matches-page-card');
   card.dataset.matchId = String(m.id);
 
   const isSimulated = simulationScores[m.id];
@@ -3471,9 +3471,14 @@ function buildLiveMatchCard(m, index, options = {}) {
       </div>
     `;
   } else {
-    const isToday = m.date === todayStr;
-    const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
-    metaLeft = `${dateLabel} · ${m.date}`;
+    if (mode === 'live') {
+      const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
+      metaLeft = `${dateLabel} · แมตช์ที่ ${m.id} · ${getMatchRoundLabel(m)}`;
+    } else {
+      const isToday = m.date === todayStr;
+      const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
+      metaLeft = `${dateLabel} · ${m.date}`;
+    }
     statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
     statusChipClass = isFinished ? 'finished' : (isSimulated ? 'simulated' : 'pending');
 
@@ -3575,8 +3580,7 @@ function renderRecentMatches() {
   });
 
   container.className = 'live-matches-container dashboard-matches-grid';
-  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'matches' })));
-  setupMatchCardListeners();
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'live' })));
   setupLiveMatchesCarousel();
 }
 
