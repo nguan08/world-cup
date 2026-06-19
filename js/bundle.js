@@ -2987,10 +2987,21 @@ function getPayoutTierClass(amount) {
 
 function renderPayoutAmountChip(amount) {
   if (!amount) {
-    return '<span class="payout-amount-chip payout-amount-chip--free">ไม่ต้องจ่าย</span>';
+    return '<span class="payout-amount-chip payout-amount-chip--free">—</span>';
   }
   const tier = getPayoutTierClass(amount);
   return `<span class="payout-amount-chip payout-amount-chip--due ${tier}">฿${amount.toLocaleString('th-TH')}</span>`;
+}
+
+function getPayoutShortLabel(p) {
+  if (!p.payout) return 'ไม่ต้องจ่าย';
+  if (p.payout >= 1500) return 'บ๊วย';
+  if (p.payout >= 1200) return 'รองบ๊วย';
+  if (p.payoutLabel.includes('ยกเว้น')) return 'ยกเว้น Red';
+  if (p.payoutLabel.includes('Green')) return 'Green avg';
+  if (p.payoutLabel.includes('ทั้งหมด')) return 'avg รวม';
+  if (p.payoutLabel.includes('สิทธิ์')) return 'Blue Zone';
+  return 'Red Zone';
 }
 
 function renderPayout() {
@@ -3006,40 +3017,16 @@ function renderPayout() {
   const count1500 = paying.filter(p => p.payout === 1500).length;
 
   summaryEl.innerHTML = `
-    <div class="payout-stat payout-stat--hero">
-      <div class="payout-stat__glow" aria-hidden="true"></div>
-      <div class="payout-stat__icon" aria-hidden="true">💰</div>
-      <div class="payout-stat__body">
-        <span class="payout-stat__label">รวมเก็บได้</span>
-        <strong class="payout-stat__value">${totalCollected.toLocaleString('th-TH')}<small>บาท</small></strong>
+    <div class="payout-summary-bar">
+      <div class="payout-summary-bar__main">
+        <span class="payout-kpi payout-kpi--total">รวม <strong>${totalCollected.toLocaleString('th-TH')}</strong> บาท</span>
+        <span class="payout-kpi-dot" aria-hidden="true">·</span>
+        <span class="payout-kpi payout-kpi--count">ต้องจ่าย <strong>${paying.length}</strong> คน</span>
       </div>
-    </div>
-    <div class="payout-stat payout-stat--count">
-      <div class="payout-stat__icon" aria-hidden="true">👥</div>
-      <div class="payout-stat__body">
-        <span class="payout-stat__label">ต้องจ่าย</span>
-        <strong class="payout-stat__value">${paying.length}<small>คน</small></strong>
-      </div>
-    </div>
-    <div class="payout-stat payout-stat--tier payout-stat--tier-1000">
-      <div class="payout-stat__icon" aria-hidden="true">🪙</div>
-      <div class="payout-stat__body">
-        <span class="payout-stat__label">ระดับ 1,000</span>
-        <strong class="payout-stat__value">${count1000}<small>คน</small></strong>
-      </div>
-    </div>
-    <div class="payout-stat payout-stat--tier payout-stat--tier-1200">
-      <div class="payout-stat__icon" aria-hidden="true">🍑</div>
-      <div class="payout-stat__body">
-        <span class="payout-stat__label">รองบ๊วย 1,200</span>
-        <strong class="payout-stat__value">${count1200}<small>คน</small></strong>
-      </div>
-    </div>
-    <div class="payout-stat payout-stat--tier payout-stat--tier-1500">
-      <div class="payout-stat__icon" aria-hidden="true">🍋</div>
-      <div class="payout-stat__body">
-        <span class="payout-stat__label">บ๊วย 1,500</span>
-        <strong class="payout-stat__value">${count1500}<small>คน</small></strong>
+      <div class="payout-summary-bar__tiers">
+        <span class="payout-tier-chip payout-tier-chip--1000">฿1,000 <strong>${count1000}</strong></span>
+        <span class="payout-tier-chip payout-tier-chip--1200">฿1,200 <strong>${count1200}</strong></span>
+        <span class="payout-tier-chip payout-tier-chip--1500">฿1,500 <strong>${count1500}</strong></span>
       </div>
     </div>
   `;
@@ -3055,20 +3042,19 @@ function renderPayout() {
     } else {
       tr.classList.add('payout-row--free');
     }
-    const labelClass = p.payout >= 1500
-      ? 'payout-detail-tag payout-detail-tag--plum'
-      : p.payout >= 1200
-        ? 'payout-detail-tag payout-detail-tag--orange'
-        : p.payout > 0
-          ? 'payout-detail-tag payout-detail-tag--amber'
-          : 'payout-detail-tag payout-detail-tag--free';
+    const shortLabel = getPayoutShortLabel(p);
+    tr.title = p.payoutLabel;
     tr.innerHTML = `
-      <td data-label="อันดับ" class="payout-rank-cell">${p.rank}</td>
-      <td data-label="ผู้เล่น" class="payout-player-cell">${escapeHtml(p.name)}</td>
-      <td data-label="โซน" class="payout-zone-cell"><span class="badge badge-${zoneCls}">${formatZoneDisplayLabel(p.zone)}</span></td>
-      <td data-label="คะแนนรวม" class="payout-score-cell">${p.totalScore.toFixed(1)}</td>
-      <td data-label="จำนวนเงิน" class="payout-amount-cell">${renderPayoutAmountChip(p.payout)}</td>
-      <td data-label="รายละเอียด" class="payout-detail-cell"><span class="${labelClass}">${escapeHtml(p.payoutLabel)}</span></td>
+      <td data-label="#" class="payout-rank-cell">${p.rank}</td>
+      <td data-label="ผู้เล่น" class="payout-player-cell">
+        <span class="payout-player-name">${escapeHtml(p.name)}</span>
+        <span class="payout-player-note">${escapeHtml(shortLabel)}</span>
+      </td>
+      <td data-label="โซน · คะแนน" class="payout-zone-score-cell">
+        <span class="badge badge-${zoneCls}">${formatZoneDisplayLabel(p.zone)}</span>
+        <span class="payout-zone-score-val">${p.totalScore.toFixed(1)}</span>
+      </td>
+      <td data-label="เงิน" class="payout-amount-cell">${renderPayoutAmountChip(p.payout)}</td>
     `;
     fragment.appendChild(tr);
   });
