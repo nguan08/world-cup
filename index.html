@@ -881,10 +881,6 @@
             <input type="password" id="admin-password-input" name="admin-password" required placeholder="กรอกรหัสผ่าน..." autocomplete="current-password" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
             <div id="login-error-msg" style="display:none; color: var(--accent); font-size: 12px; margin-top: 8px; font-weight: 600;">รหัสผ่านไม่ถูกต้อง!</div>
           </div>
-          <div style="margin-bottom: 20px;">
-            <label for="admin-github-token-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">GitHub Personal Access Token (ป้อนเพื่อซิงค์ข้อมูลลง GitHub ตรงๆ)</label>
-            <input type="password" id="admin-github-token-input" name="admin-github-token" placeholder="ป้อน GitHub Token (ไม่บังคับ)..." autocomplete="off" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
-          </div>
           <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">เข้าสู่ระบบ</button>
         </form>
       </div>
@@ -909,7 +905,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-token-sanitize"></script>
+  <script type="module" src="js/main.js?v=20260620-builtin-token"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

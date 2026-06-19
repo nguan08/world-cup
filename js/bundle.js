@@ -17,7 +17,7 @@ import {
 } from './sync.js';
 import { saveToServer, sendBroadcastNotification } from './persist.js';
 import { setRecalcHook } from './scoring.js';
-import { initAdminState, updateAdminUI, setGitHubToken, getGitHubToken } from './admin.js';
+import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
 
@@ -4498,9 +4498,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showCustomConfirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?', () => {
           app.isAdmin = false;
           sessionStorage.setItem('worldcup_isAdmin', 'false');
-          setGitHubToken('');
-          const tokenInput = document.getElementById('admin-github-token-input');
-          if (tokenInput) tokenInput.value = '';
           updateAdminUI();
           recalculateAll();
           // rerender current active view
@@ -4514,8 +4511,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         // Show login modal
         document.getElementById('admin-password-input').value = '';
-        const tokenInput = document.getElementById('admin-github-token-input');
-        if (tokenInput) tokenInput.value = getGitHubToken();
         document.getElementById('login-error-msg').style.display = 'none';
         document.getElementById('admin-login-overlay').classList.add('active');
       }
@@ -5017,14 +5012,11 @@ async function exportMatchesImage() {
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const password = document.getElementById('admin-password-input').value;
-      const tokenInput = document.getElementById('admin-github-token-input');
-      const githubToken = tokenInput ? tokenInput.value.trim() : '';
       const errorMsg = document.getElementById('login-error-msg');
       
       if (password === app.ADMIN_PASSWORD) {
         app.isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
-        if (githubToken) setGitHubToken(githubToken);
         updateAdminUI();
         errorMsg.style.display = 'none';
         document.getElementById('admin-login-overlay').classList.remove('active');
