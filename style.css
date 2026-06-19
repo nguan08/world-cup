@@ -3825,7 +3825,7 @@ html.pwa-standalone .mobile-header {
   padding-top: max(12px, env(safe-area-inset-top, 12px));
 }
 
-.admin-status-box {
+.admin-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;

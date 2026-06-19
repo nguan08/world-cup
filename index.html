@@ -13,7 +13,7 @@
   <link rel="alternate icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=20260620-leaderboard-fullheight">
+  <link rel="stylesheet" href="style.css?v=20260620-admin-compact">
 </head>
 <body>
   
@@ -95,7 +95,7 @@
           ติดตั้งแอป (PWA)
         </button>
 
-        <div id="admin-status-box" class="admin-status-box">
+        <div id="admin-actions" class="admin-actions">
           <button type="button" class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
             <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             เพิ่มผู้เล่นใหม่
@@ -848,7 +848,7 @@
     <div class="drawer-overlay" id="admin-login-overlay">
       <div class="drawer" style="width: 400px; height: auto; max-height: 90%; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(50px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
         <div class="drawer-header" style="margin-bottom: 20px;">
-          <h2>เข้าสู่ระบบแอดมิน</h2>
+          <h2>Admin</h2>
           <button class="close-btn" id="close-login-btn">×</button>
         </div>
         <form id="admin-login-form" onsubmit="event.preventDefault();">
@@ -885,7 +885,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-leaderboard-fullheight"></script>
+  <script type="module" src="js/main.js?v=20260620-admin-compact"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
