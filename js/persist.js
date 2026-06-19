@@ -145,7 +145,7 @@ export async function sendBroadcastNotification(message) {
 
   const ok = await saveToServer({ quiet: true });
   if (ok) {
-    localStorage.setItem('worldcup_lastBroadcastId', String(app.broadcast.id));
+    localStorage.setItem('worldcup_shownBroadcastId', String(app.broadcast.id));
     notifyAdminSave(`ส่งแล้ว: "${text}"`);
     import('./sync.js').then((m) => m.requestPollNow());
   } else {

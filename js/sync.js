@@ -1,7 +1,7 @@
 import { app } from './state.js';
 import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
-import { notifyDataUpdate, processBroadcast } from './notifications.js';
+import { notifyDataUpdate, processBroadcast, flushPendingBroadcast } from './notifications.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
 
@@ -354,6 +354,13 @@ export function setupAutoRefresh() {
   updateDataSyncStatus();
   app.autoRefreshTimer = setInterval(pollServerData, app.AUTO_REFRESH_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) pollServerData();
+    if (!document.hidden) {
+      flushPendingBroadcast();
+      pollServerData();
+    }
+  });
+  window.addEventListener('pageshow', () => {
+    flushPendingBroadcast();
+    pollServerData();
   });
 }

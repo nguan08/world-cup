@@ -286,7 +286,7 @@ function ensureInstallModal() {
   document.body.appendChild(overlay);
 }
 
-function showManualInstallHelp({ preferRedirect = false } = {}) {
+export function showManualInstallHelp({ preferRedirect = false } = {}) {
   ensureInstallModal();
   const overlay = document.getElementById('pwa-install-modal-overlay');
   const body = overlay?.querySelector('[data-pwa-install-body]');

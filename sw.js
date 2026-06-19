@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v10';
+const CACHE_NAME = 'wc2026-v11';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -18,6 +18,7 @@ const STATIC_ASSETS = [
   'js/notifications.js',
   'js/pwa.js',
   'js/app-path.js',
+  'js/device.js',
   'favicon.svg',
   'manifest.webmanifest',
   'icons/icon-192.png',

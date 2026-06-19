@@ -1,40 +1,51 @@
 // In-app toast + browser notifications for data updates
 
 import { resolveAppPath } from './app-path.js';
+import { canUseWebNotifications, isIOS, isStandalonePWA } from './device.js';
 
-let permissionRequested = false;
 let toastTimer = null;
 
-const BROADCAST_STORAGE_KEY = 'worldcup_lastBroadcastId';
+const SHOWN_BROADCAST_KEY = 'worldcup_shownBroadcastId';
+const PENDING_BROADCAST_KEY = 'worldcup_pendingBroadcast';
 const BROADCAST_STALE_MS = 2 * 60 * 60 * 1000;
 
 export function initNotifications() {
+  if (!localStorage.getItem(SHOWN_BROADCAST_KEY) && localStorage.getItem('worldcup_lastBroadcastId')) {
+    localStorage.setItem(SHOWN_BROADCAST_KEY, localStorage.getItem('worldcup_lastBroadcastId'));
+  }
   injectToastStyles();
   ensureToastElement();
   renderNotificationControls();
+  flushPendingBroadcast();
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       const { type, message } = event.data || {};
       if (type === 'DATA_UPDATED' || type === 'BROADCAST') {
-        showUpdateToast(message || 'มีการอัปเดตข้อมูลใหม่');
-        if (type === 'BROADCAST') {
-          showBrowserNotification(message, 'broadcast');
-        }
+        displayBroadcastMessage(message || 'มีการอัปเดตข้อมูลใหม่', {
+          browserType: type === 'BROADCAST' ? 'broadcast' : 'data',
+          markShown: false
+        });
       }
     });
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) flushPendingBroadcast();
+  });
+  window.addEventListener('pageshow', flushPendingBroadcast);
+  window.addEventListener('focus', flushPendingBroadcast);
 }
 
 export function getNotificationPermission() {
-  if (!('Notification' in window)) return 'unsupported';
+  if (!canUseWebNotifications()) return 'unsupported';
   return Notification.permission;
 }
 
 export async function requestNotificationPermission() {
-  if (!('Notification' in window)) return 'unsupported';
+  if (!canUseWebNotifications()) return 'unsupported';
   if (Notification.permission === 'granted') return 'granted';
   if (Notification.permission === 'denied') return 'denied';
-  permissionRequested = true;
   try {
     return await Notification.requestPermission();
   } catch {
@@ -42,29 +53,76 @@ export async function requestNotificationPermission() {
   }
 }
 
+function getBroadcastMessage(bc) {
+  return bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
+}
+
+function markBroadcastShown(id) {
+  localStorage.setItem(SHOWN_BROADCAST_KEY, String(id));
+  sessionStorage.removeItem(PENDING_BROADCAST_KEY);
+}
+
+function queuePendingBroadcast(bc) {
+  sessionStorage.setItem(PENDING_BROADCAST_KEY, JSON.stringify(bc));
+}
+
+export function flushPendingBroadcast() {
+  if (document.hidden) return;
+  const raw = sessionStorage.getItem(PENDING_BROADCAST_KEY);
+  if (!raw) return;
+  try {
+    const bc = JSON.parse(raw);
+    if (!bc?.id) return;
+    const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
+    if (bc.id <= shownId) {
+      sessionStorage.removeItem(PENDING_BROADCAST_KEY);
+      return;
+    }
+    displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
+      browserType: 'broadcast',
+      markShown: true,
+      broadcastId: bc.id
+    });
+  } catch {
+    sessionStorage.removeItem(PENDING_BROADCAST_KEY);
+  }
+}
+
 export function processBroadcast(serverData, { onInit = false } = {}) {
   const bc = serverData?.broadcast;
   if (!bc?.id) return false;
 
-  const lastId = Number(localStorage.getItem(BROADCAST_STORAGE_KEY) || 0);
-  if (bc.id <= lastId) return false;
+  const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
+  if (bc.id <= shownId) return false;
 
-  if (onInit && lastId === 0 && bc.sentAt) {
+  if (onInit && shownId === 0 && bc.sentAt) {
     const age = Date.now() - Date.parse(bc.sentAt);
     if (Number.isFinite(age) && age > BROADCAST_STALE_MS) {
-      localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
+      markBroadcastShown(bc.id);
       return false;
     }
   }
 
-  localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
-  const text = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
-  notifyDataUpdate({
-    type: 'broadcast',
-    message: `📢 ${text}`,
-    forceBrowserNotify: true
+  if (document.hidden) {
+    queuePendingBroadcast(bc);
+    return true;
+  }
+
+  displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
+    browserType: 'broadcast',
+    markShown: true,
+    broadcastId: bc.id
   });
   return true;
+}
+
+function displayBroadcastMessage(text, { browserType = 'data', markShown = false, broadcastId = null } = {}) {
+  showUpdateToast(text);
+  showBrowserNotification(text, browserType);
+
+  if (markShown && broadcastId) {
+    markBroadcastShown(broadcastId);
+  }
 }
 
 export function notifyDataUpdate({ type = 'data', message, forceBrowserNotify = false } = {}) {
@@ -81,28 +139,34 @@ export function notifyDataUpdate({ type = 'data', message, forceBrowserNotify = 
   if (shouldShowBrowser) {
     showBrowserNotification(text, type);
   }
-
-  if (navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: type === 'broadcast' ? 'BROADCAST' : 'DATA_UPDATED',
-      message: text
-    });
-  }
 }
 
-function showBrowserNotification(text, type = 'data') {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+async function showBrowserNotification(text, type = 'data') {
+  if (!canUseWebNotifications() || Notification.permission !== 'granted') return;
+
+  const title = type === 'broadcast'
+    ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน'
+    : 'World Cup 2026 — อัปเดตข้อมูล';
+  const options = {
+    body: text.replace(/^📢\s*/, ''),
+    icon: resolveAppPath('icons/icon-192.png'),
+    badge: resolveAppPath('icons/icon-192.png'),
+    tag: type === 'broadcast' ? 'wc-broadcast' : 'wc-data-update',
+    renotify: true
+  };
+
   try {
-    const title = type === 'broadcast'
-      ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน'
-      : 'World Cup 2026 — อัปเดตข้อมูล';
-    const n = new Notification(title, {
-      body: text.replace(/^📢\s*/, ''),
-      icon: resolveAppPath('icons/icon-192.png'),
-      badge: resolveAppPath('icons/icon-192.png'),
-      tag: type === 'broadcast' ? 'wc-broadcast' : 'wc-data-update',
-      renotify: true
-    });
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg?.showNotification) {
+      await reg.showNotification(title, options);
+      return;
+    }
+  } catch {
+    // fallback below
+  }
+
+  try {
+    const n = new Notification(title, options);
     n.onclick = () => {
       window.focus();
       n.close();
@@ -117,7 +181,7 @@ export function showUpdateToast(message) {
   toast.querySelector('.update-toast__text').textContent = message;
   toast.classList.add('update-toast--visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('update-toast--visible'), 8000);
+  toastTimer = setTimeout(() => toast.classList.remove('update-toast--visible'), 10000);
 }
 
 function ensureToastElement() {
@@ -152,14 +216,23 @@ function renderNotificationControls() {
     granted: 'เปิดแจ้งเตือนแล้ว',
     denied: 'ถูกปฏิเสธ — เปิดในเบราว์เซอร์',
     default: 'ยังไม่ได้เปิด',
-    unsupported: 'เบราว์เซอร์ไม่รองรับ'
+    unsupported: isIOS() && !isStandalonePWA()
+      ? 'iOS: ติดตั้งแอปก่อน (Add to Home Screen)'
+      : 'เบราว์เซอร์ไม่รองรับ'
   };
   if (statusEl) statusEl.textContent = labels[perm] || labels.default;
 
   if (!btn) return;
   if (perm === 'unsupported') {
-    btn.disabled = true;
-    btn.textContent = 'ไม่รองรับ';
+    btn.disabled = false;
+    btn.textContent = isIOS() && !isStandalonePWA() ? 'วิธีติดตั้งแอป' : 'ไม่รองรับ';
+    if (isIOS() && !isStandalonePWA()) {
+      btn.addEventListener('click', () => {
+        import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
+      });
+    } else {
+      btn.disabled = true;
+    }
     return;
   }
   if (perm === 'granted') {
@@ -184,17 +257,54 @@ function injectToastStyles() {
   style.id = 'update-toast-styles';
   style.textContent = `
     .update-toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120%);
-      z-index: 10001; display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-radius: 12px; max-width: min(92vw, 420px);
+      position: fixed;
+      left: 50%;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      max-width: min(94vw, 420px);
       background: linear-gradient(135deg, rgba(30,41,59,0.98), rgba(15,23,42,0.98));
-      border: 1px solid rgba(99,102,241,0.4); box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-      color: #fff; font-size: 13px; font-weight: 600;
+      border: 1px solid rgba(99,102,241,0.5);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
       transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.35s;
-      opacity: 0; pointer-events: none;
+      opacity: 0;
+      pointer-events: none;
+      bottom: max(20px, env(safe-area-inset-bottom, 20px));
+      transform: translateX(-50%) translateY(140%);
     }
-    .update-toast--visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
-    .update-toast__close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 0 4px; }
+    .update-toast--visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .update-toast__close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+    @media (max-width: 992px) {
+      .update-toast {
+        top: max(64px, calc(env(safe-area-inset-top, 0px) + 56px));
+        bottom: auto;
+        transform: translateX(-50%) translateY(-160%);
+        font-size: 15px;
+        padding: 16px 18px;
+      }
+      .update-toast--visible {
+        transform: translateX(-50%) translateY(0);
+      }
+    }
   `;
   document.head.appendChild(style);
 }
