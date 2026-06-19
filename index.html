@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <link rel="stylesheet" href="style.css?v=20260619-team-popup-player">
+  <link rel="stylesheet" href="style.css?v=20260619-players-clear">
 </head>
 <body>
   
@@ -441,14 +441,19 @@
             </div>
           </div>
           
+          <p class="players-table-hint">คลิกแถวเพื่อดูรายละเอียด · คลิกชื่อทีมเพื่อดูผู้เลือก</p>
           <div class="table-container">
-            <table>
+            <table id="players-table">
+              <colgroup>
+                <col class="players-col-name">
+                <col class="players-col-teams">
+                <col class="players-col-score">
+              </colgroup>
               <thead>
                 <tr>
-                  <th>ผู้เล่น</th>
-                  <th>ทีมที่เลือก (15 ทีม)</th>
-                  <th style="text-align: right;">คะแนนรวม</th>
-                  <th style="width: 100px;">จัดการ</th>
+                  <th class="players-name-th">ผู้เล่น</th>
+                  <th class="players-teams-th">ทีม (15)</th>
+                  <th class="players-score-th">คะแนน</th>
                 </tr>
               </thead>
               <tbody id="players-tbody">

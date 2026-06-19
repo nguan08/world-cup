@@ -5407,47 +5407,44 @@ function renderPlayers() {
       openPlayerDetails(p.name);
     };
 
-    // Name cell
     const nameTd = document.createElement('td');
-    const nameStrong = document.createElement('strong');
-    nameStrong.textContent = p.name;
-    nameTd.appendChild(nameStrong);
-    
-    // Team badges - COMPACT LAYOUT
+    nameTd.className = 'players-name-cell';
+    nameTd.textContent = p.name;
+
     const teamsTd = document.createElement('td');
-    teamsTd.style.cssText = 'padding: 6px 8px; vertical-align: middle;';
-    
+    teamsTd.className = 'players-teams-cell';
+
     const badgesWrapper = document.createElement('div');
-    badgesWrapper.style.cssText = 'display: flex; flex-wrap: wrap; gap: 4px; max-width: 480px;';
-    
+    badgesWrapper.className = 'players-teams-grid';
+
     p.teamBreakdown.forEach(tb => {
       const badge = document.createElement('span');
-      badge.className = `team-badge team-${tb.zone}`;
+      badge.className = `team-badge team-${tb.zone} players-team-badge`;
       badge.dataset.team = tb.name;
-      badge.title = 'ดูผู้เลือกทีมนี้';
-      badge.style.cssText = 'padding: 2px 5px; font-size: 10px; border-radius: 4px; white-space: nowrap; margin: 0;';
+      badge.title = `${tb.name} · ${formatWcGroupLabel(getTeamWcGroup(tb.name))} · x${tb.multiplier || 1} · ${tb.points.toFixed(1)} คะแนน`;
       applyTeamPopularity(badge, tb.name);
-      badge.textContent = `${tb.name} [${getTeamWcGroup(tb.name) || '-'}] (${tb.points.toFixed(1)})`;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'players-team-badge__name';
+      nameSpan.textContent = tb.name;
+
+      const ptsSpan = document.createElement('span');
+      ptsSpan.className = 'players-team-badge__pts';
+      ptsSpan.textContent = tb.points.toFixed(1);
+
+      badge.appendChild(nameSpan);
+      badge.appendChild(ptsSpan);
       badgesWrapper.appendChild(badge);
     });
     teamsTd.appendChild(badgesWrapper);
 
     const scoreTd = document.createElement('td');
-    scoreTd.className = 'table-score-cell';
+    scoreTd.className = 'players-score-cell table-score-cell';
     scoreTd.textContent = p.totalScore.toFixed(1);
-
-    const actionTd = document.createElement('td');
-    actionTd.style.textAlign = 'center';
-    const detailBtn = document.createElement('button');
-    detailBtn.className = 'btn btn-secondary';
-    detailBtn.style.cssText = 'padding: 4px 8px; font-size: 10px;';
-    detailBtn.textContent = 'รายละเอียด';
-    actionTd.appendChild(detailBtn);
 
     tr.appendChild(nameTd);
     tr.appendChild(teamsTd);
     tr.appendChild(scoreTd);
-    tr.appendChild(actionTd);
 
     tbody.appendChild(tr);
   });
