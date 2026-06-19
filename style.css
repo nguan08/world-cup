@@ -2040,17 +2040,30 @@ table {
   font-size: 14px;
 }
 
-/* Players / Selections page — card always full width, filter button fixed */
+/* Players / Selections page — card always full width + full viewport height */
 #players {
   --players-filter-width: 340px;
+  --players-page-pad: 72px; /* main-content top+bottom padding */
   width: 100%;
+}
+
+#players.page.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--players-page-pad));
+}
+
+#players > header {
+  flex-shrink: 0;
 }
 
 #players .players-card {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0;
-  min-height: calc(100vh - 120px);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -2069,7 +2082,7 @@ table {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 280px);
+  min-height: 0;
 }
 
 #players .players-table-container {
@@ -2077,7 +2090,7 @@ table {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 300px);
+  min-height: 0;
 }
 
 #players .players-card__toolbar.search-bar {
@@ -2205,7 +2218,8 @@ table {
 }
 
 #players .players-table-container--empty {
-  min-height: calc(100vh - 300px);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 #players .players-filter-empty-panel {
@@ -2452,6 +2466,10 @@ table {
 
   .players-team-badge__pts {
     font-size: 6px;
+  }
+
+  #players {
+    --players-page-pad: 88px;
   }
 
   #players .players-card__toolbar.search-bar {
