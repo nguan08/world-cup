@@ -2051,8 +2051,8 @@ table {
 }
 
 .players-team-filter-dropdown {
-  flex: 1 1 180px;
-  min-width: 0;
+  flex: 1 1 260px;
+  min-width: 260px;
   position: relative;
 }
 
@@ -2087,9 +2087,9 @@ table {
   display: none;
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  left: auto;
   right: 0;
-  width: 100%;
+  width: 340px;
   min-width: 260px;
   max-width: 340px;
   max-height: 400px;
@@ -2130,35 +2130,9 @@ table {
   width: 100%;
 }
 
-#players .players-card--filtered {
-  display: inline-block;
-  width: auto !important;
-  max-width: 100% !important;
-  vertical-align: top;
-}
-
-#players .players-card--filtered .players-card__toolbar {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-#players .players-card--filtered .players-card__table-wrap--filtered {
+#players .players-card__table-wrap--filtered {
   width: max-content;
   max-width: 100%;
-}
-
-#players .players-card--filtered .players-team-filter-dropdown {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-#players .players-card--filtered .players-team-filter-menu {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-  left: 0;
-  right: 0;
 }
 
 .players-empty-cell {
@@ -2413,11 +2387,7 @@ table {
     grid-template-columns: repeat(var(--players-team-cols, 3), max-content);
   }
 
-  #players .players-card--filtered {
-    width: 100% !important;
-  }
-
-  #players .players-card--filtered .players-card__table-wrap--filtered {
+  #players .players-card__table-wrap--filtered {
     width: 100%;
   }
 
@@ -2430,6 +2400,8 @@ table {
   }
 
   .players-team-filter-menu {
+    width: 100% !important;
+    min-width: 0;
     max-width: none;
     left: 0;
     right: 0;

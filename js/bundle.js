@@ -2484,7 +2484,6 @@ function renderPlayers() {
   const table = document.getElementById('players-table');
   const tableContainer = table?.closest('.table-container');
   const tableWrap = table?.closest('.players-card__table-wrap');
-  const card = table?.closest('.players-card');
   const teamsTh = table?.querySelector('.players-teams-th');
   const colTeams = table?.querySelector('.players-col-teams');
 
@@ -2501,9 +2500,6 @@ function renderPlayers() {
   }
   if (tableWrap) {
     tableWrap.classList.toggle('players-card__table-wrap--filtered', isTeamFilterActive);
-  }
-  if (card) {
-    card.classList.toggle('players-card--filtered', isTeamFilterActive);
   }
   if (colTeams) {
     if (isTeamFilterActive) {
