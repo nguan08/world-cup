@@ -56,7 +56,9 @@ export async function putGitHubJsonFile(filePath, data, token, message) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `บันทึก ${filePath} ล้มเหลว (${res.status})`);
+    const error = new Error(err.message || `บันทึก ${filePath} ล้มเหลว (${res.status})`);
+    error.status = res.status;
+    throw error;
   }
   return res.json();
 }

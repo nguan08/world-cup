@@ -2,7 +2,11 @@
 
 import { resolveAppPath } from './app-path.js';
 import { canUseWebNotifications, isIOS, isMobileDevice, isStandalonePWA } from './device.js';
-import { subscribeAndRegisterPush } from './push.js';
+import {
+  isPushRegisteredLocally,
+  showLocalPushTestNotification,
+  subscribeAndRegisterPush
+} from './push.js';
 
 let toastTimer = null;
 let currentBannerId = 0;
@@ -21,7 +25,6 @@ export function initNotifications() {
   bindBroadcastBannerClose();
   renderNotificationControls();
   flushPendingBroadcast();
-  registerPushIfReady();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
@@ -172,6 +175,7 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
 
   if (document.hidden) {
     queuePendingBroadcast(bc);
+    showBrowserNotification(`📢 ${getBroadcastMessage(bc)}`, 'broadcast');
     return true;
   }
 
@@ -276,65 +280,116 @@ function ensureToastElement() {
   return toast;
 }
 
+function pushStatusLabel(perm, pushResult = null) {
+  if (perm === 'unsupported') {
+    return isIOS() && !isStandalonePWA()
+      ? 'iOS: ติดตั้งแอปก่อน แล้วกดเปิดแจ้งเตือน'
+      : 'เบราว์เซอร์ไม่รองรับแจ้งเตือนนอกแอป';
+  }
+  if (perm === 'denied') return 'ถูกปฏิเสธ — เปิดในการตั้งค่าเบราว์เซอร์';
+  if (perm !== 'granted') {
+    return isMobileDevice() ? 'กดเปิดเพื่อรับแจ้งเตือนนอกแอป' : 'ยังไม่ได้เปิด';
+  }
+  if (pushResult?.reason === 'ios-need-pwa') {
+    return 'อนุญาตแล้ว — ติดตั้งแอปก่อนเพื่อ Push นอกแอป';
+  }
+  if (pushResult?.reason === 'save-failed') {
+    return `ลงทะเบียน Push ไม่สำเร็จ — ลองอีกครั้ง`;
+  }
+  if (isPushRegisteredLocally()) return 'เปิดแจ้งเตือนนอกแอปแล้ว ✓';
+  return 'อนุญาตแล้ว — กดลงทะเบียน Push อีกครั้ง';
+}
+
 function renderNotificationControls() {
   const box = document.getElementById('notification-settings');
   if (!box || box.dataset.ready) return;
   box.dataset.ready = '1';
 
-  const perm = getNotificationPermission();
   const statusEl = box.querySelector('[data-notif-status]');
   const btn = box.querySelector('[data-notif-enable]');
-
-  const labels = {
-    granted: 'เปิดแจ้งเตือนนอกแอปแล้ว',
-    denied: 'ถูกปฏิเสธ — เปิดในเบราว์เซอร์',
-    default: isMobileDevice() ? 'กดเปิดเพื่อรับแจ้งเตือนนอกแอป' : 'ยังไม่ได้เปิด',
-    unsupported: isIOS() && !isStandalonePWA()
-      ? 'iOS: ติดตั้งแอปก่อน แล้วกดเปิดแจ้งเตือน'
-      : 'เบราว์เซอร์ไม่รองรับแจ้งเตือนนอกแอป'
-  };
-  if (statusEl) statusEl.textContent = labels[perm] || labels.default;
-
   if (!btn) return;
-  if (perm === 'unsupported') {
+
+  const refreshUi = (pushResult = null) => {
+    const perm = getNotificationPermission();
+    if (statusEl) statusEl.textContent = pushStatusLabel(perm, pushResult);
+
+    if (perm === 'unsupported') {
+      btn.disabled = false;
+      btn.textContent = isIOS() && !isStandalonePWA() ? 'วิธีติดตั้งแอป' : 'ดูแถบแจ้งเตือนด้านบน';
+      return;
+    }
+    if (perm === 'denied') {
+      btn.disabled = true;
+      btn.textContent = 'เปิดในการตั้งค่าเบราว์เซอร์';
+      return;
+    }
+    if (perm === 'granted' && isPushRegisteredLocally()) {
+      btn.disabled = false;
+      btn.textContent = 'ทดสอบแจ้งเตือนนอกแอป';
+      return;
+    }
     btn.disabled = false;
-    btn.textContent = isIOS() && !isStandalonePWA() ? 'วิธีติดตั้งแอป' : 'ดูแถบแจ้งเตือนด้านบน';
-    btn.addEventListener('click', () => {
+    btn.textContent = perm === 'granted' ? 'ลงทะเบียน Push นอกแอป' : 'เปิดการแจ้งเตือน';
+  };
+
+  refreshUi();
+
+  btn.addEventListener('click', async () => {
+    const perm = getNotificationPermission();
+
+    if (perm === 'unsupported') {
       if (isIOS() && !isStandalonePWA()) {
         import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
       } else {
         notifyDataUpdate({ type: 'broadcast', message: '📢 แจ้งเตือนในแอปทำงาน — ดูแถบสีม่วงด้านบน' });
       }
-    });
-    return;
-  }
-  if (perm === 'granted') {
-    btn.textContent = 'เปิดแจ้งเตือนแล้ว ✓';
-    btn.disabled = true;
-    return;
-  }
-  btn.addEventListener('click', async () => {
-    const result = await requestNotificationPermission();
-    if (statusEl) statusEl.textContent = labels[result] || labels.default;
-    if (result === 'granted') {
-      btn.textContent = 'เปิดแจ้งเตือนแล้ว ✓';
-      btn.disabled = true;
-      const push = await registerPushIfReady();
-      const msg = push?.ok
-        ? 'เปิดการแจ้งเตือนนอกแอปเรียบร้อย'
-        : 'เปิดการแจ้งเตือนในแอปเรียบร้อย';
-      notifyDataUpdate({ type: 'test', message: msg });
+      return;
     }
-  });
-}
 
-async function registerPushIfReady() {
-  if (getNotificationPermission() !== 'granted') return { ok: false, reason: 'no-permission' };
-  const result = await subscribeAndRegisterPush();
-  if (!result.ok && result.reason === 'ios-need-pwa') {
-    console.info('[Push] iOS requires Add to Home Screen for background push');
-  }
-  return result;
+    if (perm === 'granted' && isPushRegisteredLocally()) {
+      const ok = await showLocalPushTestNotification();
+      notifyDataUpdate({
+        type: 'test',
+        message: ok
+          ? 'ส่งทดสอบแล้ว — ดูที่ศูนย์แจ้งเตือนของมือถือ'
+          : 'ทดสอบไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'
+      });
+      return;
+    }
+
+    let result = perm;
+    if (perm !== 'granted') {
+      result = await requestNotificationPermission();
+    }
+    if (result !== 'granted') {
+      refreshUi();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังลงทะเบียน…';
+    const push = await subscribeAndRegisterPush();
+    refreshUi(push);
+
+    if (push.ok) {
+      await showLocalPushTestNotification();
+      notifyDataUpdate({ type: 'test', message: 'ลงทะเบียน Push นอกแอปสำเร็จ — ดูการแจ้งเตือนทดสอบบนหน้าจอ' });
+      return;
+    }
+
+    if (push.reason === 'ios-need-pwa') {
+      import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
+      notifyDataUpdate({ type: 'test', message: 'iPhone ต้องติดตั้งแอปก่อน จึงจะได้ Push นอกแอป' });
+      return;
+    }
+
+    notifyDataUpdate({
+      type: 'test',
+      message: push.message
+        ? `ลงทะเบียน Push ไม่สำเร็จ: ${push.message}`
+        : 'ลงทะเบียน Push ไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'
+    });
+  });
 }
 
 function injectToastStyles() {

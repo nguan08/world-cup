@@ -347,6 +347,8 @@ export async function pollServerData() {
           updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
         }
         if (!broadcasted && changed) notifyDataUpdate({ type: 'data' });
+      } else if (changed && !broadcasted) {
+        notifyDataUpdate({ type: 'data', forceBrowserNotify: true });
       }
     }
   } catch (e) {

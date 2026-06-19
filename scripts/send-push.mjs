@@ -6,8 +6,8 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const SUBS_FILE = 'push-subscriptions.json';
 
 if (!VAPID_PRIVATE_KEY) {
-  console.error('Missing VAPID_PRIVATE_KEY secret');
-  process.exit(1);
+  console.log('Skip: VAPID_PRIVATE_KEY secret not configured in repo Settings → Secrets');
+  process.exit(0);
 }
 
 webpush.setVapidDetails(

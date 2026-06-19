@@ -6,6 +6,7 @@ const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
 
 let deferredInstallPrompt = null;
 let lastInstallTap = 0;
+let serviceWorkerReadyPromise = null;
 
 export function initPWA() {
   registerServiceWorker();
@@ -72,12 +73,28 @@ function applyStandaloneClass() {
   document.documentElement.classList.toggle('pwa-standalone', isStandaloneMode());
 }
 
+export function waitForServiceWorker(timeoutMs = 15000) {
+  if (!('serviceWorker' in navigator)) {
+    return Promise.reject(new Error('ไม่รองรับ Service Worker'));
+  }
+  if (!serviceWorkerReadyPromise) {
+    serviceWorkerReadyPromise = Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Service Worker โหลดช้า — ลองรีเฟรช')), timeoutMs);
+      })
+    ]);
+  }
+  return serviceWorkerReadyPromise;
+}
+
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
     const reg = await navigator.serviceWorker.register(resolveAppPath('sw.js'), {
       scope: getAppBasePath()
     });
+    serviceWorkerReadyPromise = Promise.resolve(reg);
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
       if (!worker) return;
