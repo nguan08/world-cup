@@ -6011,6 +6011,168 @@ function buildPlayerTeamItemHtml(tb, options = {}) {
   `;
 }
 
+// ── Rank sound effects (playful TTS + silly tones) ───────────────────────
+let _rankSpeechVoice = null;
+
+function initRankSoundVoices() {
+  if (!('speechSynthesis' in window)) return;
+  const pickVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    _rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
+      || voices.find(v => /th/i.test(v.lang || ''))
+      || voices[0]
+      || null;
+  };
+  pickVoice();
+  if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+  }
+}
+
+function createRankAudioContext() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  return Ctx ? new Ctx() : null;
+}
+
+function scheduleRankTone(ctx, { start, duration, freq, type = 'triangle', peak = 0.1, slideTo = null }) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(slideTo, 40), start + duration);
+  }
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+function playWinnerFanfare() {
+  try {
+    const ctx = createRankAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const fanfare = [
+      { freq: 523.25, at: 0, dur: 0.22 },
+      { freq: 659.25, at: 0.14, dur: 0.22 },
+      { freq: 783.99, at: 0.28, dur: 0.24 },
+      { freq: 1046.5, at: 0.44, dur: 0.42 }
+    ];
+    fanfare.forEach((note) => {
+      scheduleRankTone(ctx, {
+        start: now + note.at,
+        duration: note.dur,
+        freq: note.freq,
+        type: 'triangle',
+        peak: 0.13
+      });
+    });
+    scheduleRankTone(ctx, {
+      start: now + 0.58,
+      duration: 0.55,
+      freq: 1318.5,
+      type: 'square',
+      peak: 0.045
+    });
+    setTimeout(() => ctx.close(), 1300);
+  } catch (_) {
+    /* ignore audio errors */
+  }
+}
+
+function playLoserSound() {
+  try {
+    const ctx = createRankAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const wahWahSets = [
+      [{ freq: 260, slideTo: 140, at: 0 }, { freq: 220, slideTo: 95, at: 0.42 }],
+      [{ freq: 240, slideTo: 120, at: 0.95 }, { freq: 200, slideTo: 80, at: 1.38 }]
+    ];
+    wahWahSets.forEach((pair) => {
+      pair.forEach((note) => {
+        scheduleRankTone(ctx, {
+          start: now + note.at,
+          duration: 0.38,
+          freq: note.freq,
+          slideTo: note.slideTo,
+          type: 'sawtooth',
+          peak: 0.08
+        });
+      });
+    });
+    scheduleRankTone(ctx, {
+      start: now + 1.85,
+      duration: 0.5,
+      freq: 180,
+      slideTo: 60,
+      type: 'square',
+      peak: 0.05
+    });
+    setTimeout(() => ctx.close(), 2600);
+  } catch (_) {
+    /* ignore audio errors */
+  }
+}
+
+function speakRankPhrase(type, options = {}) {
+  if (!('speechSynthesis' in window)) return;
+
+  const { repeat = 1, delayMs = 0 } = options;
+  const phrases = {
+    winner: ['โคตรเทพเลยพี่!', 'แชมป์เปี้ยนสุดยอด!'],
+    loser: ['ขอบคุณเจ้าภาพ...', 'ขอบคุณเจ้าภาพครับ...', 'ไว้คราวหน้านะ...']
+  };
+  window.speechSynthesis.cancel();
+
+  const speakOnce = (index = 0) => {
+    const pool = phrases[type] || phrases.loser;
+    const phrase = pool[index % pool.length];
+    const utter = new SpeechSynthesisUtterance(phrase);
+    utter.lang = 'th-TH';
+    if (_rankSpeechVoice) utter.voice = _rankSpeechVoice;
+
+    if (type === 'winner') {
+      utter.rate = 0.92 + Math.random() * 0.08;
+      utter.pitch = 1.08 + Math.random() * 0.12;
+      utter.volume = 1;
+    } else {
+      utter.rate = 0.62 + Math.random() * 0.08;
+      utter.pitch = 0.48 + Math.random() * 0.1;
+      utter.volume = 0.92;
+    }
+
+    utter.onend = () => {
+      if (index + 1 < repeat) {
+        setTimeout(() => speakOnce(index + 1), delayMs || 520);
+      }
+    };
+
+    window.speechSynthesis.speak(utter);
+  };
+
+  speakOnce();
+}
+
+function playRankSoundEffect(player) {
+  if (!player || typeof player.rank !== 'number') return;
+
+  if (player.rank === 1 || player.rank === 2) {
+    playWinnerFanfare();
+    speakRankPhrase('winner');
+    return;
+  }
+
+  if (player.rank === 61 || player.rank === 62) {
+    playLoserSound();
+    speakRankPhrase('loser', { repeat: 3, delayMs: 560 });
+  }
+}
+
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
   // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
@@ -6060,6 +6222,8 @@ function openPlayerDetails(name) {
       }
       return;
     }
+
+    playRankSoundEffect(player);
 
     // Populate header numbers (name goes only into the h2 in the drawer header)
     setText('detail-player-name', player.name);
@@ -6509,6 +6673,7 @@ async function handleMatchFormSubmit() {
 // SETUP EVENTS & DOM CONTENT LOADED
 document.addEventListener('DOMContentLoaded', async () => {
   await initData();
+  initRankSoundVoices();
   attachTeamNameClickHandlers();
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
