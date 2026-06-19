@@ -4489,16 +4489,6 @@ body.player-drawer-open {
   font-size: 7.5px;
 }
 
-.dashboard-selection-more {
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--text-muted);
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.04);
-  white-space: nowrap;
-}
-
 .dashboard-selection-note {
   margin: 6px 0 0;
   font-size: 10px;

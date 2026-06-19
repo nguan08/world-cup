@@ -5597,15 +5597,12 @@ function renderSelectionBadges(container, selection, options = {}) {
 
   const {
     compact = false,
-    maxVisible = 6,
     badgeClass = 'stats-selection-badge'
   } = options;
 
   container.innerHTML = '';
-  const visible = compact ? selection.slice(0, maxVisible) : selection;
-  const remaining = compact ? Math.max(0, selection.length - visible.length) : 0;
 
-  visible.forEach(s => {
+  selection.forEach(s => {
     const badge = document.createElement('span');
     badge.className = `team-badge team-${s.zone} ${badgeClass}`;
     badge.dataset.team = s.name;
@@ -5624,14 +5621,6 @@ function renderSelectionBadges(container, selection, options = {}) {
     badge.appendChild(ptsSpan);
     container.appendChild(badge);
   });
-
-  if (remaining > 0) {
-    const more = document.createElement('span');
-    more.className = 'dashboard-selection-more';
-    more.textContent = `+${remaining}`;
-    more.title = `และอีก ${remaining} ทีม — ดูเต็มในหน้าสถิติ`;
-    container.appendChild(more);
-  }
 }
 
 function renderTeamSelections(statsArray, mode = 'both') {
@@ -5658,12 +5647,12 @@ function renderTeamSelections(statsArray, mode = 'both') {
     renderSelectionBadges(
       document.getElementById('dashboard-best-selection-container'),
       bestSelection,
-      { compact: true, maxVisible: 6, badgeClass: 'dashboard-selection-badge' }
+      { compact: true, badgeClass: 'dashboard-selection-badge' }
     );
     renderSelectionBadges(
       document.getElementById('dashboard-worst-selection-container'),
       worstSelection,
-      { compact: true, maxVisible: 6, badgeClass: 'dashboard-selection-badge' }
+      { compact: true, badgeClass: 'dashboard-selection-badge' }
     );
     const dashBestPts = document.getElementById('dashboard-best-total-points');
     const dashWorstPts = document.getElementById('dashboard-worst-total-points');
