@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v12';
+const CACHE_NAME = 'wc2026-v13';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -19,6 +19,9 @@ const STATIC_ASSETS = [
   'js/pwa.js',
   'js/app-path.js',
   'js/device.js',
+  'js/push-config.js',
+  'js/push.js',
+  'js/github-api.js',
   'favicon.svg',
   'manifest.webmanifest',
   'icons/icon-192.png',
@@ -161,6 +164,46 @@ async function notifyClients(message) {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
   clients.forEach((client) => client.postMessage({ type: 'DATA_UPDATED', message }));
 }
+
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'World Cup 2026 — แจ้งเตือนจากแอดมิน',
+    body: 'ตรวจสอบผลล่าสุดในแอป',
+    tag: 'wc-broadcast-push',
+    url: './'
+  };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch {
+    // keep defaults
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: iconUrl(),
+      badge: iconUrl(),
+      tag: payload.tag || 'wc-broadcast-push',
+      renotify: true,
+      data: { url: payload.url || './' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || './';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return client.focus();
+      }
+      const base = self.registration?.scope || self.location.href.replace(/sw\.js.*$/, '');
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(new URL(targetUrl, base).href);
+      }
+    })
+  );
+});
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();

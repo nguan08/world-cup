@@ -24,5 +24,8 @@
   "homepage": "https://github.com/nguan08/world-cup#readme",
   "dependencies": {
     "playwright": "^1.60.0"
+  },
+  "devDependencies": {
+    "web-push": "^3.6.7"
   }
 }

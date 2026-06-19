@@ -4,9 +4,10 @@ export const GITHUB_REPO_OWNER = 'nguan08';
 export const GITHUB_REPO_NAME = 'world-cup';
 export const GITHUB_REPO_FULL = `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`;
 export const GITHUB_DATA_FILE = 'data.json';
+export const GITHUB_PUSH_SUBS_FILE = 'push-subscriptions.json';
 export const GITHUB_BRANCH = 'main';
 
-const ALLOWED_PATHS = new Set([GITHUB_DATA_FILE]);
+const ALLOWED_PATHS = new Set([GITHUB_DATA_FILE, GITHUB_PUSH_SUBS_FILE]);
 
 export function githubRepoApiUrl(suffix = '') {
   const clean = String(suffix).replace(/^\//, '');
@@ -15,7 +16,7 @@ export function githubRepoApiUrl(suffix = '') {
 
 export function githubContentsUrl(filePath = GITHUB_DATA_FILE) {
   if (!ALLOWED_PATHS.has(filePath)) {
-    throw new Error(`อนุญาตเฉพาะไฟล์ ${GITHUB_DATA_FILE} ใน repo world-cup`);
+    throw new Error(`อนุญาตเฉพาะไฟล์ data.json / push-subscriptions.json ใน repo world-cup`);
   }
   return `${githubRepoApiUrl('contents')}/${filePath}`;
 }
@@ -24,7 +25,7 @@ export function assertWorldCupFileMeta(meta) {
   if (!meta) throw new Error('ไม่พบข้อมูลไฟล์จาก GitHub');
   const path = meta.path || meta.name || '';
   if (!ALLOWED_PATHS.has(path)) {
-    throw new Error(`ปฏิเสธ: อนุญาตเฉพาะ ${GITHUB_DATA_FILE} ใน ${GITHUB_REPO_NAME}`);
+    throw new Error(`ปฏิเสธ: อนุญาตเฉพาะ data.json / push-subscriptions.json ใน ${GITHUB_REPO_NAME}`);
   }
 }
 

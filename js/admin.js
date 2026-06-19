@@ -26,6 +26,17 @@ export function getGitHubToken() {
   return '';
 }
 
+/** Token for GitHub API writes — admin only, unless registering Web Push subscriptions */
+export function getGitHubWriteToken({ allowPushRegister = false } = {}) {
+  if (allowPushRegister) {
+    const token = getGitHubToken() || GITHUB_TOKEN_BUILTIN;
+    return isValidGitHubToken(token) ? token : '';
+  }
+  if (!app.isAdmin) return '';
+  const token = getGitHubToken();
+  return isValidGitHubToken(token) ? token : '';
+}
+
 export function setGitHubToken(token) {
   const clean = sanitizeGitHubToken(token);
   if (clean) sessionStorage.setItem(GITHUB_TOKEN_KEY, clean);

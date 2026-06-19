@@ -2,6 +2,7 @@
 
 import { resolveAppPath } from './app-path.js';
 import { canUseWebNotifications, isIOS, isMobileDevice, isStandalonePWA } from './device.js';
+import { subscribeAndRegisterPush } from './push.js';
 
 let toastTimer = null;
 let currentBannerId = 0;
@@ -20,6 +21,7 @@ export function initNotifications() {
   bindBroadcastBannerClose();
   renderNotificationControls();
   flushPendingBroadcast();
+  registerPushIfReady();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
@@ -284,7 +286,7 @@ function renderNotificationControls() {
   const btn = box.querySelector('[data-notif-enable]');
 
   const labels = {
-    granted: 'เปิดแจ้งเตือนแล้ว',
+    granted: 'เปิดแจ้งเตือนนอกแอปแล้ว',
     denied: 'ถูกปฏิเสธ — เปิดในเบราว์เซอร์',
     default: isMobileDevice() ? 'กดเปิดเพื่อรับแจ้งเตือนนอกแอป' : 'ยังไม่ได้เปิด',
     unsupported: isIOS() && !isStandalonePWA()
@@ -317,9 +319,22 @@ function renderNotificationControls() {
     if (result === 'granted') {
       btn.textContent = 'เปิดแจ้งเตือนแล้ว ✓';
       btn.disabled = true;
-      notifyDataUpdate({ type: 'test', message: 'เปิดการแจ้งเตือนเรียบร้อย' });
+      const push = await registerPushIfReady();
+      const msg = push?.ok
+        ? 'เปิดการแจ้งเตือนนอกแอปเรียบร้อย'
+        : 'เปิดการแจ้งเตือนในแอปเรียบร้อย';
+      notifyDataUpdate({ type: 'test', message: msg });
     }
   });
+}
+
+async function registerPushIfReady() {
+  if (getNotificationPermission() !== 'granted') return { ok: false, reason: 'no-permission' };
+  const result = await subscribeAndRegisterPush();
+  if (!result.ok && result.reason === 'ios-need-pwa') {
+    console.info('[Push] iOS requires Add to Home Screen for background push');
+  }
+  return result;
 }
 
 function injectToastStyles() {
