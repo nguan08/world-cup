@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <link rel="stylesheet" href="style.css?v=20260619-export-flat">
+  <link rel="stylesheet" href="style.css?v=20260619-zone-colors">
 </head>
 <body>
   
@@ -347,19 +347,32 @@
           <p class="stats-table-sort-hint">คลิกหัวคอลัมน์เพื่อเรียงลำดับ · กดซ้ำสลับ ↑↓</p>
           <div class="table-container">
             <table id="statistics-table">
+              <colgroup>
+                <col class="stats-col-rank">
+                <col class="stats-col-name">
+                <col class="stats-col-group">
+                <col class="stats-col-zone">
+                <col class="stats-col-played">
+                <col class="stats-col-wins">
+                <col class="stats-col-draws">
+                <col class="stats-col-losses">
+                <col class="stats-col-goals">
+                <col class="stats-col-mult">
+                <col class="stats-col-points">
+              </colgroup>
               <thead>
                 <tr>
-                  <th class="stats-rank-th" style="width: 60px; text-align: center;">อันดับ</th>
-                  <th class="stats-sort-th"><button type="button" class="stats-sort-btn" data-sort="name" title="เรียงตามชื่อทีม"><span>ทีม</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-rank-th" title="อันดับ">#</th>
+                  <th class="stats-sort-th stats-name-th"><button type="button" class="stats-sort-btn" data-sort="name" title="เรียงตามชื่อทีม"><span>ทีม</span><span class="stats-sort-arrow">⇅</span></button></th>
                   <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="wcGroup" title="เรียงตามกลุ่ม"><span>กลุ่ม</span><span class="stats-sort-arrow">⇅</span></button></th>
                   <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="zone" title="เรียงตามโซน"><span>โซน</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="played" title="เรียงตามจำนวนแข่ง"><span>แข่ง</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="wins" title="เรียงตามชนะ"><span>ชนะ</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="draws" title="เรียงตามเสมอ"><span>เสมอ</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="losses" title="เรียงตามแพ้"><span>แพ้</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center"><button type="button" class="stats-sort-btn" data-sort="goalsFor" title="เรียงตามประตู"><span>ประตู</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--narrow"><button type="button" class="stats-sort-btn stats-sort-btn--narrow" data-sort="multiplier" title="เรียงตามตัวคูณ"><span>ตัวคูณ</span><span class="stats-sort-arrow">⇅</span></button></th>
-                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--narrow"><button type="button" class="stats-sort-btn stats-sort-btn--narrow" data-sort="points" title="เรียงตามคะแนนรวม"><span>คะแนน</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="played" title="เรียงตามจำนวนแข่ง"><span>แข่ง</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="wins" title="เรียงตามชนะ"><span>ชนะ</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="draws" title="เรียงตามเสมอ"><span>เสมอ</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="losses" title="เรียงตามแพ้"><span>แพ้</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="goalsFor" title="เรียงตามประตู"><span>ประตู</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="multiplier" title="เรียงตามตัวคูณ"><span>คูณ</span><span class="stats-sort-arrow">⇅</span></button></th>
+                  <th class="stats-sort-th stats-sort-th--center stats-sort-th--compact"><button type="button" class="stats-sort-btn stats-sort-btn--compact" data-sort="points" title="เรียงตามคะแนนรวม"><span>คะแนน</span><span class="stats-sort-arrow">⇅</span></button></th>
                 </tr>
               </thead>
               <tbody id="statistics-tbody">

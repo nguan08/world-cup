@@ -96,6 +96,17 @@ function formatWcGroupLabel(group) {
   return group ? `กลุ่ม ${group}` : '-';
 }
 
+function formatZoneDisplayLabel(zone) {
+  if (zone === 'red-orange') return 'red';
+  return zone || '';
+}
+
+function getZoneBadgeClass(zone) {
+  if (!zone) return 'grey';
+  if (zone === 'red-orange') return 'red';
+  return zone;
+}
+
 function getWcGroupBadgeHtml(group, extraClass = '') {
   if (!group) return '<span class="wc-group-badge wc-group-badge--empty">-</span>';
   return `<span class="wc-group-badge ${extraClass}" title="${formatWcGroupLabel(group)}">${group}</span>`;
@@ -4052,7 +4063,7 @@ function buildTeamFilterHTML() {
     green: 'Green Zone (x1.4 - x1.7)',
     yellow: 'Yellow Zone (x1.8 - x2.1)',
     'grey': 'Grey (x2.2 - x2.6)',
-    'red-orange': 'Red-Orange (x2.7 - x3.0)'
+    'red-orange': 'Red (x2.7 - x3.0)'
   };
 
   let html = '';
@@ -5448,7 +5459,7 @@ const STATS_ZONE_META = [
   { key: 'green', label: 'Green Zone', thLabel: 'โซนเขียว', mult: 'x1.4 – 1.7', teamClass: 'team-green', panelClass: 'stats-zone-panel--green' },
   { key: 'yellow', label: 'Yellow Zone', thLabel: 'โซนเหลือง', mult: 'x1.8 – 2.1', teamClass: 'team-yellow', panelClass: 'stats-zone-panel--yellow' },
   { key: 'grey', label: 'Grey Zone', thLabel: 'โซนเทา', mult: 'x2.2 – 2.6', teamClass: 'team-grey', panelClass: 'stats-zone-panel--grey' },
-  { key: 'red-orange', label: 'Red-Orange Zone', thLabel: 'โซนแดง-ส้ม', mult: 'x2.7 – 3.0', teamClass: 'team-red-orange', panelClass: 'stats-zone-panel--red-orange' }
+  { key: 'red-orange', label: 'Red Zone', thLabel: 'โซนแดง', mult: 'x2.7 – 3.0', teamClass: 'team-red-orange', panelClass: 'stats-zone-panel--red-orange' }
 ];
 
 function renderStatsGrandPills(el, total, avg) {
@@ -5684,68 +5695,63 @@ function renderStatistics() {
 
     // Rank
     const rankTd = document.createElement('td');
-    rankTd.style.textAlign = 'center';
-    rankTd.innerHTML = `<strong>${idx + 1}</strong>`;
+    rankTd.className = 'stats-rank-cell';
+    rankTd.textContent = String(idx + 1);
 
     // Team Name
     const nameTd = document.createElement('td');
+    nameTd.className = 'stats-name-cell';
     const badge = document.createElement('span');
-    badge.className = `team-badge team-${s.zone}`;
+    badge.className = `team-badge team-${s.zone} stats-table-team-badge`;
     badge.dataset.team = s.name;
     badge.title = 'ดูผู้เลือกทีมนี้';
-    badge.style.cssText = 'padding: 2px 8px; font-size: 12px;';
     applyTeamPopularity(badge, s.name);
     badge.textContent = s.name;
     nameTd.appendChild(badge);
 
     // Zone
     const zoneTd = document.createElement('td');
-    zoneTd.style.textAlign = 'center';
-    const zoneClass = s.zone === 'red-orange' ? 'red' : (s.zone === 'grey' ? 'grey' : s.zone);
-    zoneTd.innerHTML = `<span class="badge badge-${zoneClass}">${s.zone}</span>`;
+    zoneTd.className = 'stats-zone-cell';
+    const zoneClass = getZoneBadgeClass(s.zone);
+    zoneTd.innerHTML = `<span class="badge badge-${zoneClass} stats-zone-badge-compact">${formatZoneDisplayLabel(s.zone)}</span>`;
 
     const groupTd = document.createElement('td');
-    groupTd.style.textAlign = 'center';
+    groupTd.className = 'stats-group-cell';
     groupTd.innerHTML = getWcGroupBadgeHtml(getTeamWcGroup(s.name));
 
     // Played
     const playedTd = document.createElement('td');
-    playedTd.style.textAlign = 'center';
+    playedTd.className = 'stats-stat-cell';
     playedTd.textContent = s.played;
 
     // Won
     const wonTd = document.createElement('td');
-    wonTd.style.textAlign = 'center';
-    wonTd.style.color = 'var(--zone-green)';
+    wonTd.className = 'stats-stat-cell stats-stat-cell--win';
     wonTd.textContent = s.wins;
 
     // Drawn
     const drawnTd = document.createElement('td');
-    drawnTd.style.textAlign = 'center';
-    drawnTd.style.color = 'var(--zone-yellow)';
+    drawnTd.className = 'stats-stat-cell stats-stat-cell--draw';
     drawnTd.textContent = s.draws;
 
     // Lost
     const lostTd = document.createElement('td');
-    lostTd.style.textAlign = 'center';
-    lostTd.style.color = '#ff4444';
+    lostTd.className = 'stats-stat-cell stats-stat-cell--loss';
     lostTd.textContent = s.losses;
 
     // Goals
     const goalsTd = document.createElement('td');
-    goalsTd.style.textAlign = 'center';
+    goalsTd.className = 'stats-stat-cell';
     goalsTd.textContent = s.goalsFor;
 
     // Multiplier
     const multTd = document.createElement('td');
-    multTd.style.textAlign = 'center';
+    multTd.className = 'stats-mult-cell';
     multTd.textContent = 'x' + s.multiplier.toFixed(1);
 
     // Points
     const pointsTd = document.createElement('td');
-    pointsTd.style.textAlign = 'center';
-    pointsTd.style.fontWeight = '700';
-    pointsTd.style.color = 'var(--primary)';
+    pointsTd.className = 'stats-points-cell';
     pointsTd.textContent = s.points.toFixed(1);
 
     tr.appendChild(rankTd);
@@ -5848,8 +5854,8 @@ function renderTeamsMatrix() {
     { key: 'blue', name: 'Blue Zone (ตัวคูณ 1.0 - 1.3)', class: 'team-blue' },
     { key: 'green', name: 'Green Zone (ตัวคูณ 1.4 - 1.7)', class: 'team-green' },
     { key: 'yellow', name: 'Yellow Zone (ตัวคูณ 1.8 - 2.1)', class: 'team-yellow' },
-    { key: 'grey', name: 'Grey Zone (ตัวคูณ 2.2 - 2.6)', class: 'team-light-orange' },
-    { key: 'red-orange', name: 'Red-Orange Zone (ตัวคูณ 2.7 - 3.0)', class: 'team-red-orange' }
+    { key: 'grey', name: 'Grey Zone (ตัวคูณ 2.2 - 2.6)', class: 'team-grey' },
+    { key: 'red-orange', name: 'Red Zone (ตัวคูณ 2.7 - 3.0)', class: 'team-red-orange' }
   ];
   
   const teamScores = calculateTeamPoints();
@@ -6092,7 +6098,7 @@ function openPlayerDetails(name) {
             <tr style="border-left: 3px solid var(--zone-${tb.zone});">
               <td>${buildTeamBadgeHtml(tb.name, tb.zone, { extraStyle: 'padding:2px 6px; font-size:11px;' })}</td>
               <td style="text-align:center;">${getWcGroupBadgeHtml(getTeamWcGroup(tb.name))}</td>
-              <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${tb.zone.toUpperCase()}</span></td>
+              <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${formatZoneDisplayLabel(tb.zone).toUpperCase()}</span></td>
               <td>${teamMatches.length}</td>
               <td style="color:#34d399;">${wins}</td>
               <td style="color:var(--zone-yellow);">${draws}</td>
@@ -6276,8 +6282,8 @@ function openPlayerForm(player = null) {
     { key: 'blue', name: 'Blue Zone (สูงสุด 4 ทีม)', class: 'team-blue' },
     { key: 'green', name: 'Green Zone (สูงสุด 4 ทีม)', class: 'team-green' },
     { key: 'yellow', name: 'Yellow Zone (สูงสุด 4 ทีม)', class: 'team-yellow' },
-    { key: 'grey', name: 'Grey Zone (สูงสุด 4 ทีม)', class: 'team-light-orange' },
-    { key: 'red-orange', name: 'Red-Orange Zone (สูงสุด 4 ทีม)', class: 'team-red-orange' }
+    { key: 'grey', name: 'Grey Zone (สูงสุด 4 ทีม)', class: 'team-grey' },
+    { key: 'red-orange', name: 'Red Zone (สูงสุด 4 ทีม)', class: 'team-red-orange' }
   ];
   
   const selectedTeamsSet = player ? new Set(player.teams) : new Set();
