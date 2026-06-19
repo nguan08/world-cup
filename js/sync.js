@@ -229,8 +229,8 @@ export function updateDataSyncStatus(status = 'idle', extra = '') {
   }
   const syncLabel = app.isSyncEnabled ? 'ซิงค์อัตโนมัติ' : 'อัปเดตอัตโนมัติ';
   el.textContent = app.lastDataRefreshTime
-    ? `อัปเดตล่าสุด ${formatSyncTime(app.lastDataRefreshTime)} · ${syncLabel} ทุก 2 นาที`
-    : `${syncLabel} ทุก 2 นาที`;
+    ? `อัปเดตล่าสุด ${formatSyncTime(app.lastDataRefreshTime)} · ${syncLabel} ทุก 1 นาที`
+    : `${syncLabel} ทุก 1 นาที`;
   el.className = 'data-sync-status';
 }
 
@@ -307,6 +307,21 @@ export function refreshActivePage() {
   _refreshPage();
 }
 
+const pollChannel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('worldcup-poll')
+  : null;
+
+export function requestPollNow() {
+  void pollServerData();
+  pollChannel?.postMessage({ type: 'POLL_NOW' });
+}
+
+function setupPollChannel() {
+  pollChannel?.addEventListener('message', (event) => {
+    if (event.data?.type === 'POLL_NOW') void pollServerData();
+  });
+}
+
 export async function pollServerData() {
   try {
     const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
@@ -333,6 +348,7 @@ export async function pollServerData() {
 }
 
 export function setupAutoRefresh() {
+  setupPollChannel();
   if (app.autoRefreshTimer) clearInterval(app.autoRefreshTimer);
   app.lastDataRefreshTime = new Date();
   updateDataSyncStatus();

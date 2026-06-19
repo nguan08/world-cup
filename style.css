@@ -3768,7 +3768,8 @@ html.pwa-standalone .mobile-header {
   font-size: 12px;
 }
 
-.admin-broadcast-btn {
+.admin-broadcast-btn,
+.admin-broadcast-test-btn {
   width: 100%;
   padding: 8px 12px !important;
   font-size: 12px !important;

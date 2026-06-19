@@ -5006,6 +5006,15 @@ async function exportMatchesImage() {
     });
   }
 
+  const broadcastTestBtn = document.getElementById('admin-broadcast-test-btn');
+  if (broadcastTestBtn) {
+    broadcastTestBtn.addEventListener('click', () => {
+      const input = document.getElementById('admin-broadcast-message');
+      const message = (input?.value || '').trim() || 'ทดสอบแจ้งเตือน — ระบบทำงานปกติ';
+      notifyDataUpdate({ type: 'broadcast', message: `📢 ${message}`, forceBrowserNotify: true });
+    });
+  }
+
   // Handle admin login submission
   const loginForm = document.getElementById('admin-login-form');
   if (loginForm) {

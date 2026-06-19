@@ -5,14 +5,21 @@ import { resolveAppPath } from './app-path.js';
 let permissionRequested = false;
 let toastTimer = null;
 
+const BROADCAST_STORAGE_KEY = 'worldcup_lastBroadcastId';
+const BROADCAST_STALE_MS = 2 * 60 * 60 * 1000;
+
 export function initNotifications() {
   injectToastStyles();
   ensureToastElement();
   renderNotificationControls();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'DATA_UPDATED') {
-        showUpdateToast(event.data.message || 'มีการอัปเดตข้อมูลใหม่');
+      const { type, message } = event.data || {};
+      if (type === 'DATA_UPDATED' || type === 'BROADCAST') {
+        showUpdateToast(message || 'มีการอัปเดตข้อมูลใหม่');
+        if (type === 'BROADCAST') {
+          showBrowserNotification(message, 'broadcast');
+        }
       }
     });
   }
@@ -35,66 +42,82 @@ export async function requestNotificationPermission() {
   }
 }
 
-const BROADCAST_STORAGE_KEY = 'worldcup_lastBroadcastId';
-
 export function processBroadcast(serverData, { onInit = false } = {}) {
   const bc = serverData?.broadcast;
   if (!bc?.id) return false;
 
   const lastId = Number(localStorage.getItem(BROADCAST_STORAGE_KEY) || 0);
-  if (onInit && lastId === 0) {
-    localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
-    return false;
-  }
   if (bc.id <= lastId) return false;
 
+  if (onInit && lastId === 0 && bc.sentAt) {
+    const age = Date.now() - Date.parse(bc.sentAt);
+    if (Number.isFinite(age) && age > BROADCAST_STALE_MS) {
+      localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
+      return false;
+    }
+  }
+
   localStorage.setItem(BROADCAST_STORAGE_KEY, String(bc.id));
+  const text = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
   notifyDataUpdate({
-    type: 'data',
-    message: bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป'
+    type: 'broadcast',
+    message: `📢 ${text}`,
+    forceBrowserNotify: true
   });
   return true;
 }
 
-export function notifyDataUpdate({ type = 'data', message } = {}) {
+export function notifyDataUpdate({ type = 'data', message, forceBrowserNotify = false } = {}) {
   const text = message || (type === 'data'
     ? 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่'
     : 'มีการอัปเดตแอป');
 
   showUpdateToast(text);
 
-  if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-    try {
-      const n = new Notification('World Cup 2026 — อัปเดตข้อมูล', {
-        body: text,
-        icon: resolveAppPath('icons/icon-192.png'),
-        badge: resolveAppPath('icons/icon-192.png'),
-        tag: 'wc-data-update',
-        renotify: true
-      });
-      n.onclick = () => {
-        window.focus();
-        n.close();
-      };
-    } catch {
-      // ignore
-    }
+  const shouldShowBrowser = forceBrowserNotify
+    || type === 'broadcast'
+    || document.hidden;
+
+  if (shouldShowBrowser) {
+    showBrowserNotification(text, type);
   }
 
   if (navigator.serviceWorker?.controller) {
     navigator.serviceWorker.controller.postMessage({
-      type: 'DATA_UPDATED',
+      type: type === 'broadcast' ? 'BROADCAST' : 'DATA_UPDATED',
       message: text
     });
   }
 }
 
-function showUpdateToast(message) {
+function showBrowserNotification(text, type = 'data') {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const title = type === 'broadcast'
+      ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน'
+      : 'World Cup 2026 — อัปเดตข้อมูล';
+    const n = new Notification(title, {
+      body: text.replace(/^📢\s*/, ''),
+      icon: resolveAppPath('icons/icon-192.png'),
+      badge: resolveAppPath('icons/icon-192.png'),
+      tag: type === 'broadcast' ? 'wc-broadcast' : 'wc-data-update',
+      renotify: true
+    });
+    n.onclick = () => {
+      window.focus();
+      n.close();
+    };
+  } catch {
+    // ignore
+  }
+}
+
+export function showUpdateToast(message) {
   const toast = ensureToastElement();
   toast.querySelector('.update-toast__text').textContent = message;
   toast.classList.add('update-toast--visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('update-toast--visible'), 6000);
+  toastTimer = setTimeout(() => toast.classList.remove('update-toast--visible'), 8000);
 }
 
 function ensureToastElement() {
@@ -172,7 +195,6 @@ function injectToastStyles() {
     }
     .update-toast--visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
     .update-toast__close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 0 4px; }
-
   `;
   document.head.appendChild(style);
 }

@@ -8,7 +8,7 @@ export const app = {
   simulationScores: {},
   lastDataRefreshTime: null,
   autoRefreshTimer: null,
-  AUTO_REFRESH_INTERVAL_MS: 2 * 60 * 1000,
+  AUTO_REFRESH_INTERVAL_MS: 60 * 1000,
   teamPoints: {},
   processedPlayers: [],
   manualEliminatedTeams: new Set(),

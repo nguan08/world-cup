@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v9';
+const CACHE_NAME = 'wc2026-v10';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -86,6 +86,7 @@ async function networkFirstData(request) {
       const hash = simpleHash(text);
       if (lastDataHash && hash !== lastDataHash) {
         let message = 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่';
+        let isBroadcast = false;
         try {
           const data = JSON.parse(text);
           const bc = data.broadcast;
@@ -94,20 +95,30 @@ async function networkFirstData(request) {
             if (bc.id > lastBroadcastId) {
               await setStoredBroadcastId(bc.id);
               message = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
+              isBroadcast = true;
             }
           }
         } catch {
           // keep default message
         }
+        const msgType = isBroadcast ? 'BROADCAST' : 'DATA_UPDATED';
         const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        if (clients.length === 0) {
-          await self.registration.showNotification('World Cup 2026 — อัปเดตข้อมูล', {
-            body: message,
-            icon: iconUrl(),
-            badge: iconUrl(),
-            tag: 'wc-data-update',
-            renotify: true
-          });
+        clients.forEach((client) => {
+          client.postMessage({ type: msgType, message: isBroadcast ? `📢 ${message}` : message });
+        });
+        try {
+          await self.registration.showNotification(
+            isBroadcast ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน' : 'World Cup 2026 — อัปเดตข้อมูล',
+            {
+              body: message,
+              icon: iconUrl(),
+              badge: iconUrl(),
+              tag: isBroadcast ? 'wc-broadcast' : 'wc-data-update',
+              renotify: true
+            }
+          );
+        } catch {
+          // permission not granted
         }
       }
       lastDataHash = hash;
