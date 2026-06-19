@@ -70,7 +70,9 @@ fs.writeFileSync(
   path.join(OUT, 'utils.js'),
   `import { elCache } from './state-internal.js';
 
-${exportify(slice(2260, 2268))}
+${exportify(slice(2261, 2269))}
+
+${exportify(slice(2271, 2274))}
 
 export function getCachedEl(id) {
   if (!elCache[id]) elCache[id] = document.getElementById(id);
@@ -110,7 +112,9 @@ fs.writeFileSync(
   path.join(OUT, 'utils.js'),
   `import { elCache } from './state.js';
 
-${exportify(slice(2260, 2268))}
+${exportify(slice(2261, 2269))}
+
+${exportify(slice(2271, 2274))}
 
 export function getCachedEl(id) {
   if (!elCache[id]) elCache[id] = document.getElementById(id);
@@ -173,16 +177,14 @@ fs.writeFileSync(
   `import { isAdmin } from './state.js';
 import { getCachedEl } from './utils.js';
 
-${exportify(slice(2286, 2338))}
+${exportify(slice(2292, 2335))}
 `
 );
 
 // ── sync.js (will be patched with notifications after creation) ──
-const syncBody = `${exportify(slice(2341, 2350))}
+const syncBody = `${exportify(slice(2338, 2347))}
 
-${exportify(slice(2352, 2526))}
-
-${exportify(slice(2528, 2559))}
+${exportify(slice(2349, 2522))}
 
 let _refreshPage = () => {};
 export function registerRefreshPage(fn) {
@@ -226,14 +228,9 @@ ${exportify(slice(3094, 3102))}
 );
 
 // ── bundle.js: everything else ──
+// Keep in sync with module splits: utils/state/admin/sync/scoring/persist through drawer state vars.
 const EXCLUDE_RANGES = [
-  [2260, 2268],   // escapeHtml -> utils
-  [2270, 2284],   // state
-  [2286, 2338],   // admin
-  [2341, 2559],   // sync start + initData + saveToServer
-  [2561, 2966],   // scoring + recalculate
-  [2887, 2903],   // state + getCachedEl/debounce (duplicate)
-  [2968, 3102],   // refresh + sync
+  [2260, 3104],
 ];
 
 function isExcluded(lineNum) {

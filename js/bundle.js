@@ -1,57 +1,51 @@
 // UI, rendering, events, player drawer, team popup
 import {
-  TEAMS, INITIAL_MATCHES, INITIAL_PLAYERS,
+  TEAMS, TEAM_WC_GROUP_MEMBERS, INITIAL_MATCHES, INITIAL_PLAYERS,
   getTeamWcGroup, formatWcGroupLabel, formatZoneDisplayLabel,
-  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml
+  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml, getCompareTeamFlagHtml
 } from './constants.js';
-import {
-  ADMIN_PASSWORD, matches, players, isAdmin, isSyncEnabled,
-  simulationScores, lastDataRefreshTime, teamPoints, processedPlayers,
-  manualEliminatedTeams, lastHighlightPlayer, teamMatchesPlayedCounts,
-  _playerDrawerSavedScrollY, _playerDrawerScrollLocked,
-  chartHoverPlayer, chartPulseAnimPlayer,
-  statsSortState, statsSortHandlersReady,
-  _rankSpeechVoice, _maxPopularityCache
-} from './state.js';
-import { escapeHtml, getCachedEl, debounce } from './utils.js';
+import { app } from './state.js';
+import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
   calculateTeamPoints, calculatePredictionPoints, processPlayers,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
   loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated
 } from './scoring.js';
 import {
-  initData, saveToServer, clearCachedData,
+  initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
+import { saveToServer } from './persist.js';
+import { setRecalcHook } from './scoring.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
 
-}
-let simulationScores = {};
-  const cachedKeys = [
-    'worldcup_matches',
-  
-  if (!activePage) return;
-let _playerDrawerScrollLocked = false;
 
+
+
+// Initialize data from server data.json and/or localstorage
+// Calculate team points from app.matches
+
+
+// Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
 function lockScrollForPlayerDrawer() {
-  if (_playerDrawerScrollLocked) return;
-  _playerDrawerScrollLocked = true;
-  _playerDrawerSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  if (app._playerDrawerScrollLocked) return;
+  app._playerDrawerScrollLocked = true;
+  app._playerDrawerSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
   document.documentElement.classList.add('player-drawer-open');
   document.body.classList.add('player-drawer-open');
   document.body.style.overflow = '';
-  document.body.style.top = `-${_playerDrawerSavedScrollY}px`;
+  document.body.style.top = `-${app._playerDrawerSavedScrollY}px`;
 }
 
 function unlockScrollForPlayerDrawer() {
-  if (!_playerDrawerScrollLocked) return;
-  _playerDrawerScrollLocked = false;
+  if (!app._playerDrawerScrollLocked) return;
+  app._playerDrawerScrollLocked = false;
   document.documentElement.classList.remove('player-drawer-open');
   document.body.classList.remove('player-drawer-open');
   document.body.style.top = '';
-  window.scrollTo(0, _playerDrawerSavedScrollY);
+  window.scrollTo(0, app._playerDrawerSavedScrollY);
 
   const sidebar = document.getElementById('sidebar');
   if (sidebar && sidebar.classList.contains('active')) {
@@ -301,19 +295,19 @@ function setupNavigation() {
 
 function handleSimulationScoreChange(matchId, isHome, val) {
   const score = val === '' ? null : parseInt(val);
-  if (!simulationScores[matchId]) {
-    const m = matches.find(x => x.id == matchId);
-    simulationScores[matchId] = {
+  if (!app.simulationScores[matchId]) {
+    const m = app.matches.find(x => x.id == matchId);
+    app.simulationScores[matchId] = {
       homeScore: m.homeScore,
       awayScore: m.awayScore
     };
   }
-  if (isHome) simulationScores[matchId].homeScore = score;
-  else simulationScores[matchId].awayScore = score;
+  if (isHome) app.simulationScores[matchId].homeScore = score;
+  else app.simulationScores[matchId].awayScore = score;
 
   // If both scores are null, remove simulation for this match
-  if (simulationScores[matchId].homeScore === null && simulationScores[matchId].awayScore === null) {
-    delete simulationScores[matchId];
+  if (app.simulationScores[matchId].homeScore === null && app.simulationScores[matchId].awayScore === null) {
+    delete app.simulationScores[matchId];
   }
 
   if (window._simTimeout) clearTimeout(window._simTimeout);
@@ -341,7 +335,7 @@ function buildLiveMatchCard(m, index, options = {}) {
   if (mode === 'matches' || mode === 'live') card.classList.add('matches-page-card');
   card.dataset.matchId = String(m.id);
 
-  const isSimulated = simulationScores[m.id];
+  const isSimulated = app.simulationScores[m.id];
   const isFinished = m.status === 'finished';
   const hTeamObj = TEAMS.find(t => t.name === m.home);
   const aTeamObj = TEAMS.find(t => t.name === m.away);
@@ -366,7 +360,7 @@ function buildLiveMatchCard(m, index, options = {}) {
 
     const homeScoreVal = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
     const awayScoreVal = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
-    const adminAttr = isAdmin ? '' : 'disabled';
+    const adminAttr = app.isAdmin ? '' : 'disabled';
 
     scoreCenterHtml = `
       <div class="match-score-row">
@@ -386,7 +380,7 @@ function buildLiveMatchCard(m, index, options = {}) {
       matchesExtras += `
         <div class="penalty-ui" style="display: ${showPenalty ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
           <label style="font-size: 11px; color: var(--text-secondary);">ผู้ชนะการยิงจุดโทษ (Penalty Winner):</label>
-          <select class="penalty-select" data-match-id="${m.id}" ${isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
+          <select class="penalty-select" data-match-id="${m.id}" ${app.isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
             <option value="">-- เลือกผู้ชนะจุดโทษ --</option>
             <option value="home" ${m.penaltyWinner === 'home' ? 'selected' : ''}>${m.home}</option>
             <option value="away" ${m.penaltyWinner === 'away' ? 'selected' : ''}>${m.away}</option>
@@ -397,7 +391,7 @@ function buildLiveMatchCard(m, index, options = {}) {
 
     matchesExtras += `
       <div class="match-card-admin-footer">
-        <div style="display:${isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap; margin-top: 12px;">
+        <div style="display:${app.isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap; margin-top: 12px;">
           <button class="btn btn-secondary save-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1;">บันทึกผล</button>
           <button class="btn btn-secondary clear-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1; background-color: rgba(244,63,94,0.05); color: var(--accent); border-color: rgba(244,63,94,0.1)">ล้างผล</button>
         </div>
@@ -498,7 +492,7 @@ function renderRecentMatches() {
   tomorrow.setDate(now.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
+  const recent = app.matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
 
   if (recent.length === 0) {
     container.className = 'live-matches-container';
@@ -1017,15 +1011,15 @@ function renderDashboard() {
   recalculateAll();
   
   const totalEl = getCachedEl('stat-total-players');
-  if (totalEl) totalEl.textContent = processedPlayers.length;
+  if (totalEl) totalEl.textContent = app.processedPlayers.length;
   
-  const leader = processedPlayers[0];
+  const leader = app.processedPlayers[0];
   const leaderEl = getCachedEl('stat-leader-score');
   if (leaderEl) leaderEl.textContent = leader ? leader.totalScore.toFixed(1) : '0.0';
   
-  const playedCount = matches.filter(m => m.status === 'finished').length;
+  const playedCount = app.matches.filter(m => m.status === 'finished').length;
   const playedEl = getCachedEl('stat-played-matches');
-  if (playedEl) playedEl.textContent = `${playedCount} / ${matches.length}`;
+  if (playedEl) playedEl.textContent = `${playedCount} / ${app.matches.length}`;
 
   // ── Score Distribution Line Chart ──────────────────────────
   renderScoreChart();
@@ -1039,7 +1033,7 @@ function renderDashboard() {
   tbody.innerHTML = '';
 
   const fragment = document.createDocumentFragment();
-  const topPlayers = processedPlayers.slice(0, 10);
+  const topPlayers = app.processedPlayers.slice(0, 10);
   topPlayers.forEach(p => {
     const tr = document.createElement('tr');
     tr.classList.add('hoverable');
@@ -1324,7 +1318,7 @@ function renderLeaderboard(options = {}) {
     if (cb.checked) selectedTeams.push(cb.value);
   });
 
-  let filtered = processedPlayers || [];
+  let filtered = app.processedPlayers || [];
 
   let teamFiltered = filtered;
   if (selectedTeams.length > 0) {
@@ -1361,7 +1355,7 @@ function renderLeaderboard(options = {}) {
 
   const fragment = document.createDocumentFragment();
 
-  const allRanks = [...new Set((processedPlayers || []).map(pl => pl.rank))].sort((a, b) => a - b);
+  const allRanks = [...new Set((app.processedPlayers || []).map(pl => pl.rank))].sort((a, b) => a - b);
   const maxRank = allRanks.length ? allRanks[allRanks.length - 1] : 0;
   const secondLastRank = allRanks.length >= 2 ? allRanks[allRanks.length - 2] : 0;
   const isSadLastRank = (rank) => maxRank > 2 && rank === maxRank;
@@ -1457,7 +1451,7 @@ function renderLeaderboard(options = {}) {
       nameTd.textContent = p.name;
     }
 
-    // Total matches played by selected teams
+    // Total app.matches played by selected teams
     const teamsTd = document.createElement('td');
     teamsTd.setAttribute('data-label', 'จำนวนนัดที่ทีมเตะรวม');
     teamsTd.className = 'table-matches-cell';
@@ -1516,7 +1510,7 @@ function renderLeaderboard(options = {}) {
   tbody.appendChild(fragment);
 
   // === Global average summary moved OUTSIDE the table (below it), slightly larger ===
-  const fullPlayers = processedPlayers || [];
+  const fullPlayers = app.processedPlayers || [];
   const avgNoteEl = getCachedEl('leaderboard-avg-note');
   if (avgNoteEl) avgNoteEl.innerHTML = ''; // clear previous
 
@@ -1538,27 +1532,27 @@ function renderLeaderboard(options = {}) {
   }
 }
 
-// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished matches, matching github version)
+// RENDERING - SCORE DISTRIBUTION CHART (historical rank trend over finished app.matches, matching github version)
 function renderScoreChart() {
   const svgEl = getCachedEl('score-chart-svg');
-  if (!svgEl || !processedPlayers.length) return;
+  if (!svgEl || !app.processedPlayers.length) return;
 
   clearChartPulseLayer(svgEl);
-  chartHoverPlayer = '';
+  app.chartHoverPlayer = '';
 
-  // 1. Get finished matches sorted chronologically
-  const finishedMatches = matches
+  // 1. Get finished app.matches sorted chronologically
+  const finishedMatches = app.matches
     .filter(m => m.status === 'finished')
     .sort((a, b) => a.id - b.id);
   const stepsCount = finishedMatches.length;
 
-  // 2. Cache historical rank and score for all players
-  const playerRankHistory = players.map(p => {
-    const curr = processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
+  // 2. Cache historical rank and score for all app.players
+  const playerRankHistory = app.players.map(p => {
+    const curr = app.processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
       name: p.name,
       zone: curr.zone,
-      ranks: [1], // start all players tied at rank 1 before any finished matches
+      ranks: [1], // start all app.players tied at rank 1 before any finished app.matches
       scores: [0]
     };
   });
@@ -1605,7 +1599,7 @@ function renderScoreChart() {
     if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
 
     const scoreBoard = playerRankHistory.map(ph => {
-      const playerObj = players.find(p => p.name === ph.name);
+      const playerObj = app.players.find(p => p.name === ph.name);
       let teamsScore = 0;
       playerObj.teams.forEach(teamName => {
         teamsScore += teamScores[teamName] || 0;
@@ -1670,7 +1664,7 @@ function renderScoreChart() {
   const H = isMobile ? padT + chartH + padB + mobileEdgeGuard : 380;
   const xLabelY = padT + chartH + (isMobile ? 12 : 18);
 
-  const maxRank = processedPlayers.length || 1;
+  const maxRank = app.processedPlayers.length || 1;
 
   // Scale functions (rank 1 at top, maxRank at bottom)
   const plotRightX = padL + chartW;
@@ -1883,8 +1877,8 @@ function renderScoreChart() {
     ${legendMarkup}
   `;
 
-  chartPulseAnimPlayer = '';
-  chartHoverPlayer = '';
+  app.chartPulseAnimPlayer = '';
+  app.chartHoverPlayer = '';
 
   if (container) {
     container.style.overflow = isMobile ? 'visible' : 'hidden';
@@ -1915,10 +1909,10 @@ function renderScoreChart() {
   // 7. Populate Highlight Dropdown
   const highlightSelect = document.getElementById('chart-highlight-select');
   if (highlightSelect) {
-    const currentVal = highlightSelect.value || lastHighlightPlayer;
+    const currentVal = highlightSelect.value || app.lastHighlightPlayer;
     highlightSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
     
-    const sortedForSelect = [...processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const sortedForSelect = [...app.processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
     sortedForSelect.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.name;
@@ -1931,7 +1925,7 @@ function renderScoreChart() {
   bindChartHoverInteractions();
 
   // Trigger initial highlight if there was a selected player
-  const initialHl = highlightSelect ? highlightSelect.value : lastHighlightPlayer;
+  const initialHl = highlightSelect ? highlightSelect.value : app.lastHighlightPlayer;
   if (initialHl) {
     highlightPlayerInChart(initialHl);
   }
@@ -1958,8 +1952,7 @@ const CHART_ZONE_PULSE = {
   }
 };
 
-let chartHoverPlayer = '';
-let chartPulseAnimPlayer = '';
+
 
 function chartFindPlayerEl(svgEl, selector, playerName) {
   return [...svgEl.querySelectorAll(selector)].find(el => el.getAttribute('data-player') === playerName) || null;
@@ -1972,7 +1965,7 @@ function getChartZonePulseStyle(zone) {
 function clearChartPulseLayer(svgEl) {
   const layer = svgEl && svgEl.querySelector('.chart-pulse-layer');
   if (layer) layer.remove();
-  chartPulseAnimPlayer = '';
+  app.chartPulseAnimPlayer = '';
 }
 
 function extendChartPulsePathToPlotEnd(pathD, svgEl) {
@@ -2045,7 +2038,7 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
     layer.classList.add('chart-pulse-running');
   });
 
-  chartPulseAnimPlayer = playerName;
+  app.chartPulseAnimPlayer = playerName;
 }
 
 function resolveChartHoverTarget(node, stopAt) {
@@ -2099,15 +2092,15 @@ function bindChartHoverInteractions() {
       if (!target) return;
 
       const playerName = target.getAttribute('data-player');
-      if (!playerName || playerName === chartHoverPlayer) return;
+      if (!playerName || playerName === app.chartHoverPlayer) return;
 
-      chartHoverPlayer = playerName;
+      app.chartHoverPlayer = playerName;
       highlightPlayerInChart(playerName);
     });
   });
 
   container.addEventListener('mouseleave', () => {
-    chartHoverPlayer = '';
+    app.chartHoverPlayer = '';
     const hlSelect = document.getElementById('chart-highlight-select');
     highlightPlayerInChart(hlSelect ? hlSelect.value : '');
   });
@@ -2123,7 +2116,7 @@ function setChartLinePulse(playerName) {
     return;
   }
 
-  if (chartPulseAnimPlayer === playerName && svgEl.querySelector('.chart-pulse-layer')) {
+  if (app.chartPulseAnimPlayer === playerName && svgEl.querySelector('.chart-pulse-layer')) {
     return;
   }
 
@@ -2146,7 +2139,7 @@ function highlightPlayerInChart(playerName) {
     highlightSelect.value = playerName;
   }
   
-  lastHighlightPlayer = playerName || "";
+  app.lastHighlightPlayer = playerName || "";
 
   if (!playerName) {
     // Revert to default
@@ -2161,7 +2154,7 @@ function highlightPlayerInChart(playerName) {
     });
     svgEl.querySelectorAll('.trend-end-label').forEach(label => {
       const pName = label.getAttribute('data-player');
-      const pObj = processedPlayers.find(p => p.name === pName);
+      const pObj = app.processedPlayers.find(p => p.name === pName);
       const isMobileLabel = label.getAttribute('text-anchor') === 'end';
       const lastR = pObj ? pObj.rank : 99;
       if (pObj && lastR <= 5 && !isMobileLabel) {
@@ -2296,9 +2289,9 @@ function showCustomConfirm(message, onConfirm) {
 // Delete a match (admin only)
 function deleteMatch(matchId) {
   showCustomConfirm('คุณต้องการลบคู่แข่งขันนี้ใช่หรือไม่?', async () => {
-    matches = matches.filter(m => m.id != matchId);
+    app.matches = app.matches.filter(m => m.id != matchId);
     
-    // Track deleted matches to persist on page loads with safety try-catch
+    // Track deleted app.matches to persist on page loads with safety try-catch
     let deletedMatches = [];
     try {
       deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
@@ -2312,7 +2305,7 @@ function deleteMatch(matchId) {
       localStorage.setItem('worldcup_deleted_matches', JSON.stringify(deletedMatches));
     }
     
-    localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
     await saveToServer();
     recalculateAll();
     renderMatches();
@@ -2377,8 +2370,8 @@ function renderMatches() {
   const grid = document.getElementById('matches-grid');
   grid.innerHTML = '';
   
-  // Sort matches by date then by id
-  const sortedMatches = [...matches].sort((a, b) => {
+  // Sort app.matches by date then by id
+  const sortedMatches = [...app.matches].sort((a, b) => {
     const dateA = a.date || '9999-12-31';
     const dateB = b.date || '9999-12-31';
     if (dateA !== dateB) return dateA.localeCompare(dateB);
@@ -2422,7 +2415,7 @@ function setupMatchCardListeners() {
   document.querySelectorAll('.score-input').forEach(input => {
     input.addEventListener('input', (e) => {
       const matchId = parseInt(e.target.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match && match.isKnockout) {
         const card = e.target.closest('.match-card');
         const homeInput = card.querySelector('.home-score-input');
@@ -2458,7 +2451,7 @@ function setupMatchCardListeners() {
       const homeScore = parseInt(hVal);
       const awayScore = parseInt(aVal);
       
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = homeScore;
         match.awayScore = awayScore;
@@ -2491,7 +2484,7 @@ function setupMatchCardListeners() {
           localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
         
-        localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         await saveToServer();
         alert('บันทึกสกอร์การแข่งขันเรียบร้อย!');
         refreshMatchCardViews();
@@ -2504,7 +2497,7 @@ function setupMatchCardListeners() {
       e.preventDefault();
       e.stopPropagation();
       const matchId = parseInt(btn.getAttribute('data-match-id'));
-      const match = matches.find(m => m.id == matchId);
+      const match = app.matches.find(m => m.id == matchId);
       if (match) {
         match.homeScore = null;
         match.awayScore = null;
@@ -2525,7 +2518,7 @@ function setupMatchCardListeners() {
           localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
         
-        localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         await saveToServer();
         alert('ล้างข้อมูลสกอร์เรียบร้อย!');
         refreshMatchCardViews();
@@ -2567,7 +2560,7 @@ function renderPlayers() {
   const tbody = document.getElementById('players-tbody');
   tbody.innerHTML = '';
 
-  let filtered = processedPlayers || [];
+  let filtered = app.processedPlayers || [];
 
   // Filter by teams first (empty panel only when no player has all selected teams)
   let teamFiltered = filtered;
@@ -2644,8 +2637,7 @@ function renderPlayers() {
   });
 }
 
-let statsSortState = { key: 'points', dir: 'desc' };
-let statsSortHandlersReady = false;
+
 
 const STATS_ZONE_ORDER = { blue: 0, green: 1, yellow: 2, grey: 3, 'red-orange': 4 };
 const STATS_ZONE_META = [
@@ -2737,7 +2729,7 @@ function compareStatsRows(a, b, key, dir) {
   return cmp * mult;
 }
 
-function sortStatsArray(statsArray, sortState = statsSortState) {
+function sortStatsArray(statsArray, sortState = app.statsSortState) {
   return [...statsArray].sort((a, b) => compareStatsRows(a, b, sortState.key, sortState.dir));
 }
 
@@ -2854,12 +2846,12 @@ function renderTeamSelections(statsArray, mode = 'both') {
 
 function updateStatsSortUI() {
   document.querySelectorAll('#statistics-table .stats-sort-btn').forEach(btn => {
-    const isActive = btn.dataset.sort === statsSortState.key;
+    const isActive = btn.dataset.sort === app.statsSortState.key;
     btn.classList.toggle('is-active', isActive);
     const arrow = btn.querySelector('.stats-sort-arrow');
     if (arrow) {
       arrow.textContent = isActive
-        ? (statsSortState.dir === 'asc' ? '↑' : '↓')
+        ? (app.statsSortState.dir === 'asc' ? '↑' : '↓')
         : '⇅';
     }
     btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
@@ -2867,8 +2859,8 @@ function updateStatsSortUI() {
 }
 
 function setupStatsSortHandlers() {
-  if (statsSortHandlersReady) return;
-  statsSortHandlersReady = true;
+  if (app.statsSortHandlersReady) return;
+  app.statsSortHandlersReady = true;
 
   const table = document.getElementById('statistics-table');
   if (table) {
@@ -2878,11 +2870,11 @@ function setupStatsSortHandlers() {
       e.preventDefault();
       const key = btn.dataset.sort;
       if (!key) return;
-      if (statsSortState.key === key) {
-        statsSortState.dir = statsSortState.dir === 'asc' ? 'desc' : 'asc';
+      if (app.statsSortState.key === key) {
+        app.statsSortState.dir = app.statsSortState.dir === 'asc' ? 'desc' : 'asc';
       } else {
         const numericKeys = new Set(['played', 'wins', 'draws', 'losses', 'goalsFor', 'multiplier', 'points']);
-        statsSortState = {
+        app.statsSortState = {
           key,
           dir: numericKeys.has(key) ? 'desc' : 'asc'
         };
@@ -2993,6 +2985,7 @@ function renderStatistics() {
   const statsArray = sortStatsArray(buildStatsArray());
   renderStatsGroupBreakdown(statsArray);
   renderStatsZoneBreakdown(statsArray);
+  renderStatsFinalGuess();
   updateStatsSortUI();
 
   statsArray.forEach((s, idx) => {
@@ -3078,10 +3071,10 @@ function renderStatistics() {
 }
 
 function getProcessedPlayersWithoutSimulation() {
-  const saved = JSON.parse(JSON.stringify(simulationScores));
-  simulationScores = {};
+  const saved = JSON.parse(JSON.stringify(app.simulationScores));
+  app.simulationScores = {};
   const baseline = processPlayers(calculateTeamPoints());
-  simulationScores = saved;
+  app.simulationScores = saved;
   return baseline;
 }
 
@@ -3192,12 +3185,12 @@ function renderPayout() {
   const dueFooterEl = document.getElementById('payout-due-footer');
   if (!summaryEl || !dueListEl || !rosterListEl) return;
 
-  const paying = processedPlayers.filter(p => p.payout > 0);
+  const paying = app.processedPlayers.filter(p => p.payout > 0);
   const totalCollected = paying.reduce((sum, p) => sum + p.payout, 0);
   const count1000 = paying.filter(p => p.payout === 1000).length;
   const count1200 = paying.filter(p => p.payout === 1200).length;
   const count1500 = paying.filter(p => p.payout === 1500).length;
-  const totalPlayers = processedPlayers.length || 1;
+  const totalPlayers = app.processedPlayers.length || 1;
   const pctDue = (paying.length / totalPlayers) * 100;
   const pct1000 = paying.length ? (count1000 / paying.length) * 100 : 0;
   const pct1200 = paying.length ? (count1200 / paying.length) * 100 : 0;
@@ -3216,7 +3209,7 @@ function renderPayout() {
     renderPayoutStatCard(
       String(paying.length),
       'ผู้ที่ต้องจ่าย',
-      `จากทั้งหมด ${processedPlayers.length} คน`,
+      `จากทั้งหมด ${app.processedPlayers.length} คน`,
       pctDue,
       'payout-stat-ring--green',
       'payout-stat-card--count'
@@ -3261,7 +3254,7 @@ function renderPayout() {
     ? paying.map(renderPayoutTxItem).join('')
     : '<p class="payout-empty-hint">ไม่มีผู้เล่นที่ต้องจ่ายในขณะนี้</p>';
 
-  rosterListEl.innerHTML = processedPlayers.map(renderPayoutRosterItem).join('');
+  rosterListEl.innerHTML = app.processedPlayers.map(renderPayoutRosterItem).join('');
 }
 
 function populateCompareSelects() {
@@ -3271,14 +3264,25 @@ function populateCompareSelects() {
 
   const prevA = selA.value;
   const prevB = selB.value;
-  const options = processedPlayers.map(p =>
+  const options = app.processedPlayers.map(p =>
     `<option value="${escapeHtml(p.name)}">#${p.rank} ${escapeHtml(p.name)} (${p.totalScore.toFixed(1)})</option>`
   ).join('');
 
   selA.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
   selB.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
-  if (prevA && processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
-  if (prevB && processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
+  if (prevA && app.processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
+  if (prevB && app.processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
+}
+
+function updateCompareBenchHeaders(playerA, playerB) {
+  const nameA = document.getElementById('compare-name-a');
+  const nameB = document.getElementById('compare-name-b');
+  const rankA = document.getElementById('compare-rank-a');
+  const rankB = document.getElementById('compare-rank-b');
+  if (nameA) nameA.textContent = playerA ? playerA.name : 'เลือกผู้เล่นฝั่งซ้าย';
+  if (nameB) nameB.textContent = playerB ? playerB.name : 'เลือกผู้เล่นฝั่งขวา';
+  if (rankA) rankA.textContent = playerA ? `#${playerA.rank}` : '—';
+  if (rankB) rankB.textContent = playerB ? `#${playerB.rank}` : '—';
 }
 
 function renderToolsCompare() {
@@ -3304,17 +3308,26 @@ function renderToolsCompareResult() {
   if (!container) return;
 
   if (!nameA || !nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">เลือกผู้เล่น 2 คนเพื่อเปรียบเทียบ</p>';
+    updateCompareBenchHeaders(null, null);
+    container.innerHTML = '<div class="compare-bench-empty">เลือกผู้เล่น 2 คนจาก dropdown ด้านบนเพื่อเริ่มเทียบ</div>';
     return;
   }
   if (nameA === nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">กรุณาเลือกผู้เล่นคนละคน</p>';
+    const p = app.processedPlayers.find(pl => pl.name === nameA);
+    updateCompareBenchHeaders(p, p);
+    container.innerHTML = '<div class="compare-bench-empty">กรุณาเลือกผู้เล่นคนละคนสำหรับ Baseline และ Alternative</div>';
     return;
   }
 
-  const playerA = processedPlayers.find(p => p.name === nameA);
-  const playerB = processedPlayers.find(p => p.name === nameB);
-  if (!playerA || !playerB) return;
+  const playerA = app.processedPlayers.find(p => p.name === nameA);
+  const playerB = app.processedPlayers.find(p => p.name === nameB);
+  if (!playerA || !playerB) {
+    updateCompareBenchHeaders(null, null);
+    container.innerHTML = '<div class="compare-bench-empty">ไม่พบข้อมูลผู้เล่น — ลองเลือกใหม่</div>';
+    return;
+  }
+
+  updateCompareBenchHeaders(playerA, playerB);
 
   const teamsA = new Set(playerA.teams || []);
   const teamsB = new Set(playerB.teams || []);
@@ -3329,55 +3342,90 @@ function renderToolsCompareResult() {
     return `<span class="badge badge-${cls}">${formatZoneDisplayLabel(zone)}</span>`;
   };
 
-  const teamBadges = (teamNames) => teamNames.map(t => {
-    const tb = (playerA.teamBreakdown || []).find(x => x.name === t)
-      || (playerB.teamBreakdown || []).find(x => x.name === t);
-    const zone = tb ? tb.zone : getTeamZoneByName(t);
+  const sortByPts = (names, player) => [...names].sort((a, b) => {
+    const pa = (player.teamBreakdown || []).find(x => x.name === a)?.points || 0;
+    const pb = (player.teamBreakdown || []).find(x => x.name === b)?.points || 0;
+    return pb - pa;
+  });
+
+  const compareTeamRow = (teamName, player, side) => {
+    const tb = (player.teamBreakdown || []).find(x => x.name === teamName);
+    const zone = tb ? tb.zone : getTeamZoneByName(teamName);
     const pts = tb ? tb.points.toFixed(1) : '0.0';
-    return `<span class="tools-compare-team-item">${buildTeamBadgeHtml(t, zone, { compact: true })}<span class="tools-compare-team-pts">${pts}</span></span>`;
-  }).join('');
+    const zoneCls = getTeamZoneClass(zone);
+    if (side === 'b') {
+      return `<li class="compare-bench-team-row compare-bench-team-row--right ${zoneCls}">
+        <span class="compare-bench-team-pts">${pts}</span>
+        <span class="compare-bench-team-name" data-team="${escapeHtml(teamName)}" title="ดูผู้เลือก">${escapeHtml(teamName)}</span>
+        ${getCompareTeamFlagHtml(teamName)}
+      </li>`;
+    }
+    if (side === 'shared') {
+      return `<li class="compare-bench-team-row compare-bench-team-row--shared" title="${escapeHtml(teamName)} · ${pts}">
+        ${getCompareTeamFlagHtml(teamName)}
+      </li>`;
+    }
+    return `<li class="compare-bench-team-row compare-bench-team-row--left ${zoneCls}">
+      ${getCompareTeamFlagHtml(teamName)}
+      <span class="compare-bench-team-name" data-team="${escapeHtml(teamName)}" title="ดูผู้เลือก">${escapeHtml(teamName)}</span>
+      <span class="compare-bench-team-pts">${pts}</span>
+    </li>`;
+  };
+
+  const rosterList = (teams, player, side) => {
+    if (!teams.length) return '<li class="compare-bench-team-empty">—</li>';
+    return sortByPts(teams, player).map(t => compareTeamRow(t, player, side)).join('');
+  };
+
+  const betterA = (a, b) => (a > b ? ' is-winner' : a < b ? ' is-loser' : '');
+  const betterRankA = playerA.rank < playerB.rank ? ' is-winner' : playerA.rank > playerB.rank ? ' is-loser' : '';
+  const betterRankB = playerB.rank < playerA.rank ? ' is-winner' : playerB.rank > playerA.rank ? ' is-loser' : '';
+  const totalSum = playerA.totalScore + playerB.totalScore || 1;
+  const pctLeft = Math.round((playerA.totalScore / totalSum) * 100);
+  const pctRight = 100 - pctLeft;
+  const winnerSide = scoreDiff > 0 ? 'left' : scoreDiff < 0 ? 'right' : 'tie';
+
+  const benchRow = (label, valL, valR, { winL = '', winR = '', highlight = false } = {}) => `
+    <div class="compare-bench-row${highlight ? ' compare-bench-row--highlight' : ''}">
+      <div class="compare-bench-cell compare-bench-cell--left${winL}">${valL}</div>
+      <div class="compare-bench-cell compare-bench-cell--label">${label}</div>
+      <div class="compare-bench-cell compare-bench-cell--right${winR}">${valR}</div>
+    </div>`;
 
   container.innerHTML = `
-    <div class="tools-compare-grid">
-      <div class="tools-compare-card tools-compare-card--a">
-        <div class="tools-compare-name">${escapeHtml(playerA.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerA.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerA.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerA.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerA.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerA.predictionScore.toFixed(1)}</div>
-      </div>
-      <div class="tools-compare-mid">
-        <div class="tools-compare-diff ${scoreDiff > 0 ? 'tools-compare-diff--up' : scoreDiff < 0 ? 'tools-compare-diff--down' : ''}">
-          <span class="tools-compare-diff-label">ต่างคะแนน</span>
-          <strong>${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</strong>
+    <div class="compare-bench-verdict compare-bench-verdict--${winnerSide}">
+      <div class="compare-bench-bar">
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--left" style="width:${pctLeft}%">
+          <span>${playerA.totalScore.toFixed(1)}</span>
         </div>
-        <div class="tools-compare-diff">
-          <span class="tools-compare-diff-label">ต่างอันดับ</span>
-          <strong>${rankDiff > 0 ? '+' : ''}${rankDiff}</strong>
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--right" style="width:${pctRight}%">
+          <span>${playerB.totalScore.toFixed(1)}</span>
         </div>
       </div>
-      <div class="tools-compare-card tools-compare-card--b">
-        <div class="tools-compare-name">${escapeHtml(playerB.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerB.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerB.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerB.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerB.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${playerB.predictionScore.toFixed(1)}</div>
+      <div class="compare-bench-verdict-meta">
+        <span class="compare-bench-verdict-diff">${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)} คะแนน</span>
+        <span class="compare-bench-verdict-diff">${rankDiff > 0 ? '+' : ''}${rankDiff} อันดับ</span>
       </div>
     </div>
-    <div class="tools-compare-teams">
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">ทีมร่วม (${shared.length})</div>
-        <div class="tools-compare-teams-badges">${shared.length ? teamBadges(shared) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+    <div class="compare-bench-table">
+      ${benchRow('อันดับ', `#${playerA.rank}`, `#${playerB.rank}`, { winL: betterRankA, winR: betterRankB })}
+      ${benchRow('โซน', zoneBadge(playerA.zone), zoneBadge(playerB.zone))}
+      ${benchRow('คะแนนรวม', playerA.totalScore.toFixed(1), playerB.totalScore.toFixed(1), { highlight: true, winL: betterA(playerA.totalScore, playerB.totalScore), winR: betterA(playerB.totalScore, playerA.totalScore) })}
+      ${benchRow('คะแนนทีม', playerA.teamsScore.toFixed(1), playerB.teamsScore.toFixed(1), { winL: betterA(playerA.teamsScore, playerB.teamsScore), winR: betterA(playerB.teamsScore, playerA.teamsScore) })}
+      ${benchRow('ทายนัดชิง', playerA.predictionScore.toFixed(1), playerB.predictionScore.toFixed(1), { winL: betterA(playerA.predictionScore, playerB.predictionScore), winR: betterA(playerB.predictionScore, playerA.predictionScore) })}
+    </div>
+    <div class="compare-bench-teams">
+      <div class="compare-bench-teams-col compare-bench-teams-col--left">
+        <div class="compare-bench-teams-title">เฉพาะ Baseline <span>${onlyA.length}</span></div>
+        <ul class="compare-bench-teams-list">${rosterList(onlyA, playerA, 'a')}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerA.name)} (${onlyA.length})</div>
-        <div class="tools-compare-teams-badges">${onlyA.length ? teamBadges(onlyA) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--mid">
+        <div class="compare-bench-teams-title">ร่วม <span>${shared.length}</span></div>
+        <ul class="compare-bench-teams-list compare-bench-teams-list--mid">${rosterList(shared, playerA, 'shared')}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerB.name)} (${onlyB.length})</div>
-        <div class="tools-compare-teams-badges">${onlyB.length ? teamBadges(onlyB) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--right">
+        <div class="compare-bench-teams-title"><span>${onlyB.length}</span> เฉพาะ Alternative</div>
+        <ul class="compare-bench-teams-list">${rosterList(onlyB, playerB, 'b')}</ul>
       </div>
     </div>
   `;
@@ -3393,54 +3441,68 @@ function renderToolsSimulator() {
   if (clearBtn && !clearBtn._simBound) {
     clearBtn._simBound = true;
     clearBtn.addEventListener('click', () => {
-      simulationScores = {};
+      app.simulationScores = {};
       recalculateAll();
       renderTools();
     });
   }
 
-  const pending = matches.filter(m => m.status !== 'finished').sort((a, b) => {
+  const pending = app.matches.filter(m => m.status !== 'finished').sort((a, b) => {
     if (a.date && b.date) return a.date.localeCompare(b.date);
     return a.id - b.id;
   });
 
-  matchesEl.innerHTML = '';
   if (pending.length === 0) {
     matchesEl.innerHTML = '<p class="tools-empty-hint">ไม่มีนัดที่รอแข่ง — จำลองผลไม่ได้ในขณะนี้</p>';
     if (deltaWrap) deltaWrap.style.display = 'none';
     return;
   }
 
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-container tools-sim-table-wrap';
+  tableWrap.innerHTML = `
+    <table class="data-table tools-compact-table tools-sim-table">
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>รอบ</th>
+          <th>เหย้า</th>
+          <th>สกอร์</th>
+          <th>เยือน</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+  const tbody = tableWrap.querySelector('tbody');
   pending.forEach(m => {
-    const sim = simulationScores[m.id];
+    const sim = app.simulationScores[m.id];
     const hVal = sim ? (sim.homeScore !== null ? sim.homeScore : '') : '';
     const aVal = sim ? (sim.awayScore !== null ? sim.awayScore : '') : '';
     const hZone = getTeamZoneByName(m.home);
     const aZone = getTeamZoneByName(m.away);
-    const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
-    const row = document.createElement('div');
-    row.className = 'tools-sim-match' + (sim ? ' tools-sim-match--active' : '');
-    row.innerHTML = `
-      <div class="tools-sim-match-meta">
-        <span>${dateLabel} · แมตช์ #${m.id}</span>
-        <span class="tools-sim-match-round">${getMatchRoundLabel(m)}</span>
-      </div>
-      <div class="tools-sim-match-body">
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</div>
-        <div class="tools-sim-scores">
-          <div class="tools-sim-score-row">
-            <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
-            <span class="score-divider">:</span>
-            <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
-          </div>
+    const dateLabel = m.date ? formatThaiDate(m.date) : '—';
+    const tr = document.createElement('tr');
+    if (sim) tr.className = 'tools-sim-row--active';
+    tr.innerHTML = `
+      <td class="tools-sim-date" data-label="วันที่">${dateLabel}</td>
+      <td class="tools-sim-round" data-label="รอบ">${getMatchRoundLabel(m)}</td>
+      <td class="tools-sim-team tools-sim-team--home" data-label="เหย้า">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</td>
+      <td class="tools-sim-scores" data-label="สกอร์">
+        <div class="tools-sim-score-row">
+          <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
+          <span class="score-divider">:</span>
+          <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
         </div>
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</div>
-      </div>
+      </td>
+      <td class="tools-sim-team tools-sim-team--away" data-label="เยือน">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</td>
     `;
-    matchesEl.appendChild(row);
+    tbody.appendChild(tr);
   });
+  matchesEl.innerHTML = '';
+  matchesEl.appendChild(tableWrap);
 
-  const hasSim = Object.keys(simulationScores).length > 0;
+  const hasSim = Object.keys(app.simulationScores).length > 0;
   if (!deltaWrap || !deltaTbody) return;
   if (!hasSim) {
     deltaWrap.style.display = 'none';
@@ -3452,7 +3514,7 @@ function renderToolsSimulator() {
   const baselineRank = {};
   baseline.forEach(p => { baselineRank[p.name] = p.rank; });
 
-  const movers = processedPlayers
+  const movers = app.processedPlayers
     .map(p => ({
       name: p.name,
       actual: baselineRank[p.name],
@@ -3608,13 +3670,13 @@ function buildPlayerTeamItemHtml(tb, options = {}) {
 }
 
 // ── Rank sound effects (playful TTS + silly tones) ───────────────────────
-let _rankSpeechVoice = null;
+
 
 function initRankSoundVoices() {
   if (!('speechSynthesis' in window)) return;
   const pickVoice = () => {
     const voices = window.speechSynthesis.getVoices();
-    _rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
+    app._rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
       || voices.find(v => /th/i.test(v.lang || ''))
       || voices[0]
       || null;
@@ -3786,7 +3848,7 @@ function speakRankPhrase(type, options = {}) {
     const phrase = pool[index % pool.length];
     const utter = new SpeechSynthesisUtterance(phrase);
     utter.lang = 'th-TH';
-    if (_rankSpeechVoice) utter.voice = _rankSpeechVoice;
+    if (app._rankSpeechVoice) utter.voice = app._rankSpeechVoice;
 
     if (type === 'winner') {
       utter.rate = 0.92 + Math.random() * 0.08;
@@ -3862,9 +3924,9 @@ function openPlayerDetails(name) {
 
     // Lenient name lookup (trim + case-insensitive fallback for robustness)
     const lookupName = (name || '').trim();
-    let player = processedPlayers.find(p => p.name === lookupName);
+    let player = app.processedPlayers.find(p => p.name === lookupName);
     if (!player) {
-      player = processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
+      player = app.processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
     }
 
       if (!player) {
@@ -3923,7 +3985,7 @@ function openPlayerDetails(name) {
         
         let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
         tbList.forEach(tb => {
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           let wins = 0, draws = 0, losses = 0, goalsFor = 0;
           
           teamMatches.forEach(m => {
@@ -4007,7 +4069,7 @@ function openPlayerDetails(name) {
 
       // ── Per-team list with match history ────────────────────────────
       // Sort teams by the date they first played (เรียงตามวันที่เตะ) — oldest first.
-      // Teams with no finished matches go to the end.
+      // Teams with no finished app.matches go to the end.
       const grid = document.getElementById('detail-teams-grid');
       if (grid) {
         grid.innerHTML = '';
@@ -4016,7 +4078,7 @@ function openPlayerDetails(name) {
         // Pre-compute earliest play date for each team for stable sorting
         const teamEarliestDate = {};
         tbList.forEach(tb => {
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           if (teamMatches.length > 0) {
             const dates = teamMatches
               .map(m => m.date ? new Date(m.date).getTime() : Infinity)
@@ -4042,11 +4104,11 @@ function openPlayerDetails(name) {
             ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
             : '<span class="player-team-status player-team-status--in">อยู่</span>';
 
-          const elimToggleBtn = isAdmin
+          const elimToggleBtn = app.isAdmin
             ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
             : '';
 
-          const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
           const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
 
           item.className = `player-team-item player-team-item--${tb.zone}`;
@@ -4059,10 +4121,10 @@ function openPlayerDetails(name) {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const team = btn.getAttribute('data-elim-team');
-            if (manualEliminatedTeams.has(team)) {
-              manualEliminatedTeams.delete(team);
+            if (app.manualEliminatedTeams.has(team)) {
+              app.manualEliminatedTeams.delete(team);
             } else {
-              manualEliminatedTeams.add(team);
+              app.manualEliminatedTeams.add(team);
             }
             await saveEliminatedTeams();
             recalculateAll();
@@ -4081,9 +4143,9 @@ function openPlayerDetails(name) {
       if (deleteBtn) {
         deleteBtn.onclick = () => {
           showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
-            players = players.filter(p => p.name !== name);
-            localStorage.setItem('worldcup_players', JSON.stringify(players));
-            if (isSyncEnabled) {
+            app.players = app.players.filter(p => p.name !== name);
+            localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+            if (app.isSyncEnabled) {
               await saveToServer();
             }
             hidePlayerDetailsDrawer();
@@ -4103,7 +4165,7 @@ function openPlayerDetails(name) {
       }
       
       if (deleteBtn && editBtn) {
-        if (isAdmin) {
+        if (app.isAdmin) {
           deleteBtn.style.display = 'block';
           editBtn.style.display = 'block';
         } else {
@@ -4294,13 +4356,13 @@ async function handleMatchFormSubmit() {
   if (isFinal) {
     nextId = 100;
   } else {
-    const ids = matches.filter(m => m.id < 100).map(m => m.id);
+    const ids = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
   }
   
   // Verify ID is unique
-  if (matches.some(m => m.id == nextId)) {
-    const allIds = matches.filter(m => m.id < 100).map(m => m.id);
+  if (app.matches.some(m => m.id == nextId)) {
+    const allIds = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
   }
   
@@ -4316,8 +4378,8 @@ async function handleMatchFormSubmit() {
     date: matchDate
   };
   
-  matches.push(newMatch);
-  localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+  app.matches.push(newMatch);
+  localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
   await saveToServer();
   
   closeMatchForm();
@@ -4345,6 +4407,7 @@ export function refreshActivePage() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   registerRefreshPage(refreshActivePage);
+  setRecalcHook(resetTeamPopularityCache);
   initPWA();
   initNotifications();
   await initData();
@@ -4354,7 +4417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   attachTeamNameClickHandlers();
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
-  attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
+  attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, app.players table)
   attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
   
   // Initialize admin status
@@ -4364,10 +4427,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');
   if (adminToggleBtn) {
     adminToggleBtn.addEventListener('click', () => {
-      if (isAdmin) {
+      if (app.isAdmin) {
         // Logout
         showCustomConfirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?', () => {
-          isAdmin = false;
+          app.isAdmin = false;
           sessionStorage.setItem('worldcup_isAdmin', 'false');
           updateAdminUI();
           recalculateAll();
@@ -4408,14 +4471,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Export matches results to JPG (for finished matches summary)
+  // Export app.matches results to JPG (for finished matches summary)
   const exportMatchesBtn = document.getElementById('export-matches-btn');
   if (exportMatchesBtn) {
     exportMatchesBtn.addEventListener('click', async () => {
       try {
         await exportMatchesImage();
       } catch (err) {
-        console.error('Export matches failed', err);
+        console.error('Export app.matches failed', err);
         alert('การส่งออกภาพล้มเหลว');
       }
     });
@@ -4743,8 +4806,8 @@ async function exportStatisticsImage() {
 }
 
 async function exportMatchesImage() {
-  // Get only finished matches that have scores
-  const finishedMatches = matches
+  // Get only finished app.matches that have scores
+  const finishedMatches = app.matches
     .filter(m => m.status === 'finished' && m.homeScore != null && m.awayScore != null)
     .sort((a, b) => {
       const da = a.date || '9999-12-31';
@@ -4867,8 +4930,8 @@ async function exportMatchesImage() {
       const password = document.getElementById('admin-password-input').value;
       const errorMsg = document.getElementById('login-error-msg');
       
-      if (password === ADMIN_PASSWORD) {
-        isAdmin = true;
+      if (password === app.ADMIN_PASSWORD) {
+        app.isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
         updateAdminUI();
         errorMsg.style.display = 'none';
@@ -4924,7 +4987,7 @@ async function exportMatchesImage() {
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
   if (chartHighlightSelect) {
     chartHighlightSelect.addEventListener('change', (e) => {
-      chartHoverPlayer = '';
+      app.chartHoverPlayer = '';
       highlightPlayerInChart(e.target.value);
     });
   }
@@ -4977,7 +5040,7 @@ async function exportMatchesImage() {
       const overlay = document.getElementById('player-details-drawer-overlay');
       if (!overlay || !overlay.classList.contains('active')) return;
 
-      // Ignore the same click that just opened the drawer
+      // Ignore the same click that just opened the drawer (main-content bubbles after chip handler)
       if (Date.now() - (window._playerDetailsLastOpenAt || 0) < 120) return;
 
       // Do not close if the click originated from an opener control
@@ -5072,32 +5135,32 @@ async function exportMatchesImage() {
     
     if (id) {
       // Edit mode (find by name)
-      if (id !== name && players.some(p => p.name === name)) {
+      if (id !== name && app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นใหม่นี้มีผู้ใช้งานอยู่แล้ว!');
         return;
       }
-      const pIdx = players.findIndex(p => p.name === id);
+      const pIdx = app.players.findIndex(p => p.name === id);
       if (pIdx !== -1) {
-        players[pIdx].name = name;
-        players[pIdx].guess = guess;
-        players[pIdx].teams = selectedTeams;
+        app.players[pIdx].name = name;
+        app.players[pIdx].guess = guess;
+        app.players[pIdx].teams = selectedTeams;
       }
     } else {
       // Add mode
       // Check duplicate name
-      if (players.some(p => p.name === name)) {
+      if (app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นนี้ถูกใช้งานแล้ว!');
         return;
       }
-      players.push({
+      app.players.push({
         name,
         teams: selectedTeams,
         guess
       });
     }
     
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
-    if (isSyncEnabled) {
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    if (app.isSyncEnabled) {
       await saveToServer();
     }
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
@@ -5132,20 +5195,138 @@ window.addEventListener('resize', debouncedResize);
 
 function getTeamPopularity(teamName) {
   let count = 0;
-  for (const p of players) {
+  for (const p of app.players) {
     if (p.teams && p.teams.includes(teamName)) count++;
   }
   return count;
 }
 
-let _maxPopularityCache = null;
+function getFinalGuessBuckets() {
+  const buckets = Array.from({ length: 10 }, (_, guess) => ({ guess, players: [] }));
+  const noGuess = [];
+
+  app.players.forEach(player => {
+    const raw = player.guess;
+    if (raw == null || raw === '') {
+      noGuess.push(player);
+      return;
+    }
+    const guess = Number(raw);
+    if (!Number.isInteger(guess) || guess < 0 || guess > 9) {
+      noGuess.push(player);
+      return;
+    }
+    buckets[guess].players.push(player);
+  });
+
+  const byName = (a, b) => a.name.localeCompare(b.name, 'th');
+  buckets.forEach(bucket => bucket.players.sort(byName));
+  noGuess.sort(byName);
+  return { buckets, noGuess };
+}
+
+function buildStatsFinalGuessPlayerChip(playerName) {
+  return `<button type="button" class="stats-final-guess-player" data-player="${escapeHtml(playerName)}">${escapeHtml(playerName)}</button>`;
+}
+
+function renderStatsFinalGuess() {
+  const container = document.getElementById('stats-final-guess-bars');
+  const summaryEl = document.getElementById('stats-final-guess-summary');
+  const metaEl = document.getElementById('stats-final-guess-meta');
+  if (!container) return;
+
+  const finalMatch = app.matches.find(m => m.isFinal);
+  const { buckets, noGuess } = getFinalGuessBuckets();
+  const activeBuckets = buckets.filter(b => b.players.length > 0);
+  const guessedCount = app.players.length - noGuess.length;
+  const topBucket = [...activeBuckets].sort((a, b) => b.players.length - a.players.length)[0];
+  const actualTotal = finalMatch?.status === 'finished'
+    && finalMatch.homeScore != null
+    && finalMatch.awayScore != null
+    ? finalMatch.homeScore + finalMatch.awayScore
+    : null;
+
+  if (summaryEl) {
+    const noGuessNote = noGuess.length ? ` · ยังไม่ทาย ${noGuess.length}` : '';
+    summaryEl.textContent = `ทายแล้ว ${guessedCount}/${app.players.length} คน${noGuessNote}`;
+  }
+
+  if (metaEl) {
+    if (!finalMatch) {
+      metaEl.textContent = 'ยังไม่มีนัดชิงในระบบ';
+    } else {
+      const dateLabel = finalMatch.date
+        ? new Date(finalMatch.date + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '';
+      const matchLine = `${finalMatch.home} vs ${finalMatch.away}${dateLabel ? ` · ${dateLabel}` : ''}`;
+      if (actualTotal != null) {
+        const winners = buckets[actualTotal]?.players.length || 0;
+        metaEl.textContent = `${matchLine} · ผลจริงรวม ${actualTotal} ลูก · ทายถูก ${winners} คน`;
+      } else {
+        const popular = topBucket
+          ? ` · เลขยอดนิยม ${topBucket.guess} ลูก (${topBucket.players.length} คน)`
+          : '';
+        metaEl.textContent = `${matchLine} · รอผลนัดชิง${popular}`;
+      }
+    }
+  }
+
+  if (!activeBuckets.length) {
+    container.innerHTML = '<div class="stats-final-guess-empty">ยังไม่มีผู้ทายเลขใดเลย</div>';
+    return;
+  }
+
+  const maxCount = Math.max(...activeBuckets.map(b => b.players.length), 1);
+  const activeGuess = renderStatsFinalGuess._activeGuess ?? null;
+
+  container.innerHTML = activeBuckets
+    .sort((a, b) => a.guess - b.guess)
+    .map(({ guess, players }) => {
+      const pct = Math.round((players.length / maxCount) * 100);
+      const isWinner = actualTotal === guess;
+      const isOpen = activeGuess === guess;
+      const playerHtml = players.map(p => buildStatsFinalGuessPlayerChip(p.name)).join('');
+      return `
+        <div class="stats-final-guess-bar-item${isWinner ? ' stats-final-guess-bar-item--winner' : ''}${isOpen ? ' is-open' : ''}">
+          <button type="button" class="stats-final-guess-bar-row" data-guess="${guess}" title="กดดูรายชื่อ">
+            <span class="stats-final-guess-bar-num">${guess}</span>
+            <span class="stats-final-guess-bar-wrap" aria-hidden="true">
+              <span class="stats-final-guess-bar-fill" style="width:${pct}%"></span>
+            </span>
+            <span class="stats-final-guess-bar-count">${players.length}</span>
+          </button>
+          <div class="stats-final-guess-bar-players">${playerHtml}</div>
+        </div>`;
+    }).join('');
+
+  if (!container._finalGuessBound) {
+    container._finalGuessBound = true;
+    container.addEventListener('click', (e) => {
+      const chip = e.target.closest('.stats-final-guess-player[data-player]');
+      if (chip) {
+        e.stopPropagation();
+        e.preventDefault();
+        openPlayerDetails(chip.getAttribute('data-player'));
+        return;
+      }
+      const row = e.target.closest('.stats-final-guess-bar-row[data-guess]');
+      if (!row || !container.contains(row)) return;
+      e.stopPropagation();
+      const guess = Number(row.getAttribute('data-guess'));
+      renderStatsFinalGuess._activeGuess = renderStatsFinalGuess._activeGuess === guess ? null : guess;
+      renderStatsFinalGuess();
+    });
+  }
+}
+
+
 function getMaxPopularity() {
-  if (_maxPopularityCache !== null) return _maxPopularityCache;
+  if (app._maxPopularityCache !== null) return app._maxPopularityCache;
   let max = 1; // avoid div by zero
   TEAMS.forEach(t => {
     max = Math.max(max, getTeamPopularity(t.name));
   });
-  _maxPopularityCache = max;
+  app._maxPopularityCache = max;
   return max;
 }
 
@@ -5189,10 +5370,10 @@ function buildTeamBadgeHtml(teamName, zone, options = {}) {
 }
 
 function resetTeamPopularityCache() {
-  _maxPopularityCache = null;
+  app._maxPopularityCache = null;
 }
 
-// Reset cache when players update
+// Reset cache when app.players update
 const originalRenderPlayers = renderPlayers;
 renderPlayers = function() {
   resetTeamPopularityCache();
@@ -5259,7 +5440,7 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
 
-  const selectedBy = players
+  const selectedBy = app.players
     .filter(p => p.teams && p.teams.includes(teamName))
     .map(p => p.name)
     .sort((a, b) => a.localeCompare(b, 'th'));
