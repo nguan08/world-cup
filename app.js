@@ -63,6 +63,44 @@ const TEAMS = [
 
 ];
 
+const TEAM_WC_GROUP_MEMBERS = {
+  A: ['เม็กซิโก', 'แอฟริกาใต้', 'เกาหลีใต้', 'สาธารณรัฐเช็ก'],
+  B: ['แคนาดา', 'บอสเนีย', 'กาตาร์', 'สวิตเซอร์แลนด์'],
+  C: ['บราซิล', 'โมร็อกโก', 'เฮติ', 'สกอตแลนด์'],
+  D: ['สหรัฐอเมริกา', 'ปารากวัย', 'ออสเตรเลีย', 'ตุรกี'],
+  E: ['เยอรมนี', 'คูราเซา', 'ไอเวอรีโคสต์', 'เอกวาดอร์'],
+  F: ['เนเธอร์แลนด์', 'ญี่ปุ่น', 'สวีเดน', 'ตูนิเซีย'],
+  G: ['สเปน', 'เคปเวิร์ด', 'ซาอุดีอาระเบีย', 'อุรุกวัย'],
+  H: ['เบลเยียม', 'อิหร่าน', 'นิวซีแลนด์', 'อียิปต์'],
+  I: ['ฝรั่งเศส', 'เซเนกัล', 'อิรัก', 'นอร์เวย์'],
+  J: ['อาร์เจนตินา', 'แอลจีเรีย', 'ออสเตรีย', 'จอร์แดน'],
+  K: ['โปรตุเกส', 'คองโก', 'อุซเบกิสถาน', 'โคลอมเบีย'],
+  L: ['อังกฤษ', 'โครเอเชีย', 'กานา', 'ปานามา']
+};
+
+const TEAM_WC_GROUPS = Object.fromEntries(
+  Object.entries(TEAM_WC_GROUP_MEMBERS).flatMap(([group, teams]) =>
+    teams.map(team => [team, group])
+  )
+);
+
+TEAMS.forEach(team => {
+  team.wcGroup = TEAM_WC_GROUPS[team.name] || null;
+});
+
+function getTeamWcGroup(teamName) {
+  return TEAM_WC_GROUPS[teamName] || TEAMS.find(t => t.name === teamName)?.wcGroup || '';
+}
+
+function formatWcGroupLabel(group) {
+  return group ? `กลุ่ม ${group}` : '-';
+}
+
+function getWcGroupBadgeHtml(group, extraClass = '') {
+  if (!group) return '<span class="wc-group-badge wc-group-badge--empty">-</span>';
+  return `<span class="wc-group-badge ${extraClass}" title="${formatWcGroupLabel(group)}">${group}</span>`;
+}
+
 const TEAM_FLAG_CODES = {
   'สเปน': 'es', 'ฝรั่งเศส': 'fr', 'บราซิล': 'br', 'อาร์เจนตินา': 'ar',
   'อังกฤษ': 'gb-eng', 'เยอรมนี': 'de', 'โปรตุเกส': 'pt', 'เบลเยียม': 'be',
@@ -3190,16 +3228,22 @@ function handleSimulationScoreChange(matchId, isHome, val) {
 // RENDERING - DASHBOARD
 const LIVE_MATCH_COLOR_VARIANTS = ['live-match-card--blue', 'live-match-card--neutral', 'live-match-card--red'];
 
-function buildLiveMatchCard(m, index, todayStr) {
+function getMatchRoundLabel(m) {
+  if (m.isFinal) return '🏆 นัดชิงชนะเลิศ';
+  if (m.isKnockout) return 'รอบน็อคเอาท์';
+  return 'รอบแบ่งกลุ่ม';
+}
+
+function buildLiveMatchCard(m, index, options = {}) {
+  const mode = options.mode || 'dashboard';
+  const todayStr = options.todayStr || new Date().toISOString().split('T')[0];
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
+  if (mode === 'matches') card.classList.add('matches-page-card');
+  card.dataset.matchId = String(m.id);
 
-  const isToday = m.date === todayStr;
-  const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
   const isSimulated = simulationScores[m.id];
   const isFinished = m.status === 'finished';
-  const statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
-
   const hTeamObj = TEAMS.find(t => t.name === m.home);
   const aTeamObj = TEAMS.find(t => t.name === m.away);
   const hZone = hTeamObj ? hTeamObj.zone : 'blue';
@@ -3207,22 +3251,108 @@ function buildLiveMatchCard(m, index, todayStr) {
   const hMult = hTeamObj ? hTeamObj.multiplier : 1;
   const aMult = aTeamObj ? aTeamObj.multiplier : 1;
 
-  let hScore, aScore;
-  if (isFinished) {
-    hScore = m.homeScore;
-    aScore = m.awayScore;
+  let metaLeft;
+  let statusLabel;
+  let statusChipClass;
+  let scoreCenterHtml;
+  let hPts = null;
+  let aPts = null;
+  let matchesExtras = '';
+
+  if (mode === 'matches') {
+    const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
+    metaLeft = `${dateLabel} · แมตช์ที่ ${m.id} · ${getMatchRoundLabel(m)}`;
+    statusLabel = isFinished ? 'จบแล้ว' : 'รอแข่ง';
+    statusChipClass = isFinished ? 'finished' : 'pending';
+
+    const homeScoreVal = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
+    const awayScoreVal = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
+    const adminAttr = isAdmin ? '' : 'disabled';
+
+    scoreCenterHtml = `
+      <div class="match-score-row">
+        <input type="number" id="score-home-${m.id}" name="score-home-${m.id}" class="score-input home-score-input score-sim-input" data-match-id="${m.id}" value="${homeScoreVal}" min="0" placeholder="-" ${adminAttr}>
+        <span class="score-divider">:</span>
+        <input type="number" id="score-away-${m.id}" name="score-away-${m.id}" class="score-input away-score-input score-sim-input" data-match-id="${m.id}" value="${awayScoreVal}" min="0" placeholder="-" ${adminAttr}>
+      </div>
+    `;
+
+    if (isFinished && m.homeScore !== null && m.awayScore !== null) {
+      hPts = getMatchGamePointsForTeam(m, m.home, hMult).toFixed(1);
+      aPts = getMatchGamePointsForTeam(m, m.away, aMult).toFixed(1);
+    }
+
+    if (m.isKnockout) {
+      const showPenalty = m.homeScore !== null && m.awayScore !== null && m.homeScore === m.awayScore;
+      matchesExtras += `
+        <div class="penalty-ui" style="display: ${showPenalty ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+          <label style="font-size: 11px; color: var(--text-secondary);">ผู้ชนะการยิงจุดโทษ (Penalty Winner):</label>
+          <select class="penalty-select" data-match-id="${m.id}" ${isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
+            <option value="">-- เลือกผู้ชนะจุดโทษ --</option>
+            <option value="home" ${m.penaltyWinner === 'home' ? 'selected' : ''}>${m.home}</option>
+            <option value="away" ${m.penaltyWinner === 'away' ? 'selected' : ''}>${m.away}</option>
+          </select>
+        </div>
+      `;
+    }
+
+    matchesExtras += `
+      <div class="match-card-admin-footer">
+        <div style="display:${isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap; margin-top: 12px;">
+          <button class="btn btn-secondary save-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1;">บันทึกผล</button>
+          <button class="btn btn-secondary clear-match-btn" data-match-id="${m.id}" style="padding: 6px 12px; font-size:12px; flex:1; background-color: rgba(244,63,94,0.05); color: var(--accent); border-color: rgba(244,63,94,0.1)">ล้างผล</button>
+        </div>
+      </div>
+    `;
   } else {
-    hScore = isSimulated ? isSimulated.homeScore : null;
-    aScore = isSimulated ? isSimulated.awayScore : null;
+    const isToday = m.date === todayStr;
+    const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
+    metaLeft = `${dateLabel} · ${m.date}`;
+    statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
+    statusChipClass = isFinished ? 'finished' : (isSimulated ? 'simulated' : 'pending');
+
+    let hScore;
+    let aScore;
+    if (isFinished) {
+      hScore = m.homeScore;
+      aScore = m.awayScore;
+    } else {
+      hScore = isSimulated ? isSimulated.homeScore : null;
+      aScore = isSimulated ? isSimulated.awayScore : null;
+    }
+
+    if (isFinished || isSimulated) {
+      const ptsMatch = isSimulated ? { ...m, ...isSimulated, status: 'finished' } : m;
+      hPts = getMatchGamePointsForTeam(ptsMatch, m.home, hMult).toFixed(1);
+      aPts = getMatchGamePointsForTeam(ptsMatch, m.away, aMult).toFixed(1);
+    }
+
+    scoreCenterHtml = isFinished ? `
+      <div class="match-score-row live-match-score-desktop">
+        <span class="score-num">${m.homeScore}</span>
+        <span class="score-divider">:</span>
+        <span class="score-num">${m.awayScore}</span>
+      </div>
+    ` : `
+      <div class="match-score-row">
+        <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
+        <span class="score-divider">:</span>
+        <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
+      </div>
+    `;
   }
 
-  const hPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.home, hMult).toFixed(1) : null;
-  const aPts = (isFinished || isSimulated) ? getMatchGamePointsForTeam(isSimulated ? {...m, ...isSimulated, status: 'finished'} : m, m.away, aMult).toFixed(1) : null;
-  const statusChipClass = isFinished ? 'finished' : (isSimulated ? 'simulated' : 'pending');
+  const ptsRowHtml = hPts !== null ? `
+    <div class="match-pts-row">
+      <span class="pts-label">${Number(hPts) > 0 ? '+' : ''}${hPts}</span>
+      <div style="width: 10px;"></div>
+      <span class="pts-label">${Number(aPts) > 0 ? '+' : ''}${aPts}</span>
+    </div>
+  ` : '';
 
   card.innerHTML = `
     <div class="live-match-meta">
-      <span>${dateLabel} · ${m.date}</span>
+      <span class="live-match-meta-label">${metaLeft}</span>
       <span class="live-match-status ${statusChipClass}">${statusLabel}</span>
     </div>
 
@@ -3234,36 +3364,21 @@ function buildLiveMatchCard(m, index, todayStr) {
 
     <div class="match-body-grid">
       <div class="match-team-col">
-        <div class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${m.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.home)}%;">${m.home}</div>
+        <div class="team-badge team-${hZone}" data-team="${escapeHtml(m.home)}" style="--pop-percent: ${getTeamPopularityPercent(m.home)}%;" title="ดูผู้เลือกทีมนี้">${m.home}</div>
         <div class="team-mult-label">x${hMult}</div>
+        <div class="team-group-label">${formatWcGroupLabel(getTeamWcGroup(m.home))}</div>
       </div>
       <div class="match-center-col">
-        ${isFinished ? `
-          <div class="match-score-row live-match-score-desktop">
-            <span class="score-num">${hScore}</span>
-            <span class="score-divider">:</span>
-            <span class="score-num">${aScore}</span>
-          </div>
-        ` : `
-          <div class="match-score-row">
-            <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
-            <span class="score-divider">:</span>
-            <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
-          </div>
-        `}
-        ${hPts !== null ? `
-          <div class="match-pts-row">
-            <span class="pts-label">${hPts > 0 ? '+' : ''}${hPts}</span>
-            <div style="width: 10px;"></div>
-            <span class="pts-label">${aPts > 0 ? '+' : ''}${aPts}</span>
-          </div>
-        ` : ''}
+        ${scoreCenterHtml}
+        ${ptsRowHtml}
       </div>
       <div class="match-team-col align-right">
-        <div class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${m.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(m.away)}%;">${m.away}</div>
+        <div class="team-badge team-${aZone}" data-team="${escapeHtml(m.away)}" style="--pop-percent: ${getTeamPopularityPercent(m.away)}%;" title="ดูผู้เลือกทีมนี้">${m.away}</div>
         <div class="team-mult-label">x${aMult}</div>
+        <div class="team-group-label">${formatWcGroupLabel(getTeamWcGroup(m.away))}</div>
       </div>
     </div>
+    ${matchesExtras}
   `;
   return card;
 }
@@ -3294,7 +3409,7 @@ function renderRecentMatches() {
   });
 
   container.className = 'live-matches-container dashboard-matches-grid';
-  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, todayStr)));
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { todayStr })));
   setupLiveMatchesCarousel();
 }
 
@@ -3958,7 +4073,7 @@ function buildTeamFilterHTML() {
       html += `
         <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
           <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
-          <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} (x${t.multiplier})</span>
+          <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} · ${formatWcGroupLabel(t.wcGroup)} · x${t.multiplier}</span>
         </label>
       `;
     });
@@ -4229,6 +4344,9 @@ function renderScoreChart() {
   const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !processedPlayers.length) return;
 
+  clearChartPulseLayer(svgEl);
+  chartHoverPlayer = '';
+
   // 1. Get finished matches sorted chronologically
   const finishedMatches = matches
     .filter(m => m.status === 'finished')
@@ -4356,7 +4474,8 @@ function renderScoreChart() {
   const maxRank = processedPlayers.length || 1;
 
   // Scale functions (rank 1 at top, maxRank at bottom)
-  const xOf = i => stepsCount > 1 ? padL + (i / (stepsCount - 1)) * chartW : padL + chartW / 2;
+  const plotRightX = padL + chartW;
+  const xOf = i => stepsCount > 0 ? padL + (i / stepsCount) * chartW : padL;
   const yOf = r => {
     if (maxRank === 1) return padT + chartH / 2;
     return padT + ((r - 1) / (maxRank - 1)) * chartH;
@@ -4440,7 +4559,6 @@ function renderScoreChart() {
 
   // 6. Draw lines, dots, and labels
   let linesGroup = '';
-  let pulseGroup = '';
   let dotsGroup = '';
   let labelsGroup = '';
   let hoverHelpers = '';
@@ -4456,9 +4574,7 @@ function renderScoreChart() {
     const color = getPlayerColor(ph.zone);
 
     // Rank line path
-    linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
-
-    pulseGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0" vector-effect="non-scaling-stroke" class="trend-line-pulse" data-player="${ph.name}" data-stroke="${color}"/>`;
+    linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" data-zone="${ph.zone}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
 
     // Invisible thick path to make hover easier
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
@@ -4523,6 +4639,7 @@ function renderScoreChart() {
   svgEl.style.overflow = isMobile ? 'visible' : 'hidden';
   svgEl.dataset.chartW = String(W);
   svgEl.dataset.chartH = String(H);
+  svgEl.dataset.chartPlotRightX = String(plotRightX);
 
   if (isMobile) {
     svgEl.setAttribute('height', H);
@@ -4538,17 +4655,22 @@ function renderScoreChart() {
     ? `<rect x="0" y="0" width="${W}" height="${H}" fill="rgba(15,23,42,0.5)"/>`
     : '';
 
+  const gridCell = isMobile ? 12 : 16;
+
   svgEl.innerHTML = `
     <defs>
-      <filter id="chart-pulse-glow" x="-30%" y="-30%" width="160%" height="160%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-        <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
+      <clipPath id="chart-plot-clip">
+        <rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"/>
+      </clipPath>
+      <pattern id="chart-ecg-grid" width="${gridCell}" height="${gridCell}" patternUnits="userSpaceOnUse" x="${padL}" y="${padT}">
+        <path d="M ${gridCell} 0 L 0 0 0 ${gridCell}" fill="none" stroke="rgba(0,255,102,0.1)" stroke-width="0.5"/>
+      </pattern>
     </defs>
     ${plotBg || `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`}
+    <g class="chart-monitor-overlay" clip-path="url(#chart-plot-clip)">
+      <rect class="chart-monitor-tint" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="3"/>
+      <rect class="chart-monitor-grid" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="3" fill="url(#chart-ecg-grid)"/>
+    </g>
     ${yGridLines}
     <line x1="${axisLineX}" x2="${axisLineX}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
     <line x1="${axisLineX}" x2="${W - padR}" y1="${padT + chartH}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
@@ -4559,9 +4681,11 @@ function renderScoreChart() {
     <g class="helpers-container">${hoverHelpers}</g>
     <g class="dots-container">${dotsGroup}</g>
     <g class="labels-container">${labelsGroup}</g>
-    <g class="pulse-container">${pulseGroup}</g>
     ${legendMarkup}
   `;
+
+  chartPulseAnimPlayer = '';
+  chartHoverPlayer = '';
 
   if (container) {
     container.style.overflow = isMobile ? 'visible' : 'hidden';
@@ -4605,7 +4729,7 @@ function renderScoreChart() {
     });
   }
 
-  bindChartHoverInteractions(svgEl);
+  bindChartHoverInteractions();
 
   // Trigger initial highlight if there was a selected player
   const initialHl = highlightSelect ? highlightSelect.value : lastHighlightPlayer;
@@ -4614,31 +4738,179 @@ function renderScoreChart() {
   }
 }
 
-const CHART_SVG_NS = 'http://www.w3.org/2000/svg';
+const CHART_ZONE_PULSE = {
+  blue: {
+    phosphor: '#00d4ff',
+    core: '#b8f4ff',
+    baseline: '#0891b2',
+    tint: 'rgba(0, 20, 36, 0.62)'
+  },
+  green: {
+    phosphor: '#00ff66',
+    core: '#ccffdd',
+    baseline: '#00b347',
+    tint: 'rgba(0, 14, 6, 0.62)'
+  },
+  red: {
+    phosphor: '#ff4d6d',
+    core: '#ffd6e0',
+    baseline: '#c9184a',
+    tint: 'rgba(24, 4, 10, 0.62)'
+  }
+};
+
 let chartHoverPlayer = '';
+let chartPulseAnimPlayer = '';
 
-function bindChartHoverInteractions(svgEl) {
-  if (!svgEl || svgEl.dataset.hoverBound === '1') return;
-  svgEl.dataset.hoverBound = '1';
+function chartFindPlayerEl(svgEl, selector, playerName) {
+  return [...svgEl.querySelectorAll(selector)].find(el => el.getAttribute('data-player') === playerName) || null;
+}
 
-  svgEl.addEventListener('pointerover', (e) => {
-    const target = e.target.closest('.trend-line, .trend-line-hover-helper, .trend-dot');
-    if (!target || !svgEl.contains(target)) return;
-    const playerName = target.getAttribute('data-player');
-    if (!playerName || playerName === chartHoverPlayer) return;
-    chartHoverPlayer = playerName;
-    highlightPlayerInChart(playerName);
-    setChartLinePulse(playerName);
+function getChartZonePulseStyle(zone) {
+  return CHART_ZONE_PULSE[zone] || CHART_ZONE_PULSE.red;
+}
+
+function clearChartPulseLayer(svgEl) {
+  const layer = svgEl && svgEl.querySelector('.chart-pulse-layer');
+  if (layer) layer.remove();
+  chartPulseAnimPlayer = '';
+}
+
+function extendChartPulsePathToPlotEnd(pathD, svgEl) {
+  const plotRight = Number(svgEl.dataset.chartPlotRightX || 0);
+  if (!plotRight || !pathD) return pathD;
+
+  const segments = pathD.replace(/^M\s*/, '').split(/\s+L\s+/);
+  const lastSeg = segments[segments.length - 1];
+  if (!lastSeg) return pathD;
+
+  const [lastX, lastY] = lastSeg.split(',').map(Number);
+  if (!Number.isFinite(lastX) || !Number.isFinite(lastY)) return pathD;
+  if (lastX >= plotRight - 0.5) return pathD;
+
+  return `${pathD} L ${plotRight} ${lastY}`;
+}
+
+function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
+  const zoneStyle = getChartZonePulseStyle(zone);
+  clearChartPulseLayer(svgEl);
+  const pulsePathD = extendChartPulsePathToPlotEnd(pathD, svgEl);
+
+  const layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  layer.setAttribute('class', 'chart-pulse-layer');
+  layer.setAttribute('data-zone', zone);
+  layer.setAttribute('data-player', playerName);
+  layer.setAttribute('clip-path', 'url(#chart-plot-clip)');
+
+  const mkPath = (cls, stroke, width, opacity) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('class', cls);
+    p.setAttribute('d', pulsePathD);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', stroke);
+    p.setAttribute('stroke-width', String(width));
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('stroke-linejoin', 'round');
+    p.setAttribute('opacity', String(opacity));
+    return p;
+  };
+
+  layer.appendChild(mkPath('chart-ecg-baseline', zoneStyle.phosphor, 2, 0.42));
+  layer.appendChild(mkPath('chart-ecg-glow', zoneStyle.phosphor, 7, 0.32));
+  layer.appendChild(mkPath('chart-ecg-core', zoneStyle.phosphor, 2.5, 1));
+  svgEl.appendChild(layer);
+
+  const sourceLine = chartFindPlayerEl(svgEl, '.trend-line', playerName);
+  if (sourceLine) {
+    sourceLine.setAttribute('stroke-width', '1');
+    sourceLine.setAttribute('stroke-opacity', '0.05');
+  }
+
+  const glow = layer.querySelector('.chart-ecg-glow');
+  const pathLen = glow.getTotalLength();
+  const cometLen = Math.min(Math.max(pathLen * 0.18, 48), 110);
+  const dashGap = pathLen + cometLen;
+  const duration = Math.max(0.9, Math.min(1.6, pathLen / 220));
+
+  layer.style.setProperty('--ecg-comet', String(cometLen));
+  layer.style.setProperty('--ecg-gap', String(dashGap));
+  layer.style.setProperty('--ecg-offset', String(-dashGap));
+  layer.style.setProperty('--ecg-dur', duration + 's');
+
+  layer.querySelectorAll('.chart-ecg-glow, .chart-ecg-core').forEach(path => {
+    path.setAttribute('stroke-dasharray', `${cometLen} ${pathLen}`);
+    path.setAttribute('stroke-dashoffset', '0');
   });
 
-  svgEl.addEventListener('pointerout', (e) => {
-    const related = e.relatedTarget;
-    if (related && svgEl.contains(related)) return;
+  requestAnimationFrame(() => {
+    layer.classList.add('chart-pulse-running');
+  });
+
+  chartPulseAnimPlayer = playerName;
+}
+
+function resolveChartHoverTarget(node, stopAt) {
+  let el = node;
+  while (el && el !== stopAt && el !== document) {
+    if (el.getAttribute && el.classList) {
+      if (
+        el.classList.contains('trend-line') ||
+        el.classList.contains('trend-line-hover-helper') ||
+        el.classList.contains('trend-dot')
+      ) {
+        return el;
+      }
+    }
+    el = el.parentNode;
+  }
+  return null;
+}
+
+function setChartMonitorOverlay(svgEl, zone) {
+  if (!svgEl) return;
+  const tint = svgEl.querySelector('.chart-monitor-tint');
+
+  if (!zone) {
+    svgEl.classList.remove('chart-ecg-active');
+    svgEl.removeAttribute('data-ecg-zone');
+    return;
+  }
+
+  const zoneStyle = getChartZonePulseStyle(zone);
+  svgEl.classList.add('chart-ecg-active');
+  svgEl.setAttribute('data-ecg-zone', zone);
+  if (tint) tint.setAttribute('fill', zoneStyle.tint);
+}
+
+function bindChartHoverInteractions() {
+  const container = document.getElementById('chart-svg-container');
+  if (!container || container.dataset.hoverBound === '1') return;
+  container.dataset.hoverBound = '1';
+
+  let moveRaf = 0;
+
+  container.addEventListener('mousemove', (e) => {
+    if (moveRaf) return;
+    moveRaf = requestAnimationFrame(() => {
+      moveRaf = 0;
+      const svgEl = document.getElementById('score-chart-svg');
+      if (!svgEl) return;
+
+      const target = resolveChartHoverTarget(e.target, container);
+      if (!target) return;
+
+      const playerName = target.getAttribute('data-player');
+      if (!playerName || playerName === chartHoverPlayer) return;
+
+      chartHoverPlayer = playerName;
+      highlightPlayerInChart(playerName);
+    });
+  });
+
+  container.addEventListener('mouseleave', () => {
     chartHoverPlayer = '';
     const hlSelect = document.getElementById('chart-highlight-select');
-    const selectedPlayer = hlSelect ? hlSelect.value : '';
-    highlightPlayerInChart(selectedPlayer);
-    setChartLinePulse(null);
+    highlightPlayerInChart(hlSelect ? hlSelect.value : '');
   });
 }
 
@@ -4646,42 +4918,23 @@ function setChartLinePulse(playerName) {
   const svgEl = document.getElementById('score-chart-svg');
   if (!svgEl) return;
 
-  const pulseContainer = svgEl.querySelector('.pulse-container');
+  if (!playerName) {
+    clearChartPulseLayer(svgEl);
+    setChartMonitorOverlay(svgEl, null);
+    return;
+  }
 
-  svgEl.querySelectorAll('.trend-line-pulse').forEach(pulse => {
-    const isActive = Boolean(playerName) && pulse.getAttribute('data-player') === playerName;
-    pulse.querySelectorAll('animate').forEach(anim => anim.remove());
-    pulse.classList.toggle('trend-line-pulse--active', isActive);
+  if (chartPulseAnimPlayer === playerName && svgEl.querySelector('.chart-pulse-layer')) {
+    return;
+  }
 
-    if (isActive) {
-      const color = pulse.getAttribute('data-stroke') || pulse.getAttribute('stroke') || '#4ade80';
-      pulse.setAttribute('stroke', color);
-      pulse.setAttribute('stroke-opacity', '1');
-      pulse.setAttribute('stroke-width', '5');
-      pulse.setAttribute('stroke-dasharray', '12 6 12 900');
-      pulse.setAttribute('stroke-dashoffset', '0');
-      pulse.setAttribute('filter', 'url(#chart-pulse-glow)');
+  const lineEl = chartFindPlayerEl(svgEl, '.trend-line', playerName);
+  if (!lineEl) return;
 
-      const anim = document.createElementNS(CHART_SVG_NS, 'animate');
-      anim.setAttribute('attributeName', 'stroke-dashoffset');
-      anim.setAttribute('from', '0');
-      anim.setAttribute('to', '-930');
-      anim.setAttribute('dur', '1.6s');
-      anim.setAttribute('repeatCount', 'indefinite');
-      pulse.appendChild(anim);
-
-      if (pulseContainer) {
-        pulseContainer.appendChild(pulse);
-        svgEl.appendChild(pulseContainer);
-      }
-    } else {
-      pulse.setAttribute('stroke-opacity', '0');
-      pulse.setAttribute('stroke-width', '5');
-      pulse.removeAttribute('stroke-dasharray');
-      pulse.removeAttribute('stroke-dashoffset');
-      pulse.removeAttribute('filter');
-    }
-  });
+  const pathD = lineEl.getAttribute('d');
+  const zone = lineEl.getAttribute('data-zone') || 'red';
+  setChartMonitorOverlay(svgEl, zone);
+  buildChartPulseLayer(svgEl, playerName, pathD, zone);
 }
 
 // Global highlight controller (full version from github)
@@ -4797,6 +5050,8 @@ function highlightPlayerInChart(playerName) {
     
     dot.parentElement.appendChild(textLabel);
   });
+
+  setChartLinePulse(playerName);
 }
 
 // Format date to Thai display
@@ -4939,6 +5194,8 @@ function renderMatches() {
     dateGroups.get(key).push(m);
   });
   
+  let cardIndex = 0;
+
   // Render each date group
   dateGroups.forEach((groupMatches, dateKey) => {
     // Date section header
@@ -4955,104 +5212,7 @@ function renderMatches() {
     grid.appendChild(dateHeader);
 
     groupMatches.forEach(match => {
-    const card = document.createElement('div');
-    card.classList.add('match-card');
-    
-    const hTeamObj = TEAMS.find(t => t.name === match.home);
-    const aTeamObj = TEAMS.find(t => t.name === match.away);
-    const hZone = hTeamObj ? hTeamObj.zone : 'blue';
-    const aZone = aTeamObj ? aTeamObj.zone : 'blue';
-    
-    const homeScoreVal = match.homeScore !== null ? match.homeScore : '';
-    const awayScoreVal = match.awayScore !== null ? match.awayScore : '';
-    
-    let matchMeta = match.isKnockout ? 'รอบน็อคเอาท์ ( Knockout )' : 'รอบแบ่งกลุ่ม';
-    if (match.isFinal) matchMeta = '🏆 นัดชิงชนะเลิศ ( Final )';
-
-    // Compute full game points EXACTLY as per the Rules page:
-    // คะแนน = (ผลการแข่งขัน + ประตูที่ยิงได้) × ตัวคูณของทีมนั้น
-    // ผลการแข่งขัน: ชนะ=3, เสมอ=2, แพ้=1
-    // For knockout decided by penalties: result = 3 or 1, but goals from penalty shootout are NEVER counted.
-    let pointsInfo = '';
-    if (match.status === 'finished' && match.homeScore !== null && match.awayScore !== null) {
-      const hMultiplier = hTeamObj ? hTeamObj.multiplier : 1;
-      const aMultiplier = aTeamObj ? aTeamObj.multiplier : 1;
-
-      const hGamePts = getMatchGamePointsForTeam(match, match.home, hMultiplier);
-      const aGamePts = getMatchGamePointsForTeam(match, match.away, aMultiplier);
-
-      const hResult = getMatchResultForTeam(match, match.home); // 'win' | 'draw' | 'loss'
-      const aResult = getMatchResultForTeam(match, match.away);
-
-      const hColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
-      const aColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
-
-      pointsInfo = `
-        <div style="font-size:11px; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); color:#94a3b8;">
-          เกมส์คะแนน: 
-          <span style="color:${hColor}; font-weight:600;">${match.home} +${hGamePts.toFixed(1)}</span> 
-          &nbsp;•&nbsp; 
-          <span style="color:${aColor}; font-weight:600;">${match.away} +${aGamePts.toFixed(1)}</span>
-        </div>
-      `;
-    }
-    
-    // Knockout options (Penalty shootout)
-    let knockoutExtraUI = '';
-    if (match.isKnockout) {
-      const showPenalty = (match.homeScore !== null && match.awayScore !== null && match.homeScore === match.awayScore);
-      knockoutExtraUI = `
-        <div class="penalty-ui" style="display: ${showPenalty ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-          <label style="font-size: 11px; color: var(--text-secondary);">ผู้ชนะการยิงจุดโทษ ( Penalty Winner ):</label>
-          <select class="penalty-select" data-match-id="${match.id}" ${isAdmin ? '' : 'disabled'} style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit; font-size:12px;">
-            <option value="">-- เลือกผู้ชนะจุดโทษ --</option>
-            <option value="home" ${match.penaltyWinner === 'home' ? 'selected' : ''}>${match.home}</option>
-            <option value="away" ${match.penaltyWinner === 'away' ? 'selected' : ''}>${match.away}</option>
-          </select>
-        </div>
-      `;
-    }
-    
-    card.innerHTML = `
-      <div class="match-header">
-        <span>แมตช์ที่ ${match.id}</span>
-        <span>${matchMeta}</span>
-      </div>
-      
-      <div class="match-body-grid">
-        <!-- Home Team -->
-        <div class="match-team-col">
-          <span class="team-badge team-${hZone}" onclick="showTeamSelectionPopup('${match.home}', event)" style="--pop-percent: ${getTeamPopularityPercent(match.home)}%;">${match.home} (${hTeamObj ? hTeamObj.multiplier : 1})</span>
-        </div>
-
-        <!-- Center: Scores -->
-        <div class="match-center-col">
-          <div class="match-score-row">
-            <input type="number" id="score-home-${match.id}" name="score-home-${match.id}" class="score-input home-score-input" data-match-id="${match.id}" value="${homeScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}> 
-            <span class="score-divider">VS</span>
-            <input type="number" id="score-away-${match.id}" name="score-away-${match.id}" class="score-input away-score-input" data-match-id="${match.id}" value="${awayScoreVal}" min="0" ${isAdmin ? '' : 'disabled'}> 
-          </div>
-        </div>
-
-        <!-- Away Team -->
-        <div class="match-team-col align-right">
-          <span class="team-badge team-${aZone}" onclick="showTeamSelectionPopup('${match.away}', event)" style="--pop-percent: ${getTeamPopularityPercent(match.away)}%;">${match.away} (${aTeamObj ? aTeamObj.multiplier : 1})</span>
-        </div>
-      </div>
-
-      ${knockoutExtraUI}
-
-      ${pointsInfo}
-
-      <div class="match-footer" style="margin-top: 8px;">
-        <span class="badge ${match.status === 'finished' ? 'badge-green' : 'badge-red'}">${match.status === 'finished' ? 'แข่งเสร็จสิ้น' : 'รอการแข่งขัน'}</span>
-        <div style="display:${isAdmin ? 'flex' : 'none'}; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-secondary save-match-btn" data-match-id="${match.id}" style="padding: 6px 12px; font-size:12px;">บันทึกผล</button>
-          <button class="btn btn-secondary clear-match-btn" data-match-id="${match.id}" style="padding: 6px 12px; font-size:12px; background-color: rgba(244,63,94,0.05); color: var(--accent); border-color: rgba(244,63,94,0.1)">ล้างผล</button>
-        </div>
-      </div>
-    `;
-    grid.appendChild(card);
+      grid.appendChild(buildLiveMatchCard(match, cardIndex++, { mode: 'matches' }));
     });
   });
   
@@ -5227,6 +5387,7 @@ function renderPlayers() {
     tr.style.cursor = 'pointer';
 
     tr.onclick = (e) => {
+      if (e.target.closest('[data-team]')) return;
       e.stopPropagation();
       openPlayerDetails(p.name);
     };
@@ -5247,8 +5408,10 @@ function renderPlayers() {
     p.teamBreakdown.forEach(tb => {
       const badge = document.createElement('span');
       badge.className = `team-badge team-${tb.zone}`;
+      badge.dataset.team = tb.name;
+      badge.title = 'ดูผู้เลือกทีมนี้';
       badge.style.cssText = 'padding: 2px 5px; font-size: 10px; border-radius: 4px; white-space: nowrap; margin: 0;';
-      badge.textContent = `${tb.name} (${tb.points.toFixed(1)})`;
+      badge.textContent = `${tb.name} [${getTeamWcGroup(tb.name) || '-'}] (${tb.points.toFixed(1)})`;
       badgesWrapper.appendChild(badge);
     });
     teamsTd.appendChild(badgesWrapper);
@@ -5274,26 +5437,239 @@ function renderPlayers() {
   });
 }
 
-function renderStatistics() {
-  const tbody = document.getElementById('statistics-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
+let statsSortState = { key: 'points', dir: 'desc' };
+let statsSortHandlersReady = false;
 
+const STATS_ZONE_ORDER = { blue: 0, green: 1, yellow: 2, grey: 3, 'red-orange': 4 };
+const STATS_ZONE_META = [
+  { key: 'blue', label: 'Blue Zone', thLabel: 'โซนน้ำเงิน', mult: 'x1.0 – 1.3', teamClass: 'team-blue', panelClass: 'stats-zone-panel--blue' },
+  { key: 'green', label: 'Green Zone', thLabel: 'โซนเขียว', mult: 'x1.4 – 1.7', teamClass: 'team-green', panelClass: 'stats-zone-panel--green' },
+  { key: 'yellow', label: 'Yellow Zone', thLabel: 'โซนเหลือง', mult: 'x1.8 – 2.1', teamClass: 'team-yellow', panelClass: 'stats-zone-panel--yellow' },
+  { key: 'grey', label: 'Grey Zone', thLabel: 'โซนเทา', mult: 'x2.2 – 2.6', teamClass: 'team-grey', panelClass: 'stats-zone-panel--grey' },
+  { key: 'red-orange', label: 'Red-Orange Zone', thLabel: 'โซนแดง-ส้ม', mult: 'x2.7 – 3.0', teamClass: 'team-red-orange', panelClass: 'stats-zone-panel--red-orange' }
+];
+
+function renderStatsGrandPills(el, total, avg) {
+  if (!el) return;
+  el.innerHTML = `
+    <span class="stats-grand-pill">รวม <strong>${total.toFixed(1)}</strong></span>
+    <span class="stats-grand-pill stats-grand-pill--avg">เฉลี่ย <strong>${avg.toFixed(1)}</strong></span>
+  `;
+}
+
+function buildStatsGroupTeamRows(teams) {
+  return teams
+    .sort((a, b) => b.points - a.points)
+    .map(t => `
+      <li class="stats-group-team-row" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}">
+        <span class="stats-group-team-dot stats-group-team-dot--${t.zone}"></span>
+        <span class="stats-group-team-name">${escapeHtml(t.name)}</span>
+        <span class="stats-group-team-pts">${t.points.toFixed(1)}</span>
+      </li>
+    `)
+    .join('');
+}
+
+function buildStatsZoneTeamGrid(teams) {
+  return teams
+    .sort((a, b) => b.points - a.points)
+    .map(t => `
+      <div class="stats-zone-team-chip" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}">
+        <span class="stats-zone-team-name">${escapeHtml(t.name)}</span>
+        <span class="stats-zone-team-pts">${t.points.toFixed(1)}</span>
+      </div>
+    `)
+    .join('');
+}
+
+function buildStatsArray() {
   const teamScores = calculateTeamPoints();
-
-  // Convert to array and sort
-  const statsArray = TEAMS.map(t => {
+  return TEAMS.map(t => {
     const s = teamScores[t.name] || { points: 0, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0 };
     return {
       name: t.name,
       zone: t.zone,
+      wcGroup: getTeamWcGroup(t.name),
       multiplier: t.multiplier,
       ...s
     };
   });
+}
 
-  // Sort by points DESC, then by goalsFor DESC
-  statsArray.sort((a, b) => b.points - a.points || b.goalsFor - a.goalsFor);
+function compareStatsRows(a, b, key, dir) {
+  const mult = dir === 'asc' ? 1 : -1;
+  let cmp = 0;
+
+  switch (key) {
+    case 'name':
+      cmp = a.name.localeCompare(b.name, 'th');
+      break;
+    case 'wcGroup':
+      cmp = (a.wcGroup || '').localeCompare(b.wcGroup || '');
+      if (cmp === 0) cmp = a.name.localeCompare(b.name, 'th');
+      break;
+    case 'zone':
+      cmp = (STATS_ZONE_ORDER[a.zone] ?? 99) - (STATS_ZONE_ORDER[b.zone] ?? 99);
+      if (cmp === 0) cmp = b.points - a.points;
+      break;
+    case 'multiplier':
+      cmp = a.multiplier - b.multiplier;
+      break;
+    default:
+      cmp = (a[key] ?? 0) - (b[key] ?? 0);
+      if (key === 'points' && cmp === 0) cmp = b.goalsFor - a.goalsFor;
+      break;
+  }
+
+  return cmp * mult;
+}
+
+function sortStatsArray(statsArray, sortState = statsSortState) {
+  return [...statsArray].sort((a, b) => compareStatsRows(a, b, sortState.key, sortState.dir));
+}
+
+function updateStatsSortUI() {
+  document.querySelectorAll('#statistics-table .stats-sort-btn').forEach(btn => {
+    const isActive = btn.dataset.sort === statsSortState.key;
+    btn.classList.toggle('is-active', isActive);
+    const arrow = btn.querySelector('.stats-sort-arrow');
+    if (arrow) {
+      arrow.textContent = isActive
+        ? (statsSortState.dir === 'asc' ? '↑' : '↓')
+        : '⇅';
+    }
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function setupStatsSortHandlers() {
+  if (statsSortHandlersReady) return;
+  statsSortHandlersReady = true;
+
+  const table = document.getElementById('statistics-table');
+  if (table) {
+    table.addEventListener('click', (e) => {
+      const btn = e.target.closest('.stats-sort-btn');
+      if (!btn) return;
+      e.preventDefault();
+      const key = btn.dataset.sort;
+      if (!key) return;
+      if (statsSortState.key === key) {
+        statsSortState.dir = statsSortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        const numericKeys = new Set(['played', 'wins', 'draws', 'losses', 'goalsFor', 'multiplier', 'points']);
+        statsSortState = {
+          key,
+          dir: numericKeys.has(key) ? 'desc' : 'asc'
+        };
+      }
+      renderStatistics();
+    });
+  }
+
+}
+
+function renderStatsGroupBreakdown(statsArray) {
+  const container = document.getElementById('stats-group-breakdown');
+  const grandEl = document.getElementById('stats-group-grand-total');
+  if (!container) return;
+
+  const groups = Object.keys(TEAM_WC_GROUP_MEMBERS).sort();
+  const groupStats = groups.map(group => {
+    const memberNames = TEAM_WC_GROUP_MEMBERS[group] || [];
+    const teams = statsArray.filter(s => memberNames.includes(s.name));
+    const total = teams.reduce((sum, t) => sum + t.points, 0);
+    const count = teams.length || memberNames.length;
+    const avg = count ? total / count : 0;
+    return { group, teams, total, count, avg };
+  });
+
+  const allTotal = groupStats.reduce((sum, g) => sum + g.total, 0);
+  const allCount = groupStats.reduce((sum, g) => sum + g.count, 0);
+  const maxTotal = Math.max(...groupStats.map(g => g.total), 1);
+  const sortedForRank = [...groupStats].sort((a, b) => b.total - a.total);
+  const rankMap = new Map(sortedForRank.map((g, i) => [g.group, i + 1]));
+
+  const displayOrder = [...groupStats].sort((a, b) => b.total - a.total || a.group.localeCompare(b.group));
+
+  container.innerHTML = displayOrder.map(({ group, teams, total, count, avg }) => {
+    const rank = rankMap.get(group) || 0;
+    const rankClass = rank <= 3 ? `stats-group-card--top${rank}` : '';
+    const barPct = Math.max(8, (total / maxTotal) * 100);
+
+    return `
+      <div class="stats-group-card ${rankClass}" title="อันดับกลุ่ม #${rank}">
+        <div class="stats-group-card-top">
+          <span class="stats-group-letter">${group}</span>
+          <div class="stats-group-score-inline">
+            <span class="stats-group-score-main">${total.toFixed(1)}</span>
+            <span class="stats-group-score-sub">เฉลี่ย ${avg.toFixed(1)}</span>
+          </div>
+        </div>
+        <div class="stats-group-bar-wrap" title="สัดส่วนคะแนนรวมเทียบกลุ่มสูงสุด">
+          <div class="stats-group-bar" style="width:${barPct.toFixed(1)}%"></div>
+        </div>
+        <ul class="stats-group-team-list stats-group-team-list--grid">${buildStatsGroupTeamRows(teams)}</ul>
+      </div>
+    `;
+  }).join('');
+
+  renderStatsGrandPills(grandEl, allTotal, allCount ? allTotal / allCount : 0);
+}
+
+function renderStatsZoneBreakdown(statsArray) {
+  const container = document.getElementById('stats-zone-breakdown');
+  const grandEl = document.getElementById('stats-zone-grand-total');
+  if (!container) return;
+
+  const zoneStats = STATS_ZONE_META.map(meta => {
+    const teams = statsArray.filter(s => s.zone === meta.key);
+    const total = teams.reduce((sum, t) => sum + t.points, 0);
+    const count = teams.length;
+    const avg = count ? total / count : 0;
+    return { meta, teams, total, count, avg };
+  });
+
+  const allTotal = zoneStats.reduce((sum, z) => sum + z.total, 0);
+  const allCount = zoneStats.reduce((sum, z) => sum + z.count, 0);
+  const maxTotal = Math.max(...zoneStats.map(z => z.total), 1);
+
+  container.innerHTML = zoneStats.map(({ meta, teams, total, count, avg }) => {
+    const barPct = Math.max(6, (total / maxTotal) * 100);
+
+    return `
+      <div class="stats-zone-panel ${meta.panelClass}">
+        <div class="stats-zone-panel-header stats-zone-panel-header--compact">
+          <span class="team-badge ${meta.teamClass} stats-zone-badge">${meta.thLabel}</span>
+          <span class="stats-zone-mult-chip">${meta.mult}</span>
+          <div class="stats-zone-inline-stats">
+            <span class="stats-zone-inline-stat"><strong>${total.toFixed(1)}</strong> รวม</span>
+            <span class="stats-zone-inline-stat"><strong>${avg.toFixed(1)}</strong> เฉลี่ย</span>
+            <span class="stats-zone-inline-stat"><strong>${count}</strong> ทีม</span>
+          </div>
+        </div>
+        <div class="stats-zone-bar-wrap stats-zone-bar-wrap--compact" title="${barPct.toFixed(0)}% ของโซนสูงสุด">
+          <div class="stats-zone-bar" style="width:${barPct.toFixed(1)}%"></div>
+        </div>
+        <div class="stats-zone-team-grid stats-zone-team-grid--compact">${buildStatsZoneTeamGrid(teams)}</div>
+      </div>
+    `;
+  }).join('');
+
+  renderStatsGrandPills(grandEl, allTotal, allCount ? allTotal / allCount : 0);
+}
+
+function renderStatistics() {
+  setupStatsSortHandlers();
+
+  const tbody = document.getElementById('statistics-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const statsArray = sortStatsArray(buildStatsArray());
+  renderStatsGroupBreakdown(statsArray);
+  renderStatsZoneBreakdown(statsArray);
+  updateStatsSortUI();
 
   statsArray.forEach((s, idx) => {
     const tr = document.createElement('tr');
@@ -5307,6 +5683,8 @@ function renderStatistics() {
     const nameTd = document.createElement('td');
     const badge = document.createElement('span');
     badge.className = `team-badge team-${s.zone}`;
+    badge.dataset.team = s.name;
+    badge.title = 'ดูผู้เลือกทีมนี้';
     badge.style.cssText = 'padding: 2px 8px; font-size: 12px;';
     badge.textContent = s.name;
     nameTd.appendChild(badge);
@@ -5316,6 +5694,10 @@ function renderStatistics() {
     zoneTd.style.textAlign = 'center';
     const zoneClass = s.zone === 'red-orange' ? 'red' : (s.zone === 'grey' ? 'grey' : s.zone);
     zoneTd.innerHTML = `<span class="badge badge-${zoneClass}">${s.zone}</span>`;
+
+    const groupTd = document.createElement('td');
+    groupTd.style.textAlign = 'center';
+    groupTd.innerHTML = getWcGroupBadgeHtml(getTeamWcGroup(s.name));
 
     // Played
     const playedTd = document.createElement('td');
@@ -5352,13 +5734,14 @@ function renderStatistics() {
 
     // Points
     const pointsTd = document.createElement('td');
-    pointsTd.style.textAlign = 'right';
+    pointsTd.style.textAlign = 'center';
     pointsTd.style.fontWeight = '700';
     pointsTd.style.color = 'var(--primary)';
     pointsTd.textContent = s.points.toFixed(1);
 
     tr.appendChild(rankTd);
     tr.appendChild(nameTd);
+    tr.appendChild(groupTd);
     tr.appendChild(zoneTd);
     tr.appendChild(playedTd);
     tr.appendChild(wonTd);
@@ -5406,11 +5789,12 @@ function renderStatistics() {
     let bestTotal = 0;
     bestSelection.sort((a, b) => b.points - a.points).forEach(s => {
       bestTotal += s.points;
-      const b = document.createElement('span');
-      b.className = `team-badge team-${s.zone}`;
-      b.style.cssText = 'padding: 2px 6px; font-size: 10px; margin-right: 4px; margin-bottom: 4px;';
-      b.textContent = `${s.name} (${s.points.toFixed(1)})`;
-      bestContainer.appendChild(b);
+      const badge = document.createElement('span');
+      badge.className = `team-badge team-${s.zone} stats-selection-badge`;
+      badge.dataset.team = s.name;
+      badge.title = 'ดูผู้เลือกทีมนี้';
+      badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
+      bestContainer.appendChild(badge);
     });
     document.getElementById('best-total-points').textContent = bestTotal.toFixed(1);
 
@@ -5434,11 +5818,12 @@ function renderStatistics() {
     let worstTotal = 0;
     worstSelection.sort((a, b) => a.points - b.points).forEach(s => {
       worstTotal += s.points;
-      const b = document.createElement('span');
-      b.className = `team-badge team-${s.zone}`;
-      b.style.cssText = 'padding: 2px 6px; font-size: 10px; margin-right: 4px; margin-bottom: 4px;';
-      b.textContent = `${s.name} (${s.points.toFixed(1)})`;
-      worstContainer.appendChild(b);
+      const badge = document.createElement('span');
+      badge.className = `team-badge team-${s.zone} stats-selection-badge`;
+      badge.dataset.team = s.name;
+      badge.title = 'ดูผู้เลือกทีมนี้';
+      badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
+      worstContainer.appendChild(badge);
     });
     document.getElementById('worst-total-points').textContent = worstTotal.toFixed(1);
   }
@@ -5472,8 +5857,8 @@ function renderTeamsMatrix() {
       matrixHTML += `
         <div class="team-card-small" style="background-color:rgba(15, 23, 42, 0.3); border:1px solid rgba(255,255,255,0.03); border-left:3px solid var(--zone-${zone.key})">
           <div>
-            <strong>${t.name}</strong>
-            <div style="font-size:10px; color:var(--text-secondary);">ตัวคูณ: ${t.multiplier}</div>
+            <strong class="team-clickable" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือกทีมนี้">${escapeHtml(t.name)}</strong>
+            <div style="font-size:10px; color:var(--text-secondary);">${formatWcGroupLabel(t.wcGroup)} · ตัวคูณ: ${t.multiplier}</div>
           </div>
           <div style="text-align:right;">
             <strong style="color:var(--primary);">${stats.points.toFixed(1)}</strong>
@@ -5563,6 +5948,7 @@ function openPlayerDetails(name) {
               <thead>
                 <tr>
                   <th style="text-align:left;">ทีม</th>
+                  <th>กลุ่ม</th>
                   <th>โซน</th>
                   <th>เล่น</th>
                   <th>ชนะ</th>
@@ -5613,7 +5999,8 @@ function openPlayerDetails(name) {
           
           statsHTML += `
             <tr style="border-left: 3px solid var(--zone-${tb.zone});">
-              <td>${tb.name}</td>
+              <td><span class="team-clickable" data-team="${escapeHtml(tb.name)}" title="ดูผู้เลือกทีมนี้">${escapeHtml(tb.name)}</span></td>
+              <td style="text-align:center;">${getWcGroupBadgeHtml(getTeamWcGroup(tb.name))}</td>
               <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${tb.zone.toUpperCase()}</span></td>
               <td>${teamMatches.length}</td>
               <td style="color:#34d399;">${wins}</td>
@@ -5698,7 +6085,7 @@ function openPlayerDetails(name) {
             : '<span class="badge badge-green" style="font-size:9.5px; padding:2px 6px;">ยังอยู่ในเส้นทาง</span>';
             
           const elimToggleBtn = isAdmin
-            ? `<button class="btn btn-secondary toggle-elim-btn" data-team="${(tb.name || '').replace(/'/g, "\\'")}" style="padding: 2px 8px; font-size: 10px; height: auto; margin-left: 8px; background-color: rgba(255,255,255,0.03);">
+            ? `<button class="btn btn-secondary toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}" style="padding: 2px 8px; font-size: 10px; height: auto; margin-left: 8px; background-color: rgba(255,255,255,0.03);">
                  ${eliminated ? '✔️ คืนสิทธิ์' : '❌ ตกรอบ'}
                </button>`
             : '';
@@ -5741,9 +6128,11 @@ function openPlayerDetails(name) {
                 ? '<span style="color:var(--zone-green)">ชนะ</span>' 
                 : (resultPoints === 2 ? '<span style="color:var(--zone-yellow)">เสมอ</span>' : '<span style="color:var(--zone-red-orange)">แพ้</span>');
               
+              const homeGroup = getTeamWcGroup(m.home) || '-';
+              const awayGroup = getTeamWcGroup(m.away) || '-';
               matchHistoryHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>แมตช์ที่ ${m.id}: ${m.home} ${m.homeScore} - ${m.awayScore} ${m.away} (${resText})</span>
+                  <span>แมตช์ที่ ${m.id}: <span class="team-clickable" data-team="${escapeHtml(m.home)}">${escapeHtml(m.home)}</span> [${homeGroup}] ${m.homeScore} - ${m.awayScore} <span class="team-clickable" data-team="${escapeHtml(m.away)}">${escapeHtml(m.away)}</span> [${awayGroup}] (${resText})</span>
                   <span style="font-weight: 600; color: rgba(255,255,255,0.6)">+${matchPts.toFixed(1)} แต้ม</span>
                 </div>
               `;
@@ -5758,8 +6147,8 @@ function openPlayerDetails(name) {
           item.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                <strong style="font-size: 14px;">${tb.name}</strong>
-                <span style="font-size:10px; color:var(--text-secondary);">โซน: ${tb.zone.toUpperCase()} (x${tb.multiplier || 1})</span>
+                <strong class="team-clickable" data-team="${escapeHtml(tb.name)}" style="font-size: 14px;" title="ดูผู้เลือกทีมนี้">${escapeHtml(tb.name)}</strong>
+                <span style="font-size:10px; color:var(--text-secondary);">${formatWcGroupLabel(getTeamWcGroup(tb.name))} · โซน: ${tb.zone.toUpperCase()} (x${tb.multiplier || 1})</span>
                 ${elimBadge}
                 ${elimToggleBtn}
               </div>
@@ -5776,7 +6165,7 @@ function openPlayerDetails(name) {
         grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const team = btn.getAttribute('data-team');
+            const team = btn.getAttribute('data-elim-team');
             if (manualEliminatedTeams.has(team)) {
               manualEliminatedTeams.delete(team);
             } else {
@@ -6049,6 +6438,7 @@ async function handleMatchFormSubmit() {
 // SETUP EVENTS & DOM CONTENT LOADED
 document.addEventListener('DOMContentLoaded', async () => {
   await initData();
+  attachTeamNameClickHandlers();
   setupNavigation();
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
@@ -6089,11 +6479,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportBtn = document.getElementById('export-leaderboard-btn');
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
+      const originalLabel = exportBtn.textContent;
+      exportBtn.disabled = true;
+      exportBtn.textContent = '⏳ กำลังสร้างภาพ...';
       try {
         await exportLeaderboardImage();
       } catch (err) {
         console.error('Export failed', err);
         alert('การส่งออกภาพล้มเหลว');
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = originalLabel;
       }
     });
   }
@@ -6112,43 +6508,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   // Close login modal
 
-async function exportLeaderboardImage() {
-  const container = document.querySelector('#leaderboard .table-container');
-  if (!container) return alert('ไม่พบตารางคะแนนเพื่อส่งออก');
-  // Ensure web fonts are loaded (prevents missing fonts in output)
-  if (document.fonts && document.fonts.ready) {
-    try { await document.fonts.ready; } catch (e) { /* ignore */ }
-  }
-
-  // Clone container so we can tweak visuals for export without modifying page
-  const clone = container.cloneNode(true);
-  // Preserve overall page background so exported image looks like site
-  clone.style.background = getComputedStyle(document.body).backgroundColor || 'transparent';
-  clone.style.padding = '18px';
-  clone.style.borderRadius = '8px';
-  // Remove interactive controls inside clone if any
-  clone.querySelectorAll('.search-bar, .input-group, #export-leaderboard-btn, #team-filter-menu').forEach(el => el.remove());
-  clone.style.maxWidth = Math.min(container.clientWidth, 1200) + 'px';
-  // Place clone offscreen to render
-  clone.style.position = 'fixed';
-  clone.style.left = '-9999px';
-  document.body.appendChild(clone);
-
-  // Use html2canvas to render; keep background (null) so theme preserved
-  const canvas = await html2canvas(clone, {backgroundColor: null, scale: 2, useCORS: true});
-
-  // Convert canvas to JPEG blob for mobile-friendly file size
-  await new Promise((resolve) => {
-    canvas.toBlob(async (blob) => {
+function downloadCanvasAsJpeg(canvas, fileName) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
       if (!blob) {
         alert('สร้างภาพล้มเหลว');
-        clone.remove();
-        return resolve();
+        return resolve(false);
       }
 
-      const fileName = 'leaderboard.jpg';
-
-      // Always download via object URL (ensure consistent download behavior across devices)
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -6159,17 +6526,112 @@ async function exportLeaderboardImage() {
       const clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
       const clickResult = a.dispatchEvent(clickEvent);
 
-      // If download is blocked, open image in a new tab as fallback so user can save manually
       if (!clickResult || !a.href) {
         window.open(url, '_blank');
       }
 
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
-      clone.remove();
-      resolve();
-    }, 'image/jpeg', 0.85);
+      resolve(true);
+    }, 'image/jpeg', 0.9);
   });
+}
+
+async function exportLeaderboardImage() {
+  const section = document.getElementById('leaderboard');
+  const liveCard = section?.querySelector('.card');
+  const liveTable = section?.querySelector('.table-container table');
+  if (!section || !liveCard || !liveTable) {
+    return alert('ไม่พบตารางคะแนนเพื่อส่งออก');
+  }
+
+  if (typeof html2canvas !== 'function') {
+    return alert('ระบบส่งออกภาพยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
+
+  const exportRoot = document.createElement('div');
+  exportRoot.className = 'leaderboard-export-root';
+  exportRoot.setAttribute('aria-hidden', 'true');
+
+  const sectionWidth = Math.max(section.getBoundingClientRect().width, liveCard.getBoundingClientRect().width, 320);
+  exportRoot.style.width = `${Math.ceil(sectionWidth)}px`;
+  exportRoot.style.background = '#07070a';
+  exportRoot.style.backgroundImage = getComputedStyle(document.body).backgroundImage || 'none';
+  exportRoot.style.color = getComputedStyle(document.body).color;
+  exportRoot.style.position = 'fixed';
+  exportRoot.style.left = '-99999px';
+  exportRoot.style.top = '0';
+  exportRoot.style.zIndex = '-1';
+  exportRoot.style.overflow = 'visible';
+  exportRoot.style.boxSizing = 'border-box';
+
+  const sectionClone = section.cloneNode(true);
+  sectionClone.style.display = 'block';
+  sectionClone.style.width = '100%';
+  sectionClone.style.maxWidth = '100%';
+  sectionClone.style.overflow = 'visible';
+  sectionClone.classList.add('leaderboard-export-section');
+
+  sectionClone.querySelector('.search-bar')?.remove();
+  sectionClone.querySelectorAll('.table-container').forEach((el) => {
+    el.style.overflow = 'visible';
+    el.style.maxHeight = 'none';
+    el.style.height = 'auto';
+    el.style.width = '100%';
+  });
+  sectionClone.querySelectorAll('table, tbody, thead, tr').forEach((el) => {
+    el.style.overflow = 'visible';
+    el.style.maxHeight = 'none';
+  });
+
+  const clonedCard = sectionClone.querySelector('.card');
+  if (clonedCard) {
+    clonedCard.style.overflow = 'visible';
+    clonedCard.style.maxHeight = 'none';
+    clonedCard.style.width = '100%';
+  }
+
+  exportRoot.appendChild(sectionClone);
+  document.body.appendChild(exportRoot);
+
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const captureWidth = Math.ceil(exportRoot.scrollWidth || exportRoot.offsetWidth || sectionWidth);
+  const captureHeight = Math.ceil(exportRoot.scrollHeight || exportRoot.offsetHeight);
+
+  try {
+    const canvas = await html2canvas(exportRoot, {
+      backgroundColor: '#07070a',
+      scale: Math.min(2, window.devicePixelRatio > 1 ? 2 : 1.5),
+      useCORS: true,
+      logging: false,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDoc) => {
+        const root = clonedDoc.querySelector('.leaderboard-export-root');
+        if (!root) return;
+        root.style.overflow = 'visible';
+        root.querySelector('.search-bar')?.remove();
+        root.querySelectorAll('.table-container, .card, table').forEach((el) => {
+          el.style.overflow = 'visible';
+          el.style.maxHeight = 'none';
+          el.style.height = 'auto';
+        });
+      }
+    });
+
+    await downloadCanvasAsJpeg(canvas, 'leaderboard.jpg');
+  } finally {
+    exportRoot.remove();
+  }
 }
 
 async function exportMatchesImage() {
@@ -6227,9 +6689,11 @@ async function exportMatchesImage() {
     <tr style="background:rgba(15,23,42,0.85);">
       <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">วันที่</th>
       <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08); width:60px;">แมตช์</th>
+      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">กลุ่ม</th>
       <th style="padding:8px 12px; text-align:right; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเหย้า</th>
       <th style="padding:8px 14px; text-align:center; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.5);">สกอร์</th>
       <th style="padding:8px 12px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเยือน</th>
+      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">กลุ่ม</th>
       <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">เกมส์คะแนน</th>
     </tr>
   `;
@@ -6276,11 +6740,13 @@ async function exportMatchesImage() {
     tr.innerHTML = `
       <td style="padding:6px 10px; white-space:nowrap; font-size:12px; color:#94a3b8;">${dateStr}</td>
       <td style="padding:6px 10px; text-align:center; font-size:12px; color:#64748b;">${m.id}</td>
+      <td style="padding:6px 10px; text-align:center; font-size:12px; color:#cbd5e1; font-weight:700;">${getTeamWcGroup(m.home) || '-'}</td>
       <td style="padding:6px 12px; text-align:right; font-weight:600; color:${hNameColor};">${m.home}</td>
       <td style="padding:6px 14px; text-align:center; font-weight:800; font-size:15px; background:rgba(15,23,42,0.45);">
         ${m.homeScore} - ${m.awayScore}
       </td>
       <td style="padding:6px 12px; font-weight:600; color:${aNameColor};">${m.away}</td>
+      <td style="padding:6px 10px; text-align:center; font-size:12px; color:#cbd5e1; font-weight:700;">${getTeamWcGroup(m.away) || '-'}</td>
       <td style="padding:6px 10px; font-size:12px; line-height:1.3;">
         <div><span style="color:${hPtsColor}; font-weight:600;">${m.home} +${hPts.toFixed(1)}</span></div>
         <div><span style="color:${aPtsColor}; font-weight:600;">${m.away} +${aPts.toFixed(1)}</span></div>
@@ -6395,7 +6861,6 @@ async function exportMatchesImage() {
     chartHighlightSelect.addEventListener('change', (e) => {
       chartHoverPlayer = '';
       highlightPlayerInChart(e.target.value);
-      setChartLinePulse(null);
     });
   }
   
@@ -6578,6 +7043,7 @@ async function exportMatchesImage() {
   
 
   // Initial page renders
+  bindChartHoverInteractions();
   renderDashboard();
 });
 
@@ -6633,6 +7099,19 @@ renderPlayers = function() {
   }
 }
 
+function attachTeamNameClickHandlers() {
+  if (window._teamNameClickBound) return;
+  window._teamNameClickBound = true;
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('button, input, select, textarea, .toggle-elim-btn')) return;
+    const el = e.target.closest('[data-team]');
+    if (!el) return;
+    const teamName = el.getAttribute('data-team');
+    if (!teamName || !TEAMS.some(t => t.name === teamName)) return;
+    showTeamSelectionPopup(teamName, e);
+  });
+}
+
 window.showTeamSelectionPopup = function(teamName, event) {
   if (event) {
     event.stopPropagation();
@@ -6648,7 +7127,10 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
 
-  const selectedBy = players.filter(p => p.teams && p.teams.includes(teamName)).map(p => p.name);
+  const selectedBy = players
+    .filter(p => p.teams && p.teams.includes(teamName))
+    .map(p => p.name)
+    .sort((a, b) => a.localeCompare(b, 'th'));
   const popup = document.createElement('div');
   popup.id = 'team-selection-popup';
   popup.className = 'selection-popup team-players-popup';
@@ -6656,7 +7138,8 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const anchorX = event ? event.clientX : window.innerWidth / 2;
   const anchorY = event ? event.clientY : window.innerHeight / 2;
 
-  let html = '<h4>ผู้เลือก ' + escapeHtml(teamName) + ' (' + selectedBy.length + ' คน)</h4>';
+  const teamGroup = formatWcGroupLabel(getTeamWcGroup(teamName));
+  let html = '<h4>ผู้เลือก ' + escapeHtml(teamName) + ' · ' + escapeHtml(teamGroup) + ' (' + selectedBy.length + ' คน)</h4>';
   if (selectedBy.length === 0) {
     html += '<div>ไม่มีผู้เลือก</div>';
   } else {
@@ -6683,7 +7166,7 @@ window.showTeamSelectionPopup = function(teamName, event) {
     if (window._teamPopupJustOpened) return;
     if (!document.getElementById('team-selection-popup')) return;
     if (popup.contains(e.target)) return;
-    if (e.target.closest('.team-badge, .team-clickable')) return;
+    if (e.target.closest('.team-badge, .team-clickable, [data-team]')) return;
     popup.remove();
     document.removeEventListener('click', closeHandler, true);
     document.removeEventListener('pointerdown', closeHandler, true);
