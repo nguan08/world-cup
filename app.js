@@ -2377,14 +2377,14 @@ async function initData() {
     const localMatchesStr = localStorage.getItem('worldcup_matches');
     const serverMatchesStr = JSON.stringify(serverData.matches || []);
     if (localMatchesStr !== serverMatchesStr) {
-      console.log('[Sync] Server data available; clearing stale local cache to ensure current scores');
+      // Server data newer than cache — localStorage refreshed below
       clearCachedData();
     }
   }
 
   // 3. Load database state
   if (isSyncEnabled && serverData.matches && serverData.matches.length > 0) {
-    console.log('[Sync] Using server-side data.json as primary database');
+
     matches = serverData.matches;
     players = serverData.players || [];
     manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
@@ -2394,7 +2394,7 @@ async function initData() {
     localStorage.setItem('worldcup_players', JSON.stringify(players));
     localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
   } else {
-    console.log('[Sync] Using client-side localStorage as database');
+
     const storedMatches = localStorage.getItem('worldcup_matches');
     const storedPlayers = localStorage.getItem('worldcup_players');
     
@@ -3065,7 +3065,6 @@ function attachPlayerRowOpenHandlers() {
       e.stopPropagation();
       const name = row.dataset.playerName;
       if (name) {
-        console.log('[player-open] tbody-delegated click for:', name);
         openPlayerDetails(name);
       }
     }, { passive: true });
@@ -3087,7 +3086,6 @@ function attachPlayerRowOpenHandlers() {
       // We still call open here as a safety net.
       const name = row.dataset.playerName;
       if (name) {
-        console.log('[player-open] document-fallback click for:', name);
         openPlayerDetails(name);
       }
     }, false); // bubbling, not capture
@@ -6028,7 +6026,37 @@ function initRankSoundVoices() {
 
 function createRankAudioContext() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  return Ctx ? new Ctx() : null;
+  if (!Ctx) return null;
+  const ctx = new Ctx();
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+  return ctx;
+}
+
+function scheduleRankNoise(ctx, { start, duration, peak = 0.05, frequency = 320 }) {
+  const sampleRate = ctx.sampleRate;
+  const length = Math.max(1, Math.floor(sampleRate * duration));
+  const buffer = ctx.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+  }
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  filter.type = 'bandpass';
+  filter.frequency.value = frequency;
+  filter.Q.value = 0.7;
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  source.start(start);
+  source.stop(start + duration + 0.02);
 }
 
 function scheduleRankTone(ctx, { start, duration, freq, type = 'triangle', peak = 0.1, slideTo = null }) {
@@ -6081,36 +6109,62 @@ function playWinnerFanfare() {
   }
 }
 
-function playLoserSound() {
+function playLoserFailSound() {
   try {
     const ctx = createRankAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
-    const wahWahSets = [
-      [{ freq: 260, slideTo: 140, at: 0 }, { freq: 220, slideTo: 95, at: 0.42 }],
-      [{ freq: 240, slideTo: 120, at: 0.95 }, { freq: 200, slideTo: 80, at: 1.38 }]
-    ];
-    wahWahSets.forEach((pair) => {
-      pair.forEach((note) => {
-        scheduleRankTone(ctx, {
-          start: now + note.at,
-          duration: 0.38,
-          freq: note.freq,
-          slideTo: note.slideTo,
-          type: 'sawtooth',
-          peak: 0.08
-        });
-      });
+
+    // Game-show "wrong answer" double buzzer
+    scheduleRankTone(ctx, {
+      start: now,
+      duration: 0.42,
+      freq: 196,
+      type: 'square',
+      peak: 0.11
     });
     scheduleRankTone(ctx, {
-      start: now + 1.85,
-      duration: 0.5,
-      freq: 180,
-      slideTo: 60,
+      start: now + 0.46,
+      duration: 0.62,
+      freq: 147,
       type: 'square',
-      peak: 0.05
+      peak: 0.11,
+      slideTo: 98
     });
-    setTimeout(() => ctx.close(), 2600);
+
+    // Short crowd boo
+    scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
+    scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
+
+    // Classic sad trombone "wah wah"
+    scheduleRankTone(ctx, {
+      start: now + 1.15,
+      duration: 0.42,
+      freq: 233,
+      type: 'triangle',
+      peak: 0.1,
+      slideTo: 130
+    });
+    scheduleRankTone(ctx, {
+      start: now + 1.62,
+      duration: 0.48,
+      freq: 185,
+      type: 'triangle',
+      peak: 0.095,
+      slideTo: 88
+    });
+
+    // Deflating tail
+    scheduleRankTone(ctx, {
+      start: now + 2.15,
+      duration: 0.7,
+      freq: 320,
+      type: 'sawtooth',
+      peak: 0.06,
+      slideTo: 55
+    });
+
+    setTimeout(() => ctx.close(), 3200);
   } catch (_) {
     /* ignore audio errors */
   }
@@ -6122,7 +6176,7 @@ function speakRankPhrase(type, options = {}) {
   const { repeat = 1, delayMs = 0 } = options;
   const phrases = {
     winner: ['โคตรเทพเลยพี่!', 'แชมป์เปี้ยนสุดยอด!'],
-    loser: ['ขอบคุณเจ้าภาพ...', 'ขอบคุณเจ้าภาพครับ...', 'ไว้คราวหน้านะ...']
+    loser: ['แพ้แล้วจ้า...', 'อันดับท้ายสุดเลยนะ...', 'เสียใจด้วยครับ...']
   };
   window.speechSynthesis.cancel();
 
@@ -6137,6 +6191,10 @@ function speakRankPhrase(type, options = {}) {
       utter.rate = 0.92 + Math.random() * 0.08;
       utter.pitch = 1.08 + Math.random() * 0.12;
       utter.volume = 1;
+    } else if (type === 'loser') {
+      utter.rate = 0.72 + Math.random() * 0.08;
+      utter.pitch = 0.52 + Math.random() * 0.1;
+      utter.volume = 0.95;
     } else {
       utter.rate = 0.62 + Math.random() * 0.08;
       utter.pitch = 0.48 + Math.random() * 0.1;
@@ -6165,8 +6223,8 @@ function playRankSoundEffect(player) {
   }
 
   if (player.rank === 61 || player.rank === 62) {
-    playLoserSound();
-    speakRankPhrase('loser', { repeat: 3, delayMs: 560 });
+    playLoserFailSound();
+    setTimeout(() => speakRankPhrase('loser'), 900);
   }
 }
 

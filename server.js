@@ -85,7 +85,22 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let filePath = path.join(PUBLIC_DIR, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+  const requestPath = req.url.split('?')[0];
+  if (requestPath === '/favicon.ico') {
+    const svgPath = path.join(PUBLIC_DIR, 'favicon.svg');
+    fs.access(svgPath, fs.constants.F_OK, (err) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('404 Not Found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+      fs.createReadStream(svgPath).pipe(res);
+    });
+    return;
+  }
+
+  let filePath = path.join(PUBLIC_DIR, requestPath === '/' ? 'index.html' : requestPath);
 
   // Security check: ensure path is inside PUBLIC_DIR
   if (!filePath.startsWith(PUBLIC_DIR)) {
