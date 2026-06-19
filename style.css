@@ -479,16 +479,16 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 2 columns — full viewport width */
+  /* 1 card per swipe — room for score inputs without overlap */
   #recent-matches-card .live-match-card {
-    flex: 0 0 calc((100% - 8px) / 2);
-    width: calc((100% - 8px) / 2);
-    min-width: calc((100% - 8px) / 2);
-    max-width: calc((100% - 8px) / 2);
+    flex: 0 0 calc(100% - 28px);
+    width: calc(100% - 28px);
+    min-width: calc(100% - 28px);
+    max-width: calc(100% - 28px);
     scroll-snap-align: start;
     scroll-snap-stop: normal;
     touch-action: pan-x;
-    padding: 10px 7px !important;
+    padding: 10px 10px !important;
     border-radius: 16px !important;
     border: none !important;
   }
@@ -522,12 +522,26 @@ body {
   }
 
   .live-match-card .match-body-grid {
-    gap: 4px !important;
+    gap: 6px !important;
     margin-top: 4px !important;
+    grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr) !important;
   }
 
   .live-match-card .match-center-col {
-    min-width: 44px !important;
+    min-width: min-content !important;
+    width: min-content !important;
+    flex-shrink: 0 !important;
+    z-index: 1;
+  }
+
+  .live-match-card .match-team-col {
+    overflow: hidden !important;
+    min-width: 0 !important;
+  }
+
+  .live-match-card .match-score-row {
+    flex-shrink: 0 !important;
+    gap: 4px !important;
   }
 
   .live-match-card .score-num {
@@ -549,10 +563,19 @@ body {
   }
 
   .live-match-card .score-sim-input {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 11px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+    line-height: 32px !important;
+    flex-shrink: 0 !important;
     touch-action: manipulation;
+  }
+
+  .live-match-card .match-pts-row {
+    justify-content: center !important;
+    gap: 6px !important;
+    width: auto !important;
+    max-width: 100% !important;
   }
 
   .live-match-card .pts-label {
@@ -4586,7 +4609,7 @@ html.pwa-standalone .mobile-header {
 
 .match-body-grid {
   display: grid !important;
-  grid-template-columns: 1fr auto 1fr !important;
+  grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr) !important;
   align-items: center !important;
   gap: 10px !important;
   width: 100% !important;
@@ -5767,7 +5790,9 @@ html.pwa-standalone .mobile-header {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 80px !important;
+  min-width: min-content !important;
+  width: min-content !important;
+  flex-shrink: 0 !important;
 }
 
 .match-score-row {
@@ -5803,6 +5828,8 @@ html.pwa-standalone .mobile-header {
   font-weight: 800 !important;
   font-size: 16px !important;
   padding: 0 !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .match-pts-row {
@@ -5841,14 +5868,16 @@ html.pwa-standalone .mobile-header {
 /* Mobile Adjustments */
 @media (max-width: 480px) {
   .match-body-grid {
-    gap: 5px !important;
+    gap: 6px !important;
+    grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr) !important;
   }
   .match-center-col {
-    min-width: 70px !important;
+    min-width: min-content !important;
+    width: min-content !important;
   }
   .score-sim-input {
-    width: 28px !important;
-    height: 28px !important;
+    width: 32px !important;
+    height: 32px !important;
     font-size: 14px !important;
   }
   .team-badge {
@@ -5896,11 +5925,11 @@ html.pwa-standalone .mobile-header {
 .home-score-input, 
 .away-score-input {
   text-align: center !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: inline-block !important;
   padding: 0 !important;
-  line-height: normal !important;
+  line-height: 34px !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
 /* Ensure number inputs don't have default browser padding/styles that break centering */
@@ -7112,15 +7141,19 @@ tr.leader-second-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   white-space: nowrap;
+  flex-shrink: 0;
+  min-width: min-content;
 }
 
 .tools-sim-input {
-  width: 34px !important;
-  height: 28px !important;
-  padding: 2px 4px !important;
-  font-size: 12px !important;
+  width: 36px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+  flex-shrink: 0 !important;
+  line-height: 32px !important;
 }
 
 .tools-sim-delta-wrap {
@@ -7208,13 +7241,14 @@ tr.leader-second-row {
 
   .tools-sim-table tr {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr);
     grid-template-areas:
       "date date round"
       "home score away";
-    gap: 4px 8px;
-    padding: 8px 0;
+    gap: 6px 10px;
+    padding: 10px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    align-items: center;
   }
 
   .tools-sim-table td {
@@ -7234,14 +7268,28 @@ tr.leader-second-row {
 
   .tools-sim-table .tools-sim-team--home {
     grid-area: home;
+    justify-self: start;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .tools-sim-table .tools-sim-scores {
     grid-area: score;
+    justify-self: center;
+    z-index: 1;
   }
 
   .tools-sim-table .tools-sim-team--away {
     grid-area: away;
     text-align: right;
+    justify-self: end;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .tools-sim-table .tools-sim-team .team-badge {
+    max-width: 100%;
+    font-size: 10px !important;
+    padding: 3px 4px !important;
   }
 }
