@@ -5566,7 +5566,10 @@ function renderPlayers() {
 
   const table = document.getElementById('players-table');
   const tableContainer = table?.closest('.table-container');
+  const tableWrap = table?.closest('.players-card__table-wrap');
+  const card = table?.closest('.players-card');
   const teamsTh = table?.querySelector('.players-teams-th');
+  const colTeams = table?.querySelector('.players-col-teams');
 
   if (table) {
     table.classList.toggle('players-table--filtered', isTeamFilterActive);
@@ -5579,8 +5582,27 @@ function renderPlayers() {
   if (tableContainer) {
     tableContainer.classList.toggle('players-table-container--filtered', isTeamFilterActive);
   }
+  if (tableWrap) {
+    tableWrap.classList.toggle('players-card__table-wrap--filtered', isTeamFilterActive);
+  }
+  if (card) {
+    card.classList.toggle('players-card--filtered', isTeamFilterActive);
+  }
+  if (colTeams) {
+    if (isTeamFilterActive) {
+      colTeams.style.width = 'auto';
+    } else {
+      colTeams.style.removeProperty('width');
+    }
+  }
   if (teamsTh) {
     teamsTh.textContent = isTeamFilterActive ? `ทีม (${selectedTeams.length})` : 'ทีม (15)';
+  }
+
+  if (filtered.length === 0) {
+    const emptyColspan = 3;
+    tbody.innerHTML = `<tr class="players-empty-row"><td colspan="${emptyColspan}" class="players-empty-cell">ไม่พบผู้เล่นที่ตรงกับตัวกรอง</td></tr>`;
+    return;
   }
 
   filtered.forEach(p => {
