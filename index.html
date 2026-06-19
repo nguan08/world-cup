@@ -11,8 +11,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="favicon.svg">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+  <link rel="manifest" href="/manifest.webmanifest?v=20260619-pwa-png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link rel="stylesheet" href="style.css?v=20260619-admin-btn-bottom">
 </head>
 <body>
@@ -91,7 +91,7 @@
           <button type="button" class="btn btn-secondary notification-enable-btn" data-notif-enable>เปิดการแจ้งเตือน</button>
         </div>
 
-        <button type="button" class="btn btn-secondary sidebar-pwa-btn" id="pwa-install-btn" style="display:none;">
+        <button type="button" class="btn btn-secondary sidebar-pwa-btn" id="pwa-install-btn" hidden>
           ติดตั้งแอป (PWA)
         </button>
 
@@ -878,7 +878,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260619-stats-drawer-fix"></script>
+  <script type="module" src="js/main.js?v=20260619-pwa-install"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

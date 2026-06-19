@@ -5,6 +5,24 @@ let deferredInstallPrompt = null;
 export function initPWA() {
   registerServiceWorker();
   setupInstallPrompt();
+  refreshInstallButton();
+  window.addEventListener('resize', refreshInstallButton);
+}
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || navigator.standalone === true;
+}
+
+function isMobileLayout() {
+  const menuBtn = document.getElementById('menu-toggle-btn');
+  if (menuBtn && window.getComputedStyle(menuBtn).display !== 'none') return true;
+  return window.matchMedia('(max-width: 992px)').matches;
+}
+
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || isMobileLayout();
 }
 
 async function registerServiceWorker() {
@@ -31,30 +49,84 @@ function setupInstallPrompt() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
-    showInstallButton();
+    refreshInstallButton();
   });
 
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
-    hideInstallButton();
+    refreshInstallButton();
   });
 }
 
-function showInstallButton() {
-  const btn = document.getElementById('pwa-install-btn');
+function bindInstallButton(btn) {
   if (!btn || btn.dataset.bound) return;
   btn.dataset.bound = '1';
-  btn.style.display = 'block';
-  btn.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
+  btn.addEventListener('click', onInstallButtonClick);
+}
+
+async function onInstallButtonClick() {
+  if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
-    hideInstallButton();
-  });
+    refreshInstallButton();
+    return;
+  }
+  showManualInstallHelp();
 }
 
-function hideInstallButton() {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
+function showManualInstallHelp() {
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isSecure = window.isSecureContext;
+
+  let steps = '';
+  if (!isSecure) {
+    steps = '⚠️ ต้องเปิดผ่าน HTTPS (เช่น https://...) ถึงจะติดตั้งแอปได้\n\n';
+  }
+  if (isAndroid) {
+    steps += 'Android (Chrome):\n'
+      + '1. กด ⋮ มุมขวาบนของ Chrome\n'
+      + '2. เลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"\n'
+      + '3. กด "ติดตั้ง"';
+  } else if (isIOS) {
+    steps += 'iPhone / iPad (Safari):\n'
+      + '1. กดปุ่ม แชร์ (สี่เหลี่ยมมีลูกศร)\n'
+      + '2. เลือก "เพิ่มไปยังหน้าจอโฮม"\n'
+      + '3. กด "เพิ่ม"';
+  } else {
+    steps += 'เดสก์ท็อป:\n'
+      + '1. ดูไอคอน ⊕ หรือ "ติดตั้ง" ในแถบที่อยู่ของ Chrome\n'
+      + '2. หรือเมนู ⋮ → "ติดตั้ง World Cup..."';
+  }
+
+  window.alert(steps);
 }
+
+function refreshInstallButton() {
+  const btn = document.getElementById('pwa-install-btn');
+  if (!btn) return;
+
+  bindInstallButton(btn);
+
+  if (isStandaloneMode()) {
+    btn.hidden = true;
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    btn.textContent = 'ติดตั้งแอป (PWA)';
+    btn.hidden = false;
+    return;
+  }
+
+  // Show manual-install entry on phones/tablets even when beforeinstallprompt never fires
+  if (isMobileDevice()) {
+    btn.textContent = 'ติดตั้งแอป / วิธีเพิ่มไปหน้าจอหลัก';
+    btn.hidden = false;
+    return;
+  }
+
+  btn.hidden = true;
+}
+

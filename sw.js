@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v3';
+const CACHE_NAME = 'wc2026-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -15,7 +15,9 @@ const STATIC_ASSETS = [
   '/js/notifications.js',
   '/js/pwa.js',
   '/favicon.svg',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 let lastDataHash = '';
@@ -74,8 +76,8 @@ async function networkFirstData(request) {
         await notifyClients('มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่');
         await self.registration.showNotification('World Cup 2026 — อัปเดตข้อมูล', {
           body: 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่',
-          icon: '/icons/icon-192.svg',
-          badge: '/icons/icon-192.svg',
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
           tag: 'wc-data-update',
           renotify: true
         });
