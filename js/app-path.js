@@ -17,3 +17,13 @@ export function resolveAppPath(relativePath = '') {
   if (!clean) return base;
   return `${base}${clean}`;
 }
+
+/** True when the Node dev server (server.js) may be running. */
+export function isLocalDevHost() {
+  const host = location.hostname;
+  return host === 'localhost'
+    || host === '127.0.0.1'
+    || /^192\.168\./.test(host)
+    || /^10\./.test(host)
+    || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}

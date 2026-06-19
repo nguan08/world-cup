@@ -3,6 +3,7 @@ import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
 import { notifyDataUpdate, processBroadcast } from './notifications.js';
 import { saveToServer } from './persist.js';
+import { isLocalDevHost, resolveAppPath } from './app-path.js';
 
 export { saveToServer };
 
@@ -20,24 +21,26 @@ export function clearCachedData() {
 export async function initData() {
   let serverData = { matches: [], players: [], eliminatedTeams: [] };
   
-  // 1. Detect if synchronization backend is enabled
+  // 1. Detect local Node sync API (skip on GitHub Pages — no /api/status endpoint)
   window.isSyncEnabled = false;
-  try {
-    const statusRes = await fetch('/api/status');
-    if (statusRes.ok) {
-      const statusData = await statusRes.json();
-      if (statusData.sync) {
-        app.isSyncEnabled = true;
-        window.isSyncEnabled = true;
+  if (isLocalDevHost()) {
+    try {
+      const statusRes = await fetch(resolveAppPath('api/status'));
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        if (statusData.sync) {
+          app.isSyncEnabled = true;
+          window.isSyncEnabled = true;
+        }
       }
+    } catch {
+      console.log('[Sync] Local sync API unavailable');
     }
-  } catch (e) {
-    console.log('[Sync] Local sync API unavailable (static/GitHub Pages mode)');
   }
 
   // 2. Fetch server data with cache busting to ensure the latest file is loaded
   try {
-    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
       serverData = await res.json();
     }
@@ -306,7 +309,7 @@ export function refreshActivePage() {
 
 export async function pollServerData() {
   try {
-    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const serverData = await res.json();
     const changed = mergeServerDataIntoLocal(serverData);

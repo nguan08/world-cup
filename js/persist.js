@@ -1,6 +1,7 @@
 import { app } from './state.js';
 import { getGitHubToken } from './admin.js';
 import { notifyDataUpdate } from './notifications.js';
+import { isLocalDevHost, resolveAppPath } from './app-path.js';
 
 const GITHUB_OWNER = 'nguan08';
 const GITHUB_REPO = 'world-cup';
@@ -97,27 +98,29 @@ export async function saveToServer({ quiet = false } = {}) {
   const payload = buildPayload();
   let serverSaved = false;
 
-  try {
-    const body = { ...payload };
-    if (app.isAdmin) {
-      body.adminPassword = app.ADMIN_PASSWORD;
+  if (isLocalDevHost()) {
+    try {
+      const body = { ...payload };
+      if (app.isAdmin) {
+        body.adminPassword = app.ADMIN_PASSWORD;
+      }
+      const response = await fetch(resolveAppPath('api/save'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (response.ok) {
+        console.log('Successfully synced data to server data.json');
+        return true;
+      }
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Server refused save (admin auth required):', response.status);
+      } else {
+        console.warn('Server refused to save data:', response.statusText);
+      }
+    } catch {
+      console.log('[Persist] Local /api/save unavailable — trying GitHub API fallback');
     }
-    const response = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (response.ok) {
-      console.log('Successfully synced data to server data.json');
-      return true;
-    }
-    if (response.status === 401 || response.status === 403) {
-      console.warn('Server refused save (admin auth required):', response.status);
-    } else {
-      console.warn('Server refused to save data:', response.statusText);
-    }
-  } catch {
-    console.log('[Persist] Local /api/save unavailable — trying GitHub API fallback');
   }
 
   const token = getGitHubToken();
