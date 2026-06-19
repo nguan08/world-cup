@@ -354,7 +354,7 @@ function renderNotificationControls() {
       } else if (block) {
         import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
       } else {
-        notifyDataUpdate({ type: 'broadcast', message: '📢 แจ้งเตือนในแอปทำงาน — ดูแถบสีม่วงด้านบน' });
+        notifyDataUpdate({ type: 'broadcast', message: '📢 แจ้งเตือนในแอปทำงาน — ดู toast ด้านบน' });
       }
       return;
     }
