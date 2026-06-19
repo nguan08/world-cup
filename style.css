@@ -761,6 +761,18 @@ h1 {
   box-sizing: border-box;
 }
 
+/* Pulse overlay — visible only while a line is hovered (animated via SVG SMIL in JS) */
+#score-chart-svg .trend-line-pulse {
+  pointer-events: none !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-opacity: 0;
+}
+
+#score-chart-svg .trend-line-pulse--active {
+  stroke-opacity: 1 !important;
+}
+
 #score-chart-svg {
   display: block;
   width: 100%;

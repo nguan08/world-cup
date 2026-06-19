@@ -4440,6 +4440,7 @@ function renderScoreChart() {
 
   // 6. Draw lines, dots, and labels
   let linesGroup = '';
+  let pulseGroup = '';
   let dotsGroup = '';
   let labelsGroup = '';
   let hoverHelpers = '';
@@ -4456,7 +4457,9 @@ function renderScoreChart() {
 
     // Rank line path
     linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
-    
+
+    pulseGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0" vector-effect="non-scaling-stroke" class="trend-line-pulse" data-player="${ph.name}" data-stroke="${color}"/>`;
+
     // Invisible thick path to make hover easier
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
@@ -4536,6 +4539,15 @@ function renderScoreChart() {
     : '';
 
   svgEl.innerHTML = `
+    <defs>
+      <filter id="chart-pulse-glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
     ${plotBg || `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`}
     ${yGridLines}
     <line x1="${axisLineX}" x2="${axisLineX}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
@@ -4547,6 +4559,7 @@ function renderScoreChart() {
     <g class="helpers-container">${hoverHelpers}</g>
     <g class="dots-container">${dotsGroup}</g>
     <g class="labels-container">${labelsGroup}</g>
+    <g class="pulse-container">${pulseGroup}</g>
     ${legendMarkup}
   `;
 
@@ -4592,26 +4605,83 @@ function renderScoreChart() {
     });
   }
 
-  // 8. Attach mouseenter listeners to highlight
-  svgEl.querySelectorAll('.trend-line, .trend-line-hover-helper, .trend-dot').forEach(el => {
-    el.addEventListener('mouseenter', () => {
-      const playerName = el.getAttribute('data-player');
-      highlightPlayerInChart(playerName);
-    });
-  });
-
-  // Reset highlight on mouseleave unless selected from select dropdown
-  svgEl.addEventListener('mouseleave', () => {
-    const hlSelect = document.getElementById('chart-highlight-select');
-    const selectedPlayer = hlSelect ? hlSelect.value : lastHighlightPlayer;
-    highlightPlayerInChart(selectedPlayer);
-  });
+  bindChartHoverInteractions(svgEl);
 
   // Trigger initial highlight if there was a selected player
   const initialHl = highlightSelect ? highlightSelect.value : lastHighlightPlayer;
   if (initialHl) {
     highlightPlayerInChart(initialHl);
   }
+}
+
+const CHART_SVG_NS = 'http://www.w3.org/2000/svg';
+let chartHoverPlayer = '';
+
+function bindChartHoverInteractions(svgEl) {
+  if (!svgEl || svgEl.dataset.hoverBound === '1') return;
+  svgEl.dataset.hoverBound = '1';
+
+  svgEl.addEventListener('pointerover', (e) => {
+    const target = e.target.closest('.trend-line, .trend-line-hover-helper, .trend-dot');
+    if (!target || !svgEl.contains(target)) return;
+    const playerName = target.getAttribute('data-player');
+    if (!playerName || playerName === chartHoverPlayer) return;
+    chartHoverPlayer = playerName;
+    highlightPlayerInChart(playerName);
+    setChartLinePulse(playerName);
+  });
+
+  svgEl.addEventListener('pointerout', (e) => {
+    const related = e.relatedTarget;
+    if (related && svgEl.contains(related)) return;
+    chartHoverPlayer = '';
+    const hlSelect = document.getElementById('chart-highlight-select');
+    const selectedPlayer = hlSelect ? hlSelect.value : '';
+    highlightPlayerInChart(selectedPlayer);
+    setChartLinePulse(null);
+  });
+}
+
+function setChartLinePulse(playerName) {
+  const svgEl = document.getElementById('score-chart-svg');
+  if (!svgEl) return;
+
+  const pulseContainer = svgEl.querySelector('.pulse-container');
+
+  svgEl.querySelectorAll('.trend-line-pulse').forEach(pulse => {
+    const isActive = Boolean(playerName) && pulse.getAttribute('data-player') === playerName;
+    pulse.querySelectorAll('animate').forEach(anim => anim.remove());
+    pulse.classList.toggle('trend-line-pulse--active', isActive);
+
+    if (isActive) {
+      const color = pulse.getAttribute('data-stroke') || pulse.getAttribute('stroke') || '#4ade80';
+      pulse.setAttribute('stroke', color);
+      pulse.setAttribute('stroke-opacity', '1');
+      pulse.setAttribute('stroke-width', '5');
+      pulse.setAttribute('stroke-dasharray', '12 6 12 900');
+      pulse.setAttribute('stroke-dashoffset', '0');
+      pulse.setAttribute('filter', 'url(#chart-pulse-glow)');
+
+      const anim = document.createElementNS(CHART_SVG_NS, 'animate');
+      anim.setAttribute('attributeName', 'stroke-dashoffset');
+      anim.setAttribute('from', '0');
+      anim.setAttribute('to', '-930');
+      anim.setAttribute('dur', '1.6s');
+      anim.setAttribute('repeatCount', 'indefinite');
+      pulse.appendChild(anim);
+
+      if (pulseContainer) {
+        pulseContainer.appendChild(pulse);
+        svgEl.appendChild(pulseContainer);
+      }
+    } else {
+      pulse.setAttribute('stroke-opacity', '0');
+      pulse.setAttribute('stroke-width', '5');
+      pulse.removeAttribute('stroke-dasharray');
+      pulse.removeAttribute('stroke-dashoffset');
+      pulse.removeAttribute('filter');
+    }
+  });
 }
 
 // Global highlight controller (full version from github)
@@ -4632,6 +4702,7 @@ function highlightPlayerInChart(playerName) {
       line.setAttribute('stroke-width', '1.5');
       line.setAttribute('stroke-opacity', '0.22');
     });
+    setChartLinePulse(null);
     svgEl.querySelectorAll('.trend-dot').forEach(dot => {
       dot.setAttribute('r', '3.2');
       dot.setAttribute('fill-opacity', '0.6');
@@ -6322,7 +6393,9 @@ async function exportMatchesImage() {
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
   if (chartHighlightSelect) {
     chartHighlightSelect.addEventListener('change', (e) => {
+      chartHoverPlayer = '';
       highlightPlayerInChart(e.target.value);
+      setChartLinePulse(null);
     });
   }
   
