@@ -293,9 +293,9 @@
     {
       "home": "สหรัฐอเมริกา",
       "away": "ออสเตรเลีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-20",
       "id": 29
