@@ -3929,7 +3929,7 @@ function renderDashboard() {
 
   // ── Top 10 Leaders table ───────────────────────────────────
   const tbody = getCachedEl('top-leaders-tbody');
-  if (!tbody) return;
+  if (tbody) {
   tbody.innerHTML = '';
 
   const fragment = document.createDocumentFragment();
@@ -4047,6 +4047,9 @@ function renderDashboard() {
     fragment.appendChild(tr);
   });
   tbody.appendChild(fragment);
+  }
+
+  renderTeamSelections(sortStatsArray(buildStatsArray()), 'compact');
 }
 
 // RENDERING - LEADERBOARD (full table + average footer)
@@ -5547,6 +5550,128 @@ function sortStatsArray(statsArray, sortState = statsSortState) {
   return [...statsArray].sort((a, b) => compareStatsRows(a, b, sortState.key, sortState.dir));
 }
 
+function computeTeamSelections(statsArray) {
+  const teamsByZone = {};
+  statsArray.forEach(s => {
+    if (!teamsByZone[s.zone]) teamsByZone[s.zone] = [];
+    teamsByZone[s.zone].push(s);
+  });
+
+  let bestSelection = [];
+  let bestCandidates = [];
+  Object.keys(teamsByZone).forEach(z => {
+    const sorted = [...teamsByZone[z]].sort((a, b) => b.points - a.points);
+    if (sorted.length > 0) {
+      bestSelection.push(sorted[0]);
+      for (let i = 1; i < Math.min(sorted.length, 4); i++) {
+        bestCandidates.push(sorted[i]);
+      }
+    }
+  });
+  bestCandidates.sort((a, b) => b.points - a.points);
+  bestSelection = bestSelection.concat(bestCandidates.slice(0, 10));
+  bestSelection.sort((a, b) => b.points - a.points);
+  const bestTotal = bestSelection.reduce((sum, s) => sum + s.points, 0);
+
+  let worstSelection = [];
+  let worstCandidates = [];
+  Object.keys(teamsByZone).forEach(z => {
+    const sorted = [...teamsByZone[z]].sort((a, b) => a.points - b.points);
+    if (sorted.length > 0) {
+      worstSelection.push(sorted[0]);
+      for (let i = 1; i < Math.min(sorted.length, 4); i++) {
+        worstCandidates.push(sorted[i]);
+      }
+    }
+  });
+  worstCandidates.sort((a, b) => a.points - b.points);
+  worstSelection = worstSelection.concat(worstCandidates.slice(0, 10));
+  worstSelection.sort((a, b) => a.points - b.points);
+  const worstTotal = worstSelection.reduce((sum, s) => sum + s.points, 0);
+
+  return { bestSelection, bestTotal, worstSelection, worstTotal };
+}
+
+function renderSelectionBadges(container, selection, options = {}) {
+  if (!container) return;
+
+  const {
+    compact = false,
+    maxVisible = 6,
+    badgeClass = 'stats-selection-badge'
+  } = options;
+
+  container.innerHTML = '';
+  const visible = compact ? selection.slice(0, maxVisible) : selection;
+  const remaining = compact ? Math.max(0, selection.length - visible.length) : 0;
+
+  visible.forEach(s => {
+    const badge = document.createElement('span');
+    badge.className = `team-badge team-${s.zone} ${badgeClass}`;
+    badge.dataset.team = s.name;
+    badge.title = `ดูผู้เลือกทีมนี้ — ${s.points.toFixed(1)} คะแนน`;
+    applyTeamPopularity(badge, s.name);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'selection-badge-name';
+    nameSpan.textContent = compact ? s.name : `${s.name} [${getTeamWcGroup(s.name) || '-'}]`;
+
+    const ptsSpan = document.createElement('span');
+    ptsSpan.className = 'selection-badge-pts';
+    ptsSpan.textContent = s.points.toFixed(1);
+
+    badge.appendChild(nameSpan);
+    badge.appendChild(ptsSpan);
+    container.appendChild(badge);
+  });
+
+  if (remaining > 0) {
+    const more = document.createElement('span');
+    more.className = 'dashboard-selection-more';
+    more.textContent = `+${remaining}`;
+    more.title = `และอีก ${remaining} ทีม — ดูเต็มในหน้าสถิติ`;
+    container.appendChild(more);
+  }
+}
+
+function renderTeamSelections(statsArray, mode = 'both') {
+  const { bestSelection, bestTotal, worstSelection, worstTotal } = computeTeamSelections(statsArray);
+
+  if (mode === 'full' || mode === 'both') {
+    renderSelectionBadges(
+      document.getElementById('best-selection-container'),
+      bestSelection,
+      { compact: false, badgeClass: 'stats-selection-badge' }
+    );
+    renderSelectionBadges(
+      document.getElementById('worst-selection-container'),
+      worstSelection,
+      { compact: false, badgeClass: 'stats-selection-badge' }
+    );
+    const bestPts = document.getElementById('best-total-points');
+    const worstPts = document.getElementById('worst-total-points');
+    if (bestPts) bestPts.textContent = bestTotal.toFixed(1);
+    if (worstPts) worstPts.textContent = worstTotal.toFixed(1);
+  }
+
+  if (mode === 'compact' || mode === 'both') {
+    renderSelectionBadges(
+      document.getElementById('dashboard-best-selection-container'),
+      bestSelection,
+      { compact: true, maxVisible: 6, badgeClass: 'dashboard-selection-badge' }
+    );
+    renderSelectionBadges(
+      document.getElementById('dashboard-worst-selection-container'),
+      worstSelection,
+      { compact: true, maxVisible: 6, badgeClass: 'dashboard-selection-badge' }
+    );
+    const dashBestPts = document.getElementById('dashboard-best-total-points');
+    const dashWorstPts = document.getElementById('dashboard-worst-total-points');
+    if (dashBestPts) dashBestPts.textContent = bestTotal.toFixed(1);
+    if (dashWorstPts) dashWorstPts.textContent = worstTotal.toFixed(1);
+  }
+}
+
 function updateStatsSortUI() {
   document.querySelectorAll('#statistics-table .stats-sort-btn').forEach(btn => {
     const isActive = btn.dataset.sort === statsSortState.key;
@@ -5769,81 +5894,7 @@ function renderStatistics() {
     tbody.appendChild(tr);
   });
 
-  // Selection Analysis Logic
-  const bestContainer = document.getElementById('best-selection-container');
-  const worstContainer = document.getElementById('worst-selection-container');
-
-  if (bestContainer && worstContainer) {
-    bestContainer.innerHTML = '';
-    worstContainer.innerHTML = '';
-
-    // Group teams by zone
-    const teamsByZone = {};
-    statsArray.forEach(s => {
-      if (!teamsByZone[s.zone]) teamsByZone[s.zone] = [];
-      teamsByZone[s.zone].push(s);
-    });
-
-    // 1. Calculate Best Selection (15 teams, coverage rule, max 4 per zone)
-    let bestSelection = [];
-    let bestCandidates = [];
-
-    Object.keys(teamsByZone).forEach(z => {
-      const sorted = [...teamsByZone[z]].sort((a, b) => b.points - a.points);
-      if (sorted.length > 0) {
-        bestSelection.push(sorted[0]); // Must have 1 from each
-        for (let i = 1; i < Math.min(sorted.length, 4); i++) {
-          bestCandidates.push(sorted[i]);
-        }
-      }
-    });
-
-    bestCandidates.sort((a, b) => b.points - a.points);
-    bestSelection = bestSelection.concat(bestCandidates.slice(0, 10));
-
-    let bestTotal = 0;
-    bestSelection.sort((a, b) => b.points - a.points).forEach(s => {
-      bestTotal += s.points;
-      const badge = document.createElement('span');
-      badge.className = `team-badge team-${s.zone} stats-selection-badge`;
-      badge.dataset.team = s.name;
-      badge.title = 'ดูผู้เลือกทีมนี้';
-      applyTeamPopularity(badge, s.name);
-      badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
-      bestContainer.appendChild(badge);
-    });
-    document.getElementById('best-total-points').textContent = bestTotal.toFixed(1);
-
-    // 2. Calculate Worst Selection
-    let worstSelection = [];
-    let worstCandidates = [];
-
-    Object.keys(teamsByZone).forEach(z => {
-      const sorted = [...teamsByZone[z]].sort((a, b) => a.points - b.points);
-      if (sorted.length > 0) {
-        worstSelection.push(sorted[0]); // Must have 1 from each (worst one)
-        for (let i = 1; i < Math.min(sorted.length, 4); i++) {
-          worstCandidates.push(sorted[i]);
-        }
-      }
-    });
-
-    worstCandidates.sort((a, b) => a.points - b.points);
-    worstSelection = worstSelection.concat(worstCandidates.slice(0, 10));
-
-    let worstTotal = 0;
-    worstSelection.sort((a, b) => a.points - b.points).forEach(s => {
-      worstTotal += s.points;
-      const badge = document.createElement('span');
-      badge.className = `team-badge team-${s.zone} stats-selection-badge`;
-      badge.dataset.team = s.name;
-      badge.title = 'ดูผู้เลือกทีมนี้';
-      applyTeamPopularity(badge, s.name);
-      badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
-      worstContainer.appendChild(badge);
-    });
-    document.getElementById('worst-total-points').textContent = worstTotal.toFixed(1);
-  }
+  renderTeamSelections(statsArray, 'full');
 }
 
 function renderTeamsMatrix() {

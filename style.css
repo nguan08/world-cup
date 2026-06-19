@@ -4373,11 +4373,20 @@ body.player-drawer-open {
 }
 
 .stats-selection-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
   padding: 2px 5px !important;
   font-size: 8.5px !important;
   border-radius: 4px !important;
   line-height: 1.25 !important;
   margin: 0 !important;
+}
+
+.selection-badge-pts {
+  font-weight: 800;
+  opacity: 0.92;
+  white-space: nowrap;
 }
 
 .stats-selection-note {
@@ -4391,6 +4400,125 @@ body.player-drawer-open {
   .stats-selection-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+}
+
+/* ── Dashboard: Dream / Nightmare compact preview ── */
+.dashboard-selection-preview {
+  margin-top: 8px;
+}
+
+.dashboard-selection-preview__header {
+  margin-bottom: 10px;
+}
+
+.dashboard-selection-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dashboard-selection-card {
+  padding: 8px 10px !important;
+  margin-bottom: 0 !important;
+  border-left-width: 3px !important;
+  border-left-style: solid;
+}
+
+.dashboard-selection-card:hover {
+  transform: none;
+}
+
+.dashboard-selection-card--dream {
+  border-left-color: var(--zone-green) !important;
+}
+
+.dashboard-selection-card--nightmare {
+  border-left-color: #ff4444 !important;
+}
+
+.dashboard-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.dashboard-selection-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.dashboard-selection-total {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dashboard-selection-total--dream {
+  color: var(--zone-green);
+}
+
+.dashboard-selection-total--nightmare {
+  color: #ff4444;
+}
+
+.dashboard-selection-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+  min-height: 18px;
+}
+
+.dashboard-selection-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 4px !important;
+  font-size: 8px !important;
+  border-radius: 3px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.dashboard-selection-badge .selection-badge-pts {
+  font-size: 7.5px;
+}
+
+.dashboard-selection-more {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.dashboard-selection-note {
+  margin: 6px 0 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.section-link--inline {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: inherit;
+  vertical-align: baseline;
+}
+
+@media (max-width: 768px) {
+  .dashboard-selection-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }
 
