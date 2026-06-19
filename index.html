@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <link rel="stylesheet" href="style.css?v=20260619-ecg-lite">
+  <link rel="stylesheet" href="style.css?v=20260619-export-flat">
 </head>
 <body>
   
@@ -287,9 +287,12 @@
 
             <!-- PAGE: STATISTICS -->
       <section id="statistics" class="page">
-        <header>
-          <h1>สถิติผลการแข่งรายทีม (Team Stats)</h1>
-          <p class="page-description">วิเคราะห์ฟอร์มการเล่นและคะแนนสะสมของทุกทีม จัดลำดับตามคะแนนจากสูงไปต่ำ</p>
+        <header class="stats-page-header">
+          <div>
+            <h1>สถิติผลการแข่งรายทีม (Team Stats)</h1>
+            <p class="page-description" style="margin-bottom:0;">วิเคราะห์ฟอร์มการเล่นและคะแนนสะสมของทุกทีม จัดลำดับตามคะแนนจากสูงไปต่ำ</p>
+          </div>
+          <button type="button" id="export-statistics-btn" class="btn btn-secondary" style="padding:10px 14px; font-size:14px; flex-shrink:0;">📤 บันทึกภาพ (JPG)</button>
         </header>
 
         
@@ -527,40 +530,41 @@
 
     <!-- DRAWER: PLAYER DETAILS -->
     <div class="drawer-overlay" id="player-details-drawer-overlay">
-      <div class="drawer player-details-drawer" style="width: 650px;">
-        <div class="drawer-header">
-          <h2 id="detail-player-name">ชื่อผู้เล่น</h2>
-          <button class="close-btn" id="close-detail-btn">×</button>
+      <div class="drawer player-details-drawer">
+        <div class="drawer-header player-details-drawer__header">
+          <h2 id="detail-player-name" class="player-details-drawer__name">ชื่อผู้เล่น</h2>
+          <button class="close-btn" id="close-detail-btn" type="button" aria-label="ปิด">×</button>
         </div>
 
         <div class="player-details-drawer__scroll">
-          <div style="margin-bottom: 24px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-              <span style="color:var(--text-secondary)">คะแนนรวมทีมที่เลือก:</span>
-              <strong style="font-size:18px; color:var(--primary)" id="detail-teams-score">0.00</strong>
+          <div class="player-detail-scores">
+            <div class="player-detail-score-card">
+              <span class="player-detail-score-label">คะแนนทีม</span>
+              <strong class="player-detail-score-value player-detail-score-value--teams" id="detail-teams-score">0.00</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-              <span style="color:var(--text-secondary)">ผลทำนายจำนวนประตูชิง (แต้มพิเศษ):</span>
-              <strong style="font-size:18px; color:var(--accent)">
-                <span id="detail-prediction-score">0.00</span> (ทาย: <span id="detail-prediction-guess">0</span>)
+            <div class="player-detail-score-card">
+              <span class="player-detail-score-label">ทายชิง</span>
+              <strong class="player-detail-score-value player-detail-score-value--guess">
+                <span id="detail-prediction-score">0.00</span>
               </strong>
+              <span class="player-detail-score-sub">ทาย <span id="detail-prediction-guess">0</span> ลูก</span>
             </div>
-            <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
-              <span style="font-weight:600;">คะแนนรวมทั้งสิ้น:</span>
-              <strong style="font-size:24px; color:#fff" id="detail-total-score">0.00</strong>
+            <div class="player-detail-score-card player-detail-score-card--total">
+              <span class="player-detail-score-label">คะแนนรวม</span>
+              <strong class="player-detail-score-value player-detail-score-value--total" id="detail-total-score">0.00</strong>
             </div>
           </div>
 
-          <div id="detail-team-stats-container" style="margin-bottom: 20px;"></div>
+          <div id="detail-team-stats-container" class="player-detail-stats-wrap"></div>
 
-          <h3 style="margin-bottom:16px; font-size:15px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary)">ทีมที่เลือก ผลการแข่งขัน และคะแนนสะสม</h3>
-          <div class="player-teams-list" id="detail-teams-grid" style="display: flex; flex-direction: column; gap: 16px;">
+          <h3 class="player-teams-section-title">ทีมที่เลือก · ผลแข่ง · คะแนนสะสม</h3>
+          <div class="player-teams-list" id="detail-teams-grid">
             <!-- JS will load teams with history here -->
           </div>
 
           <div class="player-details-drawer__actions">
-            <button class="btn btn-secondary" id="edit-player-selections-btn" style="flex:1;">แก้ไขการเลือกทีม</button>
-            <button class="btn btn-secondary" id="delete-player-btn" style="background-color:rgba(244,63,94,0.1); color:var(--accent); border-color:rgba(244,63,94,0.2); flex:1;">ลบผู้เล่น</button>
+            <button type="button" class="btn btn-secondary" id="edit-player-selections-btn">แก้ไขการเลือกทีม</button>
+            <button type="button" class="btn btn-secondary player-details-drawer__delete-btn" id="delete-player-btn">ลบผู้เล่น</button>
           </div>
         </div>
 
@@ -702,7 +706,7 @@
 
   </div>
 
-  <script src="app.js?v=20260619-stats-col"></script>
+  <script src="app.js?v=20260619-export-flat"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

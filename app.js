@@ -2942,6 +2942,7 @@ function isTeamEliminated(teamName) {
 }
 
 function recalculateAll() {
+  if (typeof resetTeamPopularityCache === 'function') resetTeamPopularityCache();
   teamPoints = calculateTeamPoints();
   processedPlayers = processPlayers(teamPoints);
   updateTeamMatchesPlayedCounts();
@@ -4073,7 +4074,7 @@ function buildTeamFilterHTML() {
       html += `
         <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 2px 0; user-select: none;">
           <input type="checkbox" class="team-filter-checkbox" value="${t.name}" style="width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;">
-          <span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${t.name} · ${formatWcGroupLabel(t.wcGroup)} · x${t.multiplier}</span>
+          <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--filter" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding: 2px 6px; font-size: 11px;">${escapeHtml(t.name)} · ${formatWcGroupLabel(t.wcGroup)} · x${t.multiplier}</span>
         </label>
       `;
     });
@@ -5411,6 +5412,7 @@ function renderPlayers() {
       badge.dataset.team = tb.name;
       badge.title = 'ดูผู้เลือกทีมนี้';
       badge.style.cssText = 'padding: 2px 5px; font-size: 10px; border-radius: 4px; white-space: nowrap; margin: 0;';
+      applyTeamPopularity(badge, tb.name);
       badge.textContent = `${tb.name} [${getTeamWcGroup(tb.name) || '-'}] (${tb.points.toFixed(1)})`;
       badgesWrapper.appendChild(badge);
     });
@@ -5460,25 +5462,31 @@ function renderStatsGrandPills(el, total, avg) {
 function buildStatsGroupTeamRows(teams) {
   return teams
     .sort((a, b) => b.points - a.points)
-    .map(t => `
-      <li class="stats-group-team-row" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}">
+    .map(t => {
+      const popCount = getTeamPopularity(t.name);
+      return `
+      <li class="stats-group-team-row ${getTeamZoneClass(t.zone)}" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}${popCount ? ` (${popCount} คน)` : ''}">
         <span class="stats-group-team-dot stats-group-team-dot--${t.zone}"></span>
         <span class="stats-group-team-name">${escapeHtml(t.name)}</span>
         <span class="stats-group-team-pts">${t.points.toFixed(1)}</span>
       </li>
-    `)
+    `;
+    })
     .join('');
 }
 
 function buildStatsZoneTeamGrid(teams) {
   return teams
     .sort((a, b) => b.points - a.points)
-    .map(t => `
-      <div class="stats-zone-team-chip" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}">
+    .map(t => {
+      const popCount = getTeamPopularity(t.name);
+      return `
+      <div class="stats-zone-team-chip ${getTeamZoneClass(t.zone)}" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)}" title="ดูผู้เลือก: ${escapeHtml(t.name)}${popCount ? ` (${popCount} คน)` : ''}">
         <span class="stats-zone-team-name">${escapeHtml(t.name)}</span>
         <span class="stats-zone-team-pts">${t.points.toFixed(1)}</span>
       </div>
-    `)
+    `;
+    })
     .join('');
 }
 
@@ -5686,6 +5694,7 @@ function renderStatistics() {
     badge.dataset.team = s.name;
     badge.title = 'ดูผู้เลือกทีมนี้';
     badge.style.cssText = 'padding: 2px 8px; font-size: 12px;';
+    applyTeamPopularity(badge, s.name);
     badge.textContent = s.name;
     nameTd.appendChild(badge);
 
@@ -5793,6 +5802,7 @@ function renderStatistics() {
       badge.className = `team-badge team-${s.zone} stats-selection-badge`;
       badge.dataset.team = s.name;
       badge.title = 'ดูผู้เลือกทีมนี้';
+      applyTeamPopularity(badge, s.name);
       badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
       bestContainer.appendChild(badge);
     });
@@ -5822,6 +5832,7 @@ function renderStatistics() {
       badge.className = `team-badge team-${s.zone} stats-selection-badge`;
       badge.dataset.team = s.name;
       badge.title = 'ดูผู้เลือกทีมนี้';
+      applyTeamPopularity(badge, s.name);
       badge.textContent = `${s.name} [${getTeamWcGroup(s.name) || '-'}] ${s.points.toFixed(1)}`;
       worstContainer.appendChild(badge);
     });
@@ -5857,7 +5868,7 @@ function renderTeamsMatrix() {
       matrixHTML += `
         <div class="team-card-small" style="background-color:rgba(15, 23, 42, 0.3); border:1px solid rgba(255,255,255,0.03); border-left:3px solid var(--zone-${zone.key})">
           <div>
-            <strong class="team-clickable" data-team="${escapeHtml(t.name)}" title="ดูผู้เลือกทีมนี้">${escapeHtml(t.name)}</strong>
+            ${buildTeamBadgeHtml(t.name, t.zone, { tag: 'span', extraStyle: 'font-size:12px;' })}
             <div style="font-size:10px; color:var(--text-secondary);">${formatWcGroupLabel(t.wcGroup)} · ตัวคูณ: ${t.multiplier}</div>
           </div>
           <div style="text-align:right;">
@@ -5872,6 +5883,86 @@ function renderTeamsMatrix() {
     card.innerHTML = matrixHTML;
     container.appendChild(card);
   });
+}
+
+function getPlayerMatchResultMeta(match, teamName) {
+  let resultPoints = 0;
+  let goals = 0;
+  const isHome = match.home === teamName;
+
+  if (isHome) {
+    goals = match.homeScore;
+    if (match.homeScore > match.awayScore) resultPoints = 3;
+    else if (match.homeScore < match.awayScore) resultPoints = 1;
+    else if (match.isKnockout && match.penaltyWinner) {
+      resultPoints = match.penaltyWinner === 'home' ? 3 : 1;
+    } else {
+      resultPoints = 2;
+    }
+  } else {
+    goals = match.awayScore;
+    if (match.awayScore > match.homeScore) resultPoints = 3;
+    else if (match.awayScore < match.homeScore) resultPoints = 1;
+    else if (match.isKnockout && match.penaltyWinner) {
+      resultPoints = match.penaltyWinner === 'away' ? 3 : 1;
+    } else {
+      resultPoints = 2;
+    }
+  }
+
+  const resultKey = resultPoints === 3 ? 'win' : (resultPoints === 2 ? 'draw' : 'loss');
+  const resultLabel = resultPoints === 3 ? 'ชนะ' : (resultPoints === 2 ? 'เสมอ' : 'แพ้');
+  return { isHome, resultPoints, goals, resultKey, resultLabel };
+}
+
+function buildPlayerTeamMatchHistoryHtml(tb, teamMatches) {
+  if (!teamMatches.length) {
+    return '<div class="player-team-matches player-team-matches--empty">ยังไม่มีการแข่งขัน</div>';
+  }
+
+  let html = '<div class="player-team-matches">';
+  teamMatches.forEach((m) => {
+    const meta = getPlayerMatchResultMeta(m, tb.name);
+    const oppName = meta.isHome ? m.away : m.home;
+    const myScore = meta.isHome ? m.homeScore : m.awayScore;
+    const oppScore = meta.isHome ? m.awayScore : m.homeScore;
+    const matchPts = (meta.resultPoints + meta.goals) * (tb.multiplier || 1);
+
+    html += `
+      <div class="player-match-row">
+        <span class="player-match-id">#${m.id}</span>
+        <span class="player-match-scoreline" title="${escapeHtml(m.home)} ${m.homeScore}-${m.awayScore} ${escapeHtml(m.away)}">
+          <span class="player-match-us">${escapeHtml(tb.name)}</span>
+          <span class="player-match-score">${myScore}-${oppScore}</span>
+          <span class="player-match-opp">${escapeHtml(oppName)}</span>
+        </span>
+        <span class="player-match-result player-match-result--${meta.resultKey}">${meta.resultLabel}</span>
+        <span class="player-match-pts">+${matchPts.toFixed(1)}</span>
+      </div>
+    `;
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildPlayerTeamItemHtml(tb, options = {}) {
+  const { elimBadge = '', elimToggleBtn = '', matchHistoryHTML = '' } = options;
+  const wcLabel = formatWcGroupLabel(getTeamWcGroup(tb.name));
+
+  return `
+    <div class="player-team-item__head">
+      <div class="player-team-item__identity">
+        ${buildTeamBadgeHtml(tb.name, tb.zone, { extraClass: 'player-team-item__badge' })}
+        <span class="player-team-item__meta">${escapeHtml(wcLabel)} · x${tb.multiplier || 1}</span>
+      </div>
+      <div class="player-team-item__tail">
+        ${elimBadge}
+        ${elimToggleBtn}
+        <strong class="player-team-item__pts">${(tb.points || 0).toFixed(1)}</strong>
+      </div>
+    </div>
+    ${matchHistoryHTML}
+  `;
 }
 
 // PLAYER DETAILS MODAL
@@ -5939,12 +6030,12 @@ function openPlayerDetails(name) {
       if (statsContainer) {
         const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
         let statsHTML = `
-          <button class="team-stats-toggle" id="toggle-team-stats-btn">
-            📊 ดูสถิติทีมที่เลือกย้อนหลัง (Team Stats Summary)
-            <span style="margin-left:auto; font-size:16px; transition:transform 0.2s;" id="toggle-stats-arrow">▼</span>
+          <button type="button" class="team-stats-toggle" id="toggle-team-stats-btn">
+            <span class="team-stats-toggle__label">📊 สถิติทีม (ตาราง)</span>
+            <span class="team-stats-toggle__arrow" id="toggle-stats-arrow">▼</span>
           </button>
-          <div id="team-stats-table-wrapper" style="display:none; margin-top:12px; overflow-x:auto; border:1px solid rgba(255,255,255,0.05); border-radius:12px; background-color:rgba(15,23,42,0.3);">
-            <table class="team-stats-summary">
+          <div id="team-stats-table-wrapper" class="player-detail-stats-table-wrap" style="display:none;">
+            <table class="team-stats-summary team-stats-summary--drawer">
               <thead>
                 <tr>
                   <th style="text-align:left;">ทีม</th>
@@ -5999,7 +6090,7 @@ function openPlayerDetails(name) {
           
           statsHTML += `
             <tr style="border-left: 3px solid var(--zone-${tb.zone});">
-              <td><span class="team-clickable" data-team="${escapeHtml(tb.name)}" title="ดูผู้เลือกทีมนี้">${escapeHtml(tb.name)}</span></td>
+              <td>${buildTeamBadgeHtml(tb.name, tb.zone, { extraStyle: 'padding:2px 6px; font-size:11px;' })}</td>
               <td style="text-align:center;">${getWcGroupBadgeHtml(getTeamWcGroup(tb.name))}</td>
               <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${tb.zone.toUpperCase()}</span></td>
               <td>${teamMatches.length}</td>
@@ -6016,15 +6107,14 @@ function openPlayerDetails(name) {
         statsHTML += `
               </tbody>
               <tfoot>
-                <tr style="background-color:rgba(255,255,255,0.03); font-weight:700;">
-                  <td>รวมทั้งหมด</td>
-                  <td></td>
+                <tr class="team-stats-summary__total-row">
+                  <td colspan="3">รวม</td>
                   <td>${totalPlayed}</td>
-                  <td style="color:#34d399;">${totalW}</td>
-                  <td style="color:var(--zone-yellow);">${totalD}</td>
-                  <td style="color:#f43f5e;">${totalL}</td>
+                  <td class="team-stats-w">${totalW}</td>
+                  <td class="team-stats-d">${totalD}</td>
+                  <td class="team-stats-l">${totalL}</td>
                   <td>${totalGF}</td>
-                  <td style="color:var(--primary);">${totalPts.toFixed(1)}</td>
+                  <td class="team-stats-pts">${totalPts.toFixed(1)}</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -6080,84 +6170,19 @@ function openPlayerDetails(name) {
           const item = document.createElement('div');
           
           const eliminated = isTeamEliminated(tb.name);
-          const elimBadge = eliminated 
-            ? '<span class="badge badge-red" style="font-size:9.5px; padding:2px 6px;">ตกรอบแล้ว</span>' 
-            : '<span class="badge badge-green" style="font-size:9.5px; padding:2px 6px;">ยังอยู่ในเส้นทาง</span>';
-            
+          const elimBadge = eliminated
+            ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
+            : '<span class="player-team-status player-team-status--in">อยู่</span>';
+
           const elimToggleBtn = isAdmin
-            ? `<button class="btn btn-secondary toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}" style="padding: 2px 8px; font-size: 10px; height: auto; margin-left: 8px; background-color: rgba(255,255,255,0.03);">
-                 ${eliminated ? '✔️ คืนสิทธิ์' : '❌ ตกรอบ'}
-               </button>`
+            ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
             : '';
 
           const teamMatches = matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
-          let matchHistoryHTML = '';
-          
-          if (teamMatches.length > 0) {
-            matchHistoryHTML = '<div style="margin-top: 8px; font-size: 11px; padding: 8px 12px; border-radius: 8px; background-color: rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 6px; border-left: 2px solid rgba(255,255,255,0.08);">';
-            teamMatches.forEach(m => {
-              let resultPoints = 0;
-              let goals = 0;
-              
-              if (m.home === tb.name) {
-                goals = m.homeScore;
-                if (m.homeScore > m.awayScore) resultPoints = 3;
-                else if (m.homeScore < m.awayScore) resultPoints = 1;
-                else {
-                  if (m.isKnockout && m.penaltyWinner) {
-                    resultPoints = m.penaltyWinner === 'home' ? 3 : 1;
-                  } else {
-                    resultPoints = 2;
-                  }
-                }
-              } else {
-                goals = m.awayScore;
-                if (m.awayScore > m.homeScore) resultPoints = 3;
-                else if (m.awayScore < m.homeScore) resultPoints = 1;
-                else {
-                  if (m.isKnockout && m.penaltyWinner) {
-                    resultPoints = m.penaltyWinner === 'away' ? 3 : 1;
-                  } else {
-                    resultPoints = 2;
-                  }
-                }
-              }
-              
-              const matchPts = (resultPoints + goals) * (tb.multiplier || 1);
-              const resText = resultPoints === 3 
-                ? '<span style="color:var(--zone-green)">ชนะ</span>' 
-                : (resultPoints === 2 ? '<span style="color:var(--zone-yellow)">เสมอ</span>' : '<span style="color:var(--zone-red-orange)">แพ้</span>');
-              
-              const homeGroup = getTeamWcGroup(m.home) || '-';
-              const awayGroup = getTeamWcGroup(m.away) || '-';
-              matchHistoryHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>แมตช์ที่ ${m.id}: <span class="team-clickable" data-team="${escapeHtml(m.home)}">${escapeHtml(m.home)}</span> [${homeGroup}] ${m.homeScore} - ${m.awayScore} <span class="team-clickable" data-team="${escapeHtml(m.away)}">${escapeHtml(m.away)}</span> [${awayGroup}] (${resText})</span>
-                  <span style="font-weight: 600; color: rgba(255,255,255,0.6)">+${matchPts.toFixed(1)} แต้ม</span>
-                </div>
-              `;
-            });
-            matchHistoryHTML += '</div>';
-          } else {
-            matchHistoryHTML = '<div style="margin-top: 6px; font-size: 11px; color: var(--text-muted); font-style: italic; padding-left: 12px;">ยังไม่มีการแข่งขัน</div>';
-          }
+          const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
 
-          item.classList.add('player-team-item');
-          item.style.cssText = `background-color: rgba(30, 41, 59, 0.3); padding: 14px; border-radius: 12px; border-left: 4px solid var(--zone-${tb.zone}); border-top: 1px solid rgba(255,255,255,0.02); display: flex; flex-direction: column; gap: 4px;`;
-          item.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                <strong class="team-clickable" data-team="${escapeHtml(tb.name)}" style="font-size: 14px;" title="ดูผู้เลือกทีมนี้">${escapeHtml(tb.name)}</strong>
-                <span style="font-size:10px; color:var(--text-secondary);">${formatWcGroupLabel(getTeamWcGroup(tb.name))} · โซน: ${tb.zone.toUpperCase()} (x${tb.multiplier || 1})</span>
-                ${elimBadge}
-                ${elimToggleBtn}
-              </div>
-              <div style="text-align: right;">
-                <strong style="color:var(--primary); font-size: 15px;">${(tb.points || 0).toFixed(2)} แต้ม</strong>
-              </div>
-            </div>
-            ${matchHistoryHTML}
-          `;
+          item.className = `player-team-item player-team-item--${tb.zone}`;
+          item.innerHTML = buildPlayerTeamItemHtml(tb, { elimBadge, elimToggleBtn, matchHistoryHTML });
           grid.appendChild(item);
         });
         
@@ -6277,7 +6302,7 @@ function openPlayerForm(player = null) {
       const safeId = `form-team-${t.zone}-${t.name.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
       label.innerHTML = `
         <input type="checkbox" id="${safeId}" class="form-team-checkbox" data-zone="${t.zone}" value="${t.name}" ${isChecked} style="cursor:pointer; width:16px; height:16px;">
-        ${t.name}
+        <span class="team-badge ${getTeamZoneClass(t.zone)} team-badge--form" data-team="${escapeHtml(t.name)}" style="${getTeamPopStyleAttr(t.name)} padding: 3px 8px; font-size: 11px; flex: 1;">${escapeHtml(t.name)}</span>
       `;
       label.setAttribute('for', safeId);
       zoneGrid.appendChild(label);
@@ -6506,6 +6531,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  const exportStatisticsBtn = document.getElementById('export-statistics-btn');
+  if (exportStatisticsBtn) {
+    exportStatisticsBtn.addEventListener('click', async () => {
+      const originalLabel = exportStatisticsBtn.textContent;
+      exportStatisticsBtn.disabled = true;
+      exportStatisticsBtn.textContent = '⏳ กำลังสร้างภาพ...';
+      try {
+        await exportStatisticsImage();
+      } catch (err) {
+        console.error('Export statistics failed', err);
+        alert('การส่งออกภาพล้มเหลว');
+      } finally {
+        exportStatisticsBtn.disabled = false;
+        exportStatisticsBtn.textContent = originalLabel;
+      }
+    });
+  }
   // Close login modal
 
 function downloadCanvasAsJpeg(canvas, fileName) {
@@ -6533,8 +6576,198 @@ function downloadCanvasAsJpeg(canvas, fileName) {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       resolve(true);
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.92);
   });
+}
+
+const PAGE_EXPORT_BG = '#07070a';
+const PAGE_EXPORT_CARD_BG = '#16161d';
+const PAGE_EXPORT_BRAND = 'YEC-BR World Cup 2026 Challenge';
+
+function buildPageExportHeaderBanner(title, subtitle, eyebrow = PAGE_EXPORT_BRAND) {
+  const banner = document.createElement('div');
+  banner.className = 'page-export-header-banner';
+
+  const today = new Date();
+  const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const dateStr = formatThaiDate(dateKey);
+
+  banner.innerHTML = `
+    <div class="page-export-header-top">
+      <span class="page-export-header-eyebrow">🏆 ${escapeHtml(eyebrow)}</span>
+      <span class="page-export-header-date">อัปเดต ${escapeHtml(dateStr)}</span>
+    </div>
+    <h1 class="page-export-header-title">${escapeHtml(title)}</h1>
+    ${subtitle ? `<p class="page-export-header-desc">${escapeHtml(subtitle)}</p>` : ''}
+  `;
+  return banner;
+}
+
+function replacePageHeaderWithExportBanner(sectionClone) {
+  const header = sectionClone.querySelector('header');
+  if (!header) return;
+
+  const title = header.querySelector('h1')?.textContent?.trim() || 'ส่งออกข้อมูล';
+  const subtitle = header.querySelector('.page-description')?.textContent?.trim() || '';
+  header.replaceWith(buildPageExportHeaderBanner(title, subtitle));
+}
+
+function beautifyPageExportContent(root) {
+  if (!root) return;
+
+  root.querySelectorAll('.stats-sort-arrow').forEach((el) => el.remove());
+  root.querySelectorAll('.stats-sort-btn').forEach((btn) => {
+    btn.classList.remove('is-active');
+    btn.setAttribute('aria-pressed', 'false');
+  });
+  root.querySelectorAll('.stats-breakdown-title, .stats-selection-title').forEach((el) => {
+    el.classList.add('page-export-subtitle');
+  });
+  root.querySelectorAll('h1').forEach((h1) => {
+    if (!h1.classList.contains('page-export-header-title')) {
+      h1.classList.add('page-export-fallback-title');
+    }
+  });
+}
+
+function createPageExportRoot(className, sectionWidth) {
+  const exportRoot = document.createElement('div');
+  exportRoot.className = `${className} page-export-capture`;
+  exportRoot.setAttribute('aria-hidden', 'true');
+  exportRoot.style.width = `${Math.ceil(sectionWidth)}px`;
+  exportRoot.style.backgroundColor = PAGE_EXPORT_BG;
+  exportRoot.style.backgroundImage = 'none';
+  exportRoot.style.color = getComputedStyle(document.body).color;
+  exportRoot.style.position = 'fixed';
+  exportRoot.style.left = '0';
+  exportRoot.style.top = '0';
+  exportRoot.style.transform = 'translateX(-200vw)';
+  exportRoot.style.zIndex = '2147483646';
+  exportRoot.style.pointerEvents = 'none';
+  exportRoot.style.overflow = 'visible';
+  exportRoot.style.boxSizing = 'border-box';
+  exportRoot.style.isolation = 'isolate';
+  exportRoot.style.padding = '18px 22px 26px';
+  return exportRoot;
+}
+
+function preparePageExportClone(sectionClone, sectionClassName) {
+  sectionClone.style.display = 'block';
+  sectionClone.style.width = '100%';
+  sectionClone.style.maxWidth = '100%';
+  sectionClone.style.overflow = 'visible';
+  sectionClone.style.opacity = '1';
+  sectionClone.style.animation = 'none';
+  sectionClone.style.filter = 'none';
+  sectionClone.style.transform = 'none';
+  if (sectionClassName) sectionClone.classList.add(sectionClassName);
+
+  sectionClone.querySelectorAll('.card, .stats-breakdown-card, .stats-selection-card, .stats-table-card, .stats-group-card').forEach((el) => {
+    el.style.backdropFilter = 'none';
+    el.style.webkitBackdropFilter = 'none';
+    el.style.background = PAGE_EXPORT_CARD_BG;
+    el.style.backgroundColor = PAGE_EXPORT_CARD_BG;
+    el.style.opacity = '1';
+    el.style.filter = 'none';
+    el.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.25)';
+    el.style.transform = 'none';
+  });
+
+  sectionClone.querySelectorAll('.table-container, table, tbody, thead, tr, .stats-breakdown-split, .stats-selection-row').forEach((el) => {
+    el.style.overflow = 'visible';
+    el.style.maxHeight = 'none';
+    el.style.height = 'auto';
+    el.style.opacity = '1';
+    if (el.classList.contains('table-container')) {
+      el.style.width = '100%';
+    }
+  });
+}
+
+function stripExportGradients(root) {
+  if (!root) return;
+  root.style.backgroundImage = 'none';
+  root.style.backgroundColor = PAGE_EXPORT_BG;
+
+  root.querySelectorAll('*').forEach((el) => {
+    el.style.backgroundImage = 'none';
+    if (el.style.webkitBackgroundClip === 'text' || el.classList.contains('leader-name-first') || el.classList.contains('leader-name-second')) {
+      el.style.background = 'none';
+      el.style.webkitBackgroundClip = 'border-box';
+      el.style.backgroundClip = 'border-box';
+    }
+    if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
+      el.style.webkitTextFillColor = '';
+      el.style.background = 'none';
+    }
+  });
+}
+
+function applyPageExportCloneFixes(root) {
+  if (!root) return;
+  root.classList.add('page-export-capture');
+  root.style.overflow = 'visible';
+  root.style.opacity = '1';
+  root.style.filter = 'none';
+  root.style.backgroundImage = 'none';
+  root.style.backgroundColor = PAGE_EXPORT_BG;
+  beautifyPageExportContent(root);
+  stripExportGradients(root);
+  root.querySelectorAll('*').forEach((el) => {
+    el.style.animation = 'none';
+  });
+  root.querySelectorAll('.page, .stats-export-section, .leaderboard-export-section').forEach((el) => {
+    el.style.opacity = '1';
+    el.style.filter = 'none';
+    el.style.transform = 'none';
+  });
+  root.querySelectorAll('.card, .stats-breakdown-card, .stats-selection-card, .stats-table-card, .stats-group-card').forEach((el) => {
+    el.style.setProperty('backdrop-filter', 'none', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    el.style.backgroundColor = PAGE_EXPORT_CARD_BG;
+    el.style.opacity = '1';
+    el.style.filter = 'none';
+    el.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.25)';
+    el.style.transform = 'none';
+  });
+  root.querySelectorAll('.stats-zone-panel').forEach((el) => {
+    el.style.setProperty('backdrop-filter', 'none', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    el.style.opacity = '1';
+    el.style.filter = 'none';
+  });
+  root.querySelectorAll('.table-container, .card, table, .stats-breakdown-split, .stats-selection-row, .stats-breakdown-card').forEach((el) => {
+    el.style.overflow = 'visible';
+    el.style.maxHeight = 'none';
+    el.style.height = 'auto';
+  });
+}
+
+async function capturePageExportRoot(exportRoot, fileName) {
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const captureWidth = Math.ceil(exportRoot.scrollWidth || exportRoot.offsetWidth);
+  const captureHeight = Math.ceil(exportRoot.scrollHeight || exportRoot.offsetHeight);
+  const scale = Math.min(2, window.devicePixelRatio > 1 ? 2 : 1.5);
+
+  const canvas = await html2canvas(exportRoot, {
+    backgroundColor: PAGE_EXPORT_BG,
+    scale,
+    useCORS: true,
+    logging: false,
+    foreignObjectRendering: false,
+    width: captureWidth,
+    height: captureHeight,
+    windowWidth: captureWidth,
+    windowHeight: captureHeight,
+    scrollX: 0,
+    scrollY: 0,
+    onclone: (clonedDoc) => {
+      applyPageExportCloneFixes(clonedDoc.querySelector('.page-export-capture'));
+    }
+  });
+
+  await downloadCanvasAsJpeg(canvas, fileName);
 }
 
 async function exportLeaderboardImage() {
@@ -6553,40 +6786,14 @@ async function exportLeaderboardImage() {
     try { await document.fonts.ready; } catch (e) { /* ignore */ }
   }
 
-  const exportRoot = document.createElement('div');
-  exportRoot.className = 'leaderboard-export-root';
-  exportRoot.setAttribute('aria-hidden', 'true');
-
   const sectionWidth = Math.max(section.getBoundingClientRect().width, liveCard.getBoundingClientRect().width, 320);
-  exportRoot.style.width = `${Math.ceil(sectionWidth)}px`;
-  exportRoot.style.background = '#07070a';
-  exportRoot.style.backgroundImage = getComputedStyle(document.body).backgroundImage || 'none';
-  exportRoot.style.color = getComputedStyle(document.body).color;
-  exportRoot.style.position = 'fixed';
-  exportRoot.style.left = '-99999px';
-  exportRoot.style.top = '0';
-  exportRoot.style.zIndex = '-1';
-  exportRoot.style.overflow = 'visible';
-  exportRoot.style.boxSizing = 'border-box';
+  const exportRoot = createPageExportRoot('leaderboard-export-root', sectionWidth);
 
   const sectionClone = section.cloneNode(true);
-  sectionClone.style.display = 'block';
-  sectionClone.style.width = '100%';
-  sectionClone.style.maxWidth = '100%';
-  sectionClone.style.overflow = 'visible';
-  sectionClone.classList.add('leaderboard-export-section');
-
+  preparePageExportClone(sectionClone, 'leaderboard-export-section');
   sectionClone.querySelector('.search-bar')?.remove();
-  sectionClone.querySelectorAll('.table-container').forEach((el) => {
-    el.style.overflow = 'visible';
-    el.style.maxHeight = 'none';
-    el.style.height = 'auto';
-    el.style.width = '100%';
-  });
-  sectionClone.querySelectorAll('table, tbody, thead, tr').forEach((el) => {
-    el.style.overflow = 'visible';
-    el.style.maxHeight = 'none';
-  });
+  replacePageHeaderWithExportBanner(sectionClone);
+  beautifyPageExportContent(sectionClone);
 
   const clonedCard = sectionClone.querySelector('.card');
   if (clonedCard) {
@@ -6595,40 +6802,52 @@ async function exportLeaderboardImage() {
     clonedCard.style.width = '100%';
   }
 
+  stripExportGradients(exportRoot);
   exportRoot.appendChild(sectionClone);
   document.body.appendChild(exportRoot);
-
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-  const captureWidth = Math.ceil(exportRoot.scrollWidth || exportRoot.offsetWidth || sectionWidth);
-  const captureHeight = Math.ceil(exportRoot.scrollHeight || exportRoot.offsetHeight);
+  stripExportGradients(exportRoot);
 
   try {
-    const canvas = await html2canvas(exportRoot, {
-      backgroundColor: '#07070a',
-      scale: Math.min(2, window.devicePixelRatio > 1 ? 2 : 1.5),
-      useCORS: true,
-      logging: false,
-      width: captureWidth,
-      height: captureHeight,
-      windowWidth: captureWidth,
-      windowHeight: captureHeight,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDoc) => {
-        const root = clonedDoc.querySelector('.leaderboard-export-root');
-        if (!root) return;
-        root.style.overflow = 'visible';
-        root.querySelector('.search-bar')?.remove();
-        root.querySelectorAll('.table-container, .card, table').forEach((el) => {
-          el.style.overflow = 'visible';
-          el.style.maxHeight = 'none';
-          el.style.height = 'auto';
-        });
-      }
-    });
+    await capturePageExportRoot(exportRoot, 'leaderboard.jpg');
+  } finally {
+    exportRoot.remove();
+  }
+}
 
-    await downloadCanvasAsJpeg(canvas, 'leaderboard.jpg');
+async function exportStatisticsImage() {
+  const section = document.getElementById('statistics');
+  if (!section) {
+    return alert('ไม่พบหน้าสถิติทีมเพื่อส่งออก');
+  }
+
+  if (!section.classList.contains('active')) {
+    return alert('กรุณาเปิดหน้าสถิติทีมก่อนบันทึกภาพ');
+  }
+
+  if (typeof html2canvas !== 'function') {
+    return alert('ระบบส่งออกภาพยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
+
+  const sectionWidth = Math.max(section.getBoundingClientRect().width, 320);
+  const exportRoot = createPageExportRoot('stats-export-root', sectionWidth);
+
+  const sectionClone = section.cloneNode(true);
+  preparePageExportClone(sectionClone, 'stats-export-section');
+  sectionClone.querySelector('#export-statistics-btn')?.remove();
+  replacePageHeaderWithExportBanner(sectionClone);
+  beautifyPageExportContent(sectionClone);
+
+  stripExportGradients(exportRoot);
+  exportRoot.appendChild(sectionClone);
+  document.body.appendChild(exportRoot);
+  stripExportGradients(exportRoot);
+
+  try {
+    await capturePageExportRoot(exportRoot, 'team-stats.jpg');
   } finally {
     exportRoot.remove();
   }
@@ -6654,61 +6873,40 @@ async function exportMatchesImage() {
     try { await document.fonts.ready; } catch (e) { /* ignore */ }
   }
 
-  // Create a clean table container (offscreen)
+  const sectionWidth = Math.max(720, document.getElementById('matches')?.getBoundingClientRect().width || 720);
+  const exportRoot = createPageExportRoot('matches-export-root', sectionWidth);
   const container = document.createElement('div');
-  container.style.background = getComputedStyle(document.body).backgroundColor || '#050b14';
-  container.style.padding = '20px 24px';
-  container.style.borderRadius = '10px';
-  container.style.color = '#e2e8f0';
-  container.style.fontFamily = 'inherit';
-  container.style.width = 'max-content';
-  container.style.minWidth = '720px';
-  container.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+  container.className = 'matches-export-section';
+  container.style.width = '100%';
+  container.appendChild(buildPageExportHeaderBanner(
+    'ผลการแข่งขันที่บันทึกแล้ว',
+    `รวม ${finishedMatches.length} แมตช์ที่บันทึกผลแล้ว`
+  ));
 
-  // Title
-  const title = document.createElement('div');
-  title.style.fontSize = '16px';
-  title.style.fontWeight = '700';
-  title.style.marginBottom = '14px';
-  title.style.letterSpacing = '0.5px';
-  title.textContent = 'ผลการแข่งขันที่บันทึกแล้ว';
-  container.appendChild(title);
+  const tableCard = document.createElement('div');
+  tableCard.className = 'card matches-export-table-card';
 
-  // Create the table
   const table = document.createElement('table');
+  table.className = 'matches-export-table';
   table.style.width = '100%';
   table.style.borderCollapse = 'collapse';
-  table.style.fontSize = '13px';
-  table.style.background = 'rgba(15,23,42,0.35)';
-  table.style.borderRadius = '6px';
-  table.style.overflow = 'hidden';
 
-  // Header
   const thead = document.createElement('thead');
   thead.innerHTML = `
-    <tr style="background:rgba(15,23,42,0.85);">
-      <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">วันที่</th>
-      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08); width:60px;">แมตช์</th>
-      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">กลุ่ม</th>
-      <th style="padding:8px 12px; text-align:right; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเหย้า</th>
-      <th style="padding:8px 14px; text-align:center; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(15,23,42,0.5);">สกอร์</th>
-      <th style="padding:8px 12px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">ทีมเยือน</th>
-      <th style="padding:8px 10px; text-align:center; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">กลุ่ม</th>
-      <th style="padding:8px 10px; text-align:left; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.08);">เกมส์คะแนน</th>
+    <tr>
+      <th>วันที่</th>
+      <th style="width:60px;">แมตช์</th>
+      <th>กลุ่ม</th>
+      <th style="text-align:right;">ทีมเหย้า</th>
+      <th class="matches-export-score-th">สกอร์</th>
+      <th>ทีมเยือน</th>
+      <th>กลุ่ม</th>
+      <th>เกมส์คะแนน</th>
     </tr>
   `;
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-
-  // Zone colors (matching the live site badges)
-  const zoneColors = {
-    blue: '#38bdf8',
-    green: '#22c55e',
-    yellow: '#facc15',
-    'light-orange': '#fb923c',
-    'red-orange': '#f87171'
-  };
 
   finishedMatches.forEach(m => {
     const hTeam = TEAMS.find(t => t.name === m.home);
@@ -6728,10 +6926,6 @@ async function exportMatchesImage() {
     const hPtsColor = hResult === 'win' ? '#22c55e' : (hResult === 'draw' ? '#facc15' : '#f43f5e');
     const aPtsColor = aResult === 'win' ? '#22c55e' : (aResult === 'draw' ? '#facc15' : '#f43f5e');
 
-    // Zone colors for the TEAM NAMES (restore original behavior)
-    const hNameColor = zoneColors[hZone] || '#e2e8f0';
-    const aNameColor = zoneColors[aZone] || '#e2e8f0';
-
     const dateStr = m.date ? formatThaiDate(m.date) : '-';
 
     const tr = document.createElement('tr');
@@ -6741,11 +6935,11 @@ async function exportMatchesImage() {
       <td style="padding:6px 10px; white-space:nowrap; font-size:12px; color:#94a3b8;">${dateStr}</td>
       <td style="padding:6px 10px; text-align:center; font-size:12px; color:#64748b;">${m.id}</td>
       <td style="padding:6px 10px; text-align:center; font-size:12px; color:#cbd5e1; font-weight:700;">${getTeamWcGroup(m.home) || '-'}</td>
-      <td style="padding:6px 12px; text-align:right; font-weight:600; color:${hNameColor};">${m.home}</td>
+      <td style="padding:6px 12px; text-align:right;">${buildTeamBadgeHtml(m.home, hZone, { extraStyle: 'font-size:11px; padding:2px 6px;' })}</td>
       <td style="padding:6px 14px; text-align:center; font-weight:800; font-size:15px; background:rgba(15,23,42,0.45);">
         ${m.homeScore} - ${m.awayScore}
       </td>
-      <td style="padding:6px 12px; font-weight:600; color:${aNameColor};">${m.away}</td>
+      <td style="padding:6px 12px;">${buildTeamBadgeHtml(m.away, aZone, { extraStyle: 'font-size:11px; padding:2px 6px;' })}</td>
       <td style="padding:6px 10px; text-align:center; font-size:12px; color:#cbd5e1; font-weight:700;">${getTeamWcGroup(m.away) || '-'}</td>
       <td style="padding:6px 10px; font-size:12px; line-height:1.3;">
         <div><span style="color:${hPtsColor}; font-weight:600;">${m.home} +${hPts.toFixed(1)}</span></div>
@@ -6756,38 +6950,18 @@ async function exportMatchesImage() {
   });
 
   table.appendChild(tbody);
-  container.appendChild(table);
+  tableCard.appendChild(table);
+  container.appendChild(tableCard);
+  stripExportGradients(exportRoot);
+  exportRoot.appendChild(container);
+  document.body.appendChild(exportRoot);
+  stripExportGradients(exportRoot);
 
-  // Render offscreen
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  document.body.appendChild(container);
-
-  const canvas = await html2canvas(container, { backgroundColor: null, scale: 2, useCORS: true });
-
-  await new Promise((resolve) => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        alert('สร้างภาพล้มเหลว');
-        container.remove();
-        return resolve();
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'matches-results.jpg';
-      document.body.appendChild(a);
-      const ok = a.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
-      if (!ok || !a.href) {
-        window.open(url, '_blank');
-      }
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      container.remove();
-      resolve();
-    }, 'image/jpeg', 0.85);
-  });
+  try {
+    await capturePageExportRoot(exportRoot, 'matches-results.jpg');
+  } finally {
+    exportRoot.remove();
+  }
 }
   const closeLoginBtn = document.getElementById('close-login-btn');
   if (closeLoginBtn) {
@@ -7090,14 +7264,63 @@ function getTeamPopularityPercent(teamName) {
   return Math.max(5, percent).toFixed(1);
 }
 
+function getTeamZoneClass(zone) {
+  if (!zone) return 'team-grey';
+  return `team-${zone}`;
+}
+
+function getTeamZoneByName(teamName) {
+  const t = TEAMS.find(tm => tm.name === teamName);
+  return t ? t.zone : 'grey';
+}
+
+function getTeamPopStyleAttr(teamName) {
+  return `--pop-percent: ${getTeamPopularityPercent(teamName)}%;`;
+}
+
+function applyTeamPopularity(el, teamName) {
+  if (!el || !teamName) return;
+  el.style.setProperty('--pop-percent', `${getTeamPopularityPercent(teamName)}%`);
+}
+
+function buildTeamBadgeHtml(teamName, zone, options = {}) {
+  const { extraClass = '', extraStyle = '', tag = 'span', compact = false } = options;
+  const zc = getTeamZoneClass(zone || getTeamZoneByName(teamName));
+  const compactClass = compact ? 'team-badge--compact' : '';
+  const compactStyle = compact ? 'padding:1px 5px; font-size:10px; border-radius:3px;' : '';
+  const popCount = getTeamPopularity(teamName);
+  const title = popCount > 0 ? `ดูผู้เลือกทีมนี้ (${popCount} คน)` : 'ดูผู้เลือกทีมนี้';
+  return `<${tag} class="team-badge ${zc} ${compactClass} ${extraClass}" data-team="${escapeHtml(teamName)}" style="${getTeamPopStyleAttr(teamName)} ${compactStyle} ${extraStyle}" title="${title}">${escapeHtml(teamName)}</${tag}>`;
+}
+
+function resetTeamPopularityCache() {
+  _maxPopularityCache = null;
+}
+
 // Reset cache when players update
 const originalRenderPlayers = renderPlayers;
 renderPlayers = function() {
-  _maxPopularityCache = null; 
+  resetTeamPopularityCache();
   if (typeof originalRenderPlayers === 'function') {
     originalRenderPlayers.apply(this, arguments);
   }
-}
+};
+
+const originalRenderStatistics = renderStatistics;
+renderStatistics = function() {
+  resetTeamPopularityCache();
+  if (typeof originalRenderStatistics === 'function') {
+    originalRenderStatistics.apply(this, arguments);
+  }
+};
+
+const originalRenderTeamsMatrix = renderTeamsMatrix;
+renderTeamsMatrix = function() {
+  resetTeamPopularityCache();
+  if (typeof originalRenderTeamsMatrix === 'function') {
+    originalRenderTeamsMatrix.apply(this, arguments);
+  }
+};
 
 function attachTeamNameClickHandlers() {
   if (window._teamNameClickBound) return;
