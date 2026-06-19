@@ -2105,5 +2105,9 @@
     }
   ],
   "eliminatedTeams": [],
-  "adminPassword": "123456"
+  "broadcast": {
+    "id": 1781909374198,
+    "message": "555",
+    "sentAt": "2026-06-19T22:49:34.198Z"
+  }
 }
