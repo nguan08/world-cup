@@ -20,7 +20,7 @@ import { setRecalcHook } from './scoring.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications } from './notifications.js';
-import { isMobileDevice } from './device.js';
+import { isMobileDevice, isIOS } from './device.js';
 
 
 
@@ -67,13 +67,19 @@ function showPlayerDetailsDrawer() {
 let _playerDetailsFillToken = 0;
 let _playerDetailsFillRaf1 = 0;
 let _playerDetailsFillRaf2 = 0;
+let _playerDetailsGridRaf = 0;
 let _playerDetailsFillDebounceTimer = null;
+let _playerDetailsFillInProgress = false;
 let _pendingDrawerFillName = '';
+let _drawerDisplayedPlayer = '';
+let _finishedMatchesByTeamCache = null;
+let _finishedMatchesCacheKey = '';
 let _rankSoundTimerId = null;
 let _rankSpeechTimerId = null;
 let _lastRankSoundAt = 0;
 const RANK_SOUND_COOLDOWN_MS = 2000;
 const MOBILE_DRAWER_FILL_DEBOUNCE_MS = 220;
+const IOS_DRAWER_FILL_DEBOUNCE_MS = 400;
 
 function cancelPlayerDetailsFillSchedule() {
   if (_playerDetailsFillRaf1) {
@@ -84,6 +90,10 @@ function cancelPlayerDetailsFillSchedule() {
     cancelAnimationFrame(_playerDetailsFillRaf2);
     _playerDetailsFillRaf2 = 0;
   }
+  if (_playerDetailsGridRaf) {
+    cancelAnimationFrame(_playerDetailsGridRaf);
+    _playerDetailsGridRaf = 0;
+  }
   if (_playerDetailsFillDebounceTimer) {
     clearTimeout(_playerDetailsFillDebounceTimer);
     _playerDetailsFillDebounceTimer = null;
@@ -91,6 +101,15 @@ function cancelPlayerDetailsFillSchedule() {
 }
 
 function getFinishedMatchesByTeam() {
+  let finishedCount = 0;
+  for (const m of app.matches) {
+    if (m.status === 'finished') finishedCount++;
+  }
+  const cacheKey = `${app.matches.length}:${finishedCount}`;
+  if (_finishedMatchesByTeamCache && _finishedMatchesCacheKey === cacheKey) {
+    return _finishedMatchesByTeamCache;
+  }
+
   const map = new Map();
   for (const m of app.matches) {
     if (m.status !== 'finished') continue;
@@ -99,6 +118,9 @@ function getFinishedMatchesByTeam() {
     map.get(m.home).push(m);
     map.get(m.away).push(m);
   }
+
+  _finishedMatchesByTeamCache = map;
+  _finishedMatchesCacheKey = cacheKey;
   return map;
 }
 
@@ -111,7 +133,7 @@ function cancelRankSoundEffects() {
     clearTimeout(_rankSpeechTimerId);
     _rankSpeechTimerId = null;
   }
-  if ('speechSynthesis' in window) {
+  if (!isIOS() && 'speechSynthesis' in window) {
     try { window.speechSynthesis.cancel(); } catch (_) { /* ignore */ }
   }
 }
@@ -120,10 +142,26 @@ function hidePlayerDetailsDrawer() {
   const overlay = document.getElementById('player-details-drawer-overlay');
   if (!overlay || !overlay.classList.contains('active')) return;
   _playerDetailsFillToken++;
+  _playerDetailsFillInProgress = false;
+  _drawerDisplayedPlayer = '';
   cancelPlayerDetailsFillSchedule();
   cancelRankSoundEffects();
   overlay.classList.remove('active');
   unlockScrollForPlayerDrawer();
+}
+
+function handlePlayerRowOpen(e) {
+  if (e._playerDrawerOpenHandled) return;
+  const row = e.target.closest('tr.hoverable[data-player-name]');
+  if (!row) return;
+  e._playerDrawerOpenHandled = true;
+  e.stopPropagation();
+  const name = row.dataset.playerName;
+  if (name) openPlayerDetails(name);
+}
+
+function shouldSkipDrawerMatchHistory() {
+  return isIOS();
 }
 
 // Prevent touch scroll from chaining to the page when drawer content hits top/bottom (iOS)
@@ -178,36 +216,9 @@ function attachPlayerRowOpenHandlers() {
   ];
   tbodies.forEach(tbody => {
     if (!tbody || tbody._playerOpenBound) return;
-    tbody.addEventListener('click', (e) => {
-      const row = e.target.closest('tr.hoverable[data-player-name]');
-      if (!row) return;
-
-      e.stopPropagation();
-      e._playerDrawerOpenHandled = true;
-      const name = row.dataset.playerName;
-      if (name) {
-        openPlayerDetails(name);
-      }
-    }, { passive: true });
+    tbody.addEventListener('click', handlePlayerRowOpen, { passive: true });
     tbody._playerOpenBound = true;
   });
-
-  // 2) Document-level fallback (bubbling phase, very last resort)
-  //    This catches clicks even if the tbody delegation somehow didn't see it
-  //    (e.g. very deep nesting, shadow DOM in future, or browser quirks on mobile).
-  if (!document._playerRowDocOpenBound) {
-    document.addEventListener('click', (e) => {
-      if (e._playerDrawerOpenHandled) return;
-      const row = e.target.closest('tr.hoverable[data-player-name]');
-      if (!row) return;
-
-      const name = row.dataset.playerName;
-      if (name) {
-        openPlayerDetails(name);
-      }
-    }, false); // bubbling, not capture
-    document._playerRowDocOpenBound = true;
-  }
 }
 
 // Delegated opener for stats final-guess player chips (survives bar re-renders)
@@ -1103,14 +1114,6 @@ function renderDashboard() {
       tr.classList.add('zone-red-row');
     }
 
-    // === Direct onclick fallback (bulletproof) ===
-    // This guarantees the drawer opens even if delegated listeners have any timing/ordering issues.
-    // We still keep the delegated ones for cleanliness.
-    tr.onclick = (e) => {
-      e.stopPropagation();
-      openPlayerDetails(p.name);
-    };
-
     const totalMatchesPlayed = getPlayerTotalMatchesPlayed(p.teams);
 
     // Rank cell (safe static HTML for crowns) - always center
@@ -1433,12 +1436,6 @@ function renderLeaderboard(options = {}) {
     } else if (p.zone === 'red') {
       tr.classList.add('zone-red-row');
     }
-
-    // === Direct onclick fallback (bulletproof) ===
-    tr.onclick = (e) => {
-      e.stopPropagation();
-      openPlayerDetails(p.name);
-    };
 
     const totalMatchesPlayed = getPlayerTotalMatchesPlayed(p.teams);
     const guessText = (p.guess != null && p.guess !== undefined) ? p.guess : '-';
@@ -2668,12 +2665,6 @@ function renderPlayers() {
     tr.classList.add('hoverable');
     tr.dataset.playerName = p.name;
     tr.style.cursor = 'pointer';
-
-    tr.onclick = (e) => {
-      if (e.target.closest('[data-team]')) return;
-      e.stopPropagation();
-      openPlayerDetails(p.name);
-    };
 
     const nameTd = document.createElement('td');
     nameTd.className = 'players-name-cell';
@@ -4019,6 +4010,8 @@ function playRankSoundEffect(player, options = {}) {
 
 function scheduleRankSoundEffect(player, token) {
   if (!player || typeof player.rank !== 'number') return;
+  if (isIOS()) return;
+
   const isSpecialRank = player.rank === 1 || player.rank === 2
     || player.rank === 61 || player.rank === 62;
   if (!isSpecialRank) return;
@@ -4053,7 +4046,20 @@ function openPlayerDetails(name) {
 
   const now = Date.now();
   const onMobile = isMobileDevice();
-  const dedupeMs = onMobile ? 140 : 80;
+  const ios = isIOS();
+  const overlay = document.getElementById('player-details-drawer-overlay');
+  const drawerOpen = !!(overlay && overlay.classList.contains('active'));
+
+  if (ios && drawerOpen && lookupName === _drawerDisplayedPlayer) {
+    return;
+  }
+
+  if (ios && lookupName === _pendingDrawerFillName
+    && (_playerDetailsFillDebounceTimer || _playerDetailsFillInProgress)) {
+    return;
+  }
+
+  const dedupeMs = ios ? 280 : (onMobile ? 140 : 80);
   if (lookupName === _lastOpenPlayerName && now - _lastOpenPlayerAt < dedupeMs) return;
   _lastOpenPlayerName = lookupName;
   _lastOpenPlayerAt = now;
@@ -4075,16 +4081,24 @@ function openPlayerDetails(name) {
   };
 
   setText('detail-player-name', lookupName);
-  setText('detail-teams-score', '—');
-  setText('detail-prediction-score', '—');
-  setText('detail-prediction-guess', '—');
-  setText('detail-total-score', '—');
 
-  const statsContainer = document.getElementById('detail-team-stats-container');
-  const grid = document.getElementById('detail-teams-grid');
-  if (statsContainer) statsContainer.innerHTML = '';
-  if (grid) {
-    grid.innerHTML = '<div class="player-drawer-loading" aria-busy="true">กำลังโหลด...</div>';
+  const switchingPlayer = drawerOpen && lookupName !== _drawerDisplayedPlayer;
+  const showLoading = !ios || switchingPlayer || !_drawerDisplayedPlayer;
+
+  if (showLoading) {
+    setText('detail-teams-score', '—');
+    setText('detail-prediction-score', '—');
+    setText('detail-prediction-guess', '—');
+    setText('detail-total-score', '—');
+
+    const statsContainer = document.getElementById('detail-team-stats-container');
+    const grid = document.getElementById('detail-teams-grid');
+    if (statsContainer && switchingPlayer) statsContainer.innerHTML = '';
+    if (grid && switchingPlayer) {
+      grid.innerHTML = '<div class="player-drawer-loading" aria-busy="true">กำลังโหลด...</div>';
+    } else if (grid && showLoading && !grid.querySelector('.player-drawer-loading')) {
+      grid.innerHTML = '<div class="player-drawer-loading" aria-busy="true">กำลังโหลด...</div>';
+    }
   }
 
   const token = _playerDetailsFillToken;
@@ -4094,7 +4108,9 @@ function openPlayerDetails(name) {
     fillPlayerDetailsDrawer(_pendingDrawerFillName || lookupName, token);
   };
 
-  if (onMobile) {
+  const debounceMs = ios ? IOS_DRAWER_FILL_DEBOUNCE_MS : (onMobile ? MOBILE_DRAWER_FILL_DEBOUNCE_MS : 0);
+
+  if (debounceMs > 0) {
     _playerDetailsFillDebounceTimer = setTimeout(() => {
       _playerDetailsFillDebounceTimer = null;
       if (typeof requestAnimationFrame === 'function') {
@@ -4102,7 +4118,7 @@ function openPlayerDetails(name) {
       } else {
         runFill();
       }
-    }, MOBILE_DRAWER_FILL_DEBOUNCE_MS);
+    }, debounceMs);
     return;
   }
 
@@ -4269,8 +4285,9 @@ function bindPlayerDrawerAdminButtons(player, name) {
 function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx, onDone) {
   if (token !== _playerDetailsFillToken) return;
 
-  const batchSize = isMobileDevice() ? 2 : tbList.length;
+  const batchSize = isIOS() ? 1 : (isMobileDevice() ? 2 : tbList.length);
   const end = Math.min(startIdx + batchSize, tbList.length);
+  const skipMatchHistory = shouldSkipDrawerMatchHistory();
 
   for (let ti = startIdx; ti < end; ti++) {
     if (token !== _playerDetailsFillToken) return;
@@ -4284,7 +4301,9 @@ function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx,
       ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
       : '';
     const teamMatches = matchesByTeam.get(tb.name) || [];
-    const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
+    const matchHistoryHTML = skipMatchHistory
+      ? ''
+      : buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
 
     item.className = `player-team-item player-team-item--${tb.zone}`;
     item.innerHTML = buildPlayerTeamItemHtml(tb, { elimBadge, elimToggleBtn, matchHistoryHTML });
@@ -4292,7 +4311,10 @@ function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx,
   }
 
   if (end < tbList.length) {
-    requestAnimationFrame(() => appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, end, onDone));
+    _playerDetailsGridRaf = requestAnimationFrame(() => {
+      _playerDetailsGridRaf = 0;
+      appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, end, onDone);
+    });
     return;
   }
 
@@ -4301,6 +4323,7 @@ function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx,
 
 function fillPlayerDetailsDrawer(name, token) {
   if (token !== _playerDetailsFillToken) return;
+  _playerDetailsFillInProgress = true;
 
   const setText = (id, val) => {
     const el = document.getElementById(id);
@@ -4308,9 +4331,11 @@ function fillPlayerDetailsDrawer(name, token) {
   };
 
   const onMobile = isMobileDevice();
+  const ios = isIOS();
 
   try {
-    if (!onMobile || !app.processedPlayers?.length) {
+    const canUseCachedPlayers = (ios || onMobile) && app.processedPlayers?.length;
+    if (!canUseCachedPlayers) {
       recalculateAll();
     }
     if (token !== _playerDetailsFillToken) return;
@@ -4351,6 +4376,8 @@ function fillPlayerDetailsDrawer(name, token) {
 
     const finishDrawerFill = () => {
       if (token !== _playerDetailsFillToken) return;
+      _playerDetailsFillInProgress = false;
+      _drawerDisplayedPlayer = player.name;
       bindPlayerDrawerAdminButtons(player, name);
       scheduleRankSoundEffect(player, token);
     };
@@ -4428,7 +4455,10 @@ function fillPlayerDetailsDrawer(name, token) {
 
   } catch (err) {
     console.error('Error in openPlayerDetails:', err);
-    // Drawer is already open from the top of the function; nothing else to do here.
+  } finally {
+    if (token === _playerDetailsFillToken) {
+      _playerDetailsFillInProgress = false;
+    }
   }
 }
 
