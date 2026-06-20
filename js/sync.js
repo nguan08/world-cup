@@ -5,8 +5,7 @@ import {
   notifyDataUpdate,
   processBroadcast,
   processScoreUpdates,
-  flushPendingBroadcast,
-  flushPendingScoreUpdate,
+  flushPendingNotification,
   findScoreChanges,
   updateBroadcastBanner
 } from './notifications.js';
@@ -387,14 +386,12 @@ export function setupAutoRefresh() {
   setTimeout(pollServerData, 3000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      flushPendingBroadcast();
-      flushPendingScoreUpdate();
+      flushPendingNotification();
       pollServerData();
     }
   });
   window.addEventListener('pageshow', () => {
-    flushPendingBroadcast();
-    flushPendingScoreUpdate();
+    flushPendingNotification();
     pollServerData();
   });
 }

@@ -24,7 +24,9 @@ let showingBroadcastToastId = 0;
 const SHOWN_BROADCAST_KEY = 'worldcup_shownBroadcastId';
 const PENDING_BROADCAST_KEY = 'worldcup_pendingBroadcast';
 const PENDING_SCORE_KEY = 'worldcup_pendingScoreUpdate';
+const PENDING_NOTIF_KEY = 'worldcup_pendingNotification';
 const NOTIFIED_SCORES_KEY = 'worldcup_notifiedMatchScores';
+const NOTIFICATION_TAG = 'wc-latest';
 const BROADCAST_STALE_MS = 24 * 60 * 60 * 1000;
 const BROADCAST_TOAST_MS = 6000;
 const SCORE_TOAST_MS = 6000;
@@ -43,8 +45,7 @@ export function initNotifications() {
   document.getElementById('ios-push-hint-bar')?.remove();
   document.getElementById('ios-push-hint-styles')?.remove();
   document.documentElement.classList.remove('has-ios-push-hint');
-  flushPendingBroadcast();
-  flushPendingScoreUpdate();
+  flushPendingNotification();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
@@ -60,18 +61,13 @@ export function initNotifications() {
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      flushPendingBroadcast();
-      flushPendingScoreUpdate();
-    }
+    if (!document.hidden) flushPendingNotification();
   });
   window.addEventListener('pageshow', () => {
-    flushPendingBroadcast();
-    flushPendingScoreUpdate();
+    flushPendingNotification();
   });
   window.addEventListener('focus', () => {
-    flushPendingBroadcast();
-    flushPendingScoreUpdate();
+    flushPendingNotification();
   });
 
   setTimeout(() => void autoPromptNotificationsOnEntry(), AUTO_PROMPT_DELAY_MS);
@@ -133,11 +129,104 @@ function getBroadcastMessage(bc) {
 function markBroadcastShown(id) {
   localStorage.setItem(SHOWN_BROADCAST_KEY, String(id));
   localStorage.removeItem(PENDING_BROADCAST_KEY);
+  localStorage.removeItem(PENDING_NOTIF_KEY);
   currentBannerId = 0;
 }
 
-function queuePendingBroadcast(bc) {
-  localStorage.setItem(PENDING_BROADCAST_KEY, JSON.stringify(bc));
+function queuePendingNotification(payload) {
+  localStorage.setItem(PENDING_NOTIF_KEY, JSON.stringify({
+    ...payload,
+    queuedAt: Date.now()
+  }));
+  localStorage.removeItem(PENDING_BROADCAST_KEY);
+  localStorage.removeItem(PENDING_SCORE_KEY);
+}
+
+function migrateLegacyPendingNotifications() {
+  const bcRaw = localStorage.getItem(PENDING_BROADCAST_KEY);
+  const scoreRaw = localStorage.getItem(PENDING_SCORE_KEY);
+  if (!bcRaw && !scoreRaw) return;
+
+  let latest = null;
+  if (bcRaw) {
+    try {
+      const bc = JSON.parse(bcRaw);
+      latest = {
+        type: 'broadcast',
+        broadcast: bc,
+        message: `📢 ${getBroadcastMessage(bc)}`,
+        queuedAt: Date.parse(bc.sentAt) || 0
+      };
+    } catch { /* ignore */ }
+  }
+  if (scoreRaw) {
+    try {
+      const payload = JSON.parse(scoreRaw);
+      const item = {
+        type: 'score',
+        changes: payload.changes,
+        message: payload.message,
+        queuedAt: Date.now()
+      };
+      if (!latest || item.queuedAt >= latest.queuedAt) latest = item;
+    } catch { /* ignore */ }
+  }
+
+  localStorage.removeItem(PENDING_BROADCAST_KEY);
+  localStorage.removeItem(PENDING_SCORE_KEY);
+  if (latest) queuePendingNotification(latest);
+}
+
+export function flushPendingNotification() {
+  if (document.hidden) return;
+  migrateLegacyPendingNotifications();
+
+  const raw = localStorage.getItem(PENDING_NOTIF_KEY);
+  if (!raw) return;
+
+  let pending;
+  try {
+    pending = JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(PENDING_NOTIF_KEY);
+    return;
+  }
+  localStorage.removeItem(PENDING_NOTIF_KEY);
+
+  if (pending.type === 'broadcast' && pending.broadcast?.id) {
+    const bc = pending.broadcast;
+    const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
+    if (bc.id <= shownId) return;
+    updateBroadcastBanner(bc);
+    displayBroadcastMessage(pending.message || `📢 ${getBroadcastMessage(bc)}`, {
+      browserType: 'broadcast',
+      broadcastId: bc.id,
+      autoDismiss: true
+    });
+    return;
+  }
+
+  if (pending.type === 'score' && pending.changes?.length) {
+    const changes = filterUnnotifiedScoreChanges(pending.changes);
+    if (!changes.length) return;
+    displayScoreUpdateMessage(
+      pending.message || formatScoreUpdateMessage(changes),
+      { changes, autoDismiss: true }
+    );
+    return;
+  }
+
+  if (pending.message) {
+    showUpdateToast(pending.message, { durationMs: DEFAULT_TOAST_MS });
+  }
+}
+
+export function flushPendingBroadcast() {
+  flushPendingNotification();
+}
+
+export function flushPendingScoreUpdate() {
+  flushPendingNotification();
 }
 
 export function updateBroadcastBanner(bc) {
@@ -232,28 +321,6 @@ function displayScoreUpdateMessage(message, { changes = [], autoDismiss = false 
   }
 }
 
-function queuePendingScoreUpdate(changes, message) {
-  localStorage.setItem(PENDING_SCORE_KEY, JSON.stringify({ changes, message }));
-}
-
-export function flushPendingScoreUpdate() {
-  if (document.hidden) return;
-  const raw = localStorage.getItem(PENDING_SCORE_KEY);
-  if (!raw) return;
-  try {
-    const payload = JSON.parse(raw);
-    localStorage.removeItem(PENDING_SCORE_KEY);
-    const changes = filterUnnotifiedScoreChanges(payload?.changes || []);
-    if (!changes.length) return;
-    displayScoreUpdateMessage(
-      payload?.message || formatScoreUpdateMessage(changes),
-      { changes, autoDismiss: true }
-    );
-  } catch {
-    localStorage.removeItem(PENDING_SCORE_KEY);
-  }
-}
-
 export function processScoreUpdates(changes, { onInit = false } = {}) {
   const fresh = filterUnnotifiedScoreChanges(changes || []);
   if (!fresh.length) return false;
@@ -261,36 +328,13 @@ export function processScoreUpdates(changes, { onInit = false } = {}) {
   const message = formatScoreUpdateMessage(fresh);
 
   if (document.hidden) {
-    queuePendingScoreUpdate(fresh, message);
+    queuePendingNotification({ type: 'score', changes: fresh, message });
     showBrowserNotification(message, 'data');
     return true;
   }
 
   displayScoreUpdateMessage(message, { changes: fresh, autoDismiss: true });
   return true;
-}
-
-export function flushPendingBroadcast() {
-  if (document.hidden) return;
-  const raw = localStorage.getItem(PENDING_BROADCAST_KEY);
-  if (!raw) return;
-  try {
-    const bc = JSON.parse(raw);
-    if (!bc?.id) return;
-    updateBroadcastBanner(bc);
-    const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
-    if (bc.id <= shownId) {
-      localStorage.removeItem(PENDING_BROADCAST_KEY);
-      return;
-    }
-    displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
-      browserType: 'broadcast',
-      broadcastId: bc.id,
-      autoDismiss: true
-    });
-  } catch {
-    localStorage.removeItem(PENDING_BROADCAST_KEY);
-  }
 }
 
 export function processBroadcast(serverData, { onInit = false } = {}) {
@@ -319,7 +363,11 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
   }
 
   if (document.hidden) {
-    queuePendingBroadcast(bc);
+    queuePendingNotification({
+      type: 'broadcast',
+      broadcast: bc,
+      message: `📢 ${getBroadcastMessage(bc)}`
+    });
     showBrowserNotification(`📢 ${getBroadcastMessage(bc)}`, 'broadcast');
     return true;
   }
@@ -390,6 +438,16 @@ export function notifyDataUpdate({ type = 'data', message, forceBrowserNotify = 
   }
 }
 
+async function closeExistingNotifications() {
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    const notifications = await reg?.getNotifications?.() || [];
+    notifications.forEach((n) => n.close());
+  } catch {
+    // ignore
+  }
+}
+
 async function showBrowserNotification(text, type = 'data') {
   if (!canUseWebNotifications() || Notification.permission !== 'granted') return;
 
@@ -400,13 +458,14 @@ async function showBrowserNotification(text, type = 'data') {
     body: text.replace(/^📢\s*/, ''),
     icon: resolveAppPath('icons/icon-192.png'),
     badge: resolveAppPath('icons/icon-192.png'),
-    tag: type === 'broadcast' ? 'wc-broadcast' : 'wc-data-update',
+    tag: NOTIFICATION_TAG,
     renotify: true
   };
 
   try {
     const reg = await navigator.serviceWorker?.ready;
     if (reg?.showNotification) {
+      await closeExistingNotifications();
       await reg.showNotification(title, options);
       return;
     }
@@ -425,17 +484,22 @@ async function showBrowserNotification(text, type = 'data') {
   }
 }
 
+let toastDismissHandler = null;
+
 export function showUpdateToast(message, { durationMs = DEFAULT_TOAST_MS, onDismiss } = {}) {
   const toast = ensureToastElement();
   const textEl = toast.querySelector('.update-toast__text');
+  clearTimeout(toastTimer);
+  toastDismissHandler?.();
+  toastDismissHandler = onDismiss || null;
   textEl.textContent = message;
   toast.classList.remove('update-toast--visible');
   void toast.offsetWidth;
   toast.classList.add('update-toast--visible');
-  clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove('update-toast--visible');
-    onDismiss?.();
+    toastDismissHandler?.();
+    toastDismissHandler = null;
   }, durationMs);
 }
 
@@ -454,6 +518,8 @@ function ensureToastElement() {
   toast.querySelector('.update-toast__close').addEventListener('click', () => {
     clearTimeout(toastTimer);
     toast.classList.remove('update-toast--visible');
+    toastDismissHandler?.();
+    toastDismissHandler = null;
     if (showingBroadcastToastId) {
       markBroadcastShown(showingBroadcastToastId);
       showingBroadcastToastId = 0;

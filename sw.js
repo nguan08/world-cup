@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v20';
+const CACHE_NAME = 'wc2026-v21';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -29,6 +29,12 @@ const STATIC_ASSETS = [
 ];
 
 let lastDataHash = '';
+const NOTIFICATION_TAG = 'wc-latest';
+
+async function closeAllNotifications() {
+  const notifications = await self.registration.getNotifications();
+  notifications.forEach((n) => n.close());
+}
 
 function iconUrl() {
   const base = self.registration?.scope || self.location.href.replace(/sw\.js.*$/, '');
@@ -123,13 +129,14 @@ async function networkFirstData(request) {
         }
         clients.forEach((client) => client.postMessage(payload));
         try {
+          await closeAllNotifications();
           await self.registration.showNotification(
             isBroadcast ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน' : 'World Cup 2026 — อัปเดตข้อมูล',
             {
               body: message,
               icon: iconUrl(),
               badge: iconUrl(),
-              tag: isBroadcast ? 'wc-broadcast' : 'wc-data-update',
+              tag: NOTIFICATION_TAG,
               renotify: true
             }
           );
@@ -228,13 +235,16 @@ self.addEventListener('push', (event) => {
     // keep defaults
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: iconUrl(),
-      badge: iconUrl(),
-      tag: payload.tag || 'wc-broadcast-push',
-      data: { url: payload.url || './' }
-    })
+    closeAllNotifications().then(() =>
+      self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: iconUrl(),
+        badge: iconUrl(),
+        tag: NOTIFICATION_TAG,
+        renotify: true,
+        data: { url: payload.url || './' }
+      })
+    )
   );
 });
 
