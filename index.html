@@ -16,6 +16,16 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css?v=20260620-no-purple-banner">
   <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
+  <script>
+    window.__wcDeferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__wcDeferredInstallPrompt = e;
+    });
+    window.addEventListener('appinstalled', function () {
+      window.__wcDeferredInstallPrompt = null;
+    });
+  </script>
 </head>
 <body>
 
@@ -912,7 +922,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-android-install"></script>
+  <script type="module" src="js/main.js?v=20260620-android-install-v2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

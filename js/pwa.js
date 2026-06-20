@@ -4,7 +4,7 @@ import { getAppBasePath, resolveAppPath } from './app-path.js';
 
 const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
 
-let deferredInstallPrompt = null;
+let deferredInstallPrompt = window.__wcDeferredInstallPrompt || null;
 let lastInstallTap = 0;
 let serviceWorkerReadyPromise = null;
 let pwaUiReady = false;
@@ -12,17 +12,23 @@ let pwaUiReady = false;
 function captureInstallPrompt(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
+  window.__wcDeferredInstallPrompt = e;
   if (pwaUiReady) {
     refreshInstallButton();
     renderPwaModeStatus();
   }
 }
 
-// จับก่อน DOMContentLoaded — ไม่งั้น Android อาจพลาด beforeinstallprompt
+function clearInstallPrompt() {
+  deferredInstallPrompt = null;
+  window.__wcDeferredInstallPrompt = null;
+}
+
+// สำรอง listener ใน module — head inline script จับก่อนหน้านี้แล้ว
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', captureInstallPrompt);
   window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
+    clearInstallPrompt();
     if (pwaUiReady) {
       refreshInstallButton();
       renderPwaModeStatus();
@@ -32,6 +38,9 @@ if (typeof window !== 'undefined') {
 
 export function initPWA() {
   pwaUiReady = true;
+  if (!deferredInstallPrompt && window.__wcDeferredInstallPrompt) {
+    deferredInstallPrompt = window.__wcDeferredInstallPrompt;
+  }
   registerServiceWorker();
   ensureInstallModal();
   applyStandaloneClass();
@@ -160,14 +169,15 @@ function closeMobileSidebar() {
 }
 
 function waitForInstallPrompt(timeoutMs = 4000) {
-  if (deferredInstallPrompt) return Promise.resolve(deferredInstallPrompt);
+  const existing = deferredInstallPrompt || window.__wcDeferredInstallPrompt;
+  if (existing) return Promise.resolve(existing);
   return new Promise((resolve) => {
     const onPrompt = (e) => {
       e.preventDefault();
-      deferredInstallPrompt = e;
+      captureInstallPrompt(e);
       done(deferredInstallPrompt);
     };
-    const timer = setTimeout(() => done(deferredInstallPrompt), timeoutMs);
+    const timer = setTimeout(() => done(deferredInstallPrompt || window.__wcDeferredInstallPrompt), timeoutMs);
     const done = (value) => {
       clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', onPrompt);
@@ -188,6 +198,24 @@ async function onInstallButtonClick() {
     return;
   }
 
+  let prompt = deferredInstallPrompt || window.__wcDeferredInstallPrompt;
+
+  if (prompt) {
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      clearInstallPrompt();
+      refreshInstallButton();
+      if (choice?.outcome !== 'accepted') {
+        showManualInstallHelp();
+      }
+    } catch (e) {
+      console.warn('[PWA] Install prompt failed', e);
+      showManualInstallHelp();
+    }
+    return;
+  }
+
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'กำลังเตรียมติดตั้ง…';
@@ -195,23 +223,18 @@ async function onInstallButtonClick() {
 
   try {
     await waitForServiceWorker().catch(() => {});
-    let prompt = deferredInstallPrompt;
-    if (!prompt && isAndroid()) {
+    if (isAndroid()) {
       prompt = await waitForInstallPrompt(4000);
     }
 
     if (!prompt) {
-      if (isAndroid()) {
-        showManualInstallHelp();
-      } else {
-        showManualInstallHelp();
-      }
+      showManualInstallHelp();
       return;
     }
 
     await prompt.prompt();
     const choice = await prompt.userChoice;
-    deferredInstallPrompt = null;
+    clearInstallPrompt();
     refreshInstallButton();
 
     if (choice?.outcome !== 'accepted') {
@@ -419,7 +442,7 @@ function renderPwaModeStatus() {
     return;
   }
 
-  if (deferredInstallPrompt) {
+  if (deferredInstallPrompt || window.__wcDeferredInstallPrompt) {
     box.className = 'pwa-mode-status pwa-mode-status--ready';
     box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> พร้อมติดตั้งแอป';
     return;
@@ -446,7 +469,7 @@ function refreshInstallButton() {
     return;
   }
 
-  if (deferredInstallPrompt) {
+  if (deferredInstallPrompt || window.__wcDeferredInstallPrompt) {
     btn.textContent = 'ติดตั้งแอป (PWA)';
     btn.hidden = false;
     return;
