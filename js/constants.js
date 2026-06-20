@@ -1,4 +1,5 @@
 // Team data, initial seed, formatting helpers
+
 export const TEAMS = [
   // BLUE ZONE
   { name: 'สเปน', zone: 'blue', multiplier: 1.0 },
@@ -137,24 +138,6 @@ export function getTeamFlagHtml(teamName) {
     return `<img src="${url}" alt="${teamName}" class="team-flag" loading="lazy" width="44" height="44">`;
   }
   return `<div class="team-avatar" title="${teamName}">${teamName.slice(0, 2)}</div>`;
-}
-
-function escapeTeamAttr(teamName) {
-  return String(teamName || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;');
-}
-
-export function getCompareTeamFlagHtml(teamName) {
-  const url = getTeamFlagUrl(teamName);
-  const safeName = escapeTeamAttr(teamName);
-  const fallback = String(teamName || '').slice(0, 2);
-  const wrapAttrs = `class="tools-compare-team-flag-wrap" data-team="${safeName}" title="ดูผู้เลือก" role="button" tabindex="0"`;
-  if (url) {
-    return `<span ${wrapAttrs}><img src="${url}" alt="${safeName}" class="tools-compare-team-flag" width="28" height="28" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling?.classList.add('is-visible')"><span class="tools-compare-team-flag-fallback" title="${safeName}">${fallback}</span></span>`;
-  }
-  return `<span ${wrapAttrs}><span class="tools-compare-team-flag-fallback is-visible" title="${safeName}">${fallback}</span></span>`;
 }
 
 export const INITIAL_MATCHES = [
