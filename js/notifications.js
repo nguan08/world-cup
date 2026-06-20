@@ -14,6 +14,7 @@ import {
   showLocalPushTestNotification,
   subscribeAndRegisterPush
 } from './push.js';
+import { waitForServiceWorker } from './pwa.js';
 
 let toastTimer = null;
 let currentBannerId = 0;
@@ -28,6 +29,8 @@ const BROADCAST_STALE_MS = 24 * 60 * 60 * 1000;
 const BROADCAST_TOAST_MS = 6000;
 const SCORE_TOAST_MS = 6000;
 const DEFAULT_TOAST_MS = 8000;
+const AUTO_PROMPT_KEY = 'worldcup_notifAutoPrompted';
+const AUTO_PROMPT_DELAY_MS = 1200;
 
 export function initNotifications() {
   if (!localStorage.getItem(SHOWN_BROADCAST_KEY) && localStorage.getItem('worldcup_lastBroadcastId')) {
@@ -69,6 +72,41 @@ export function initNotifications() {
     flushPendingBroadcast();
     flushPendingScoreUpdate();
   });
+
+  setTimeout(() => void autoPromptNotificationsOnEntry(), AUTO_PROMPT_DELAY_MS);
+}
+
+/** ขอสิทธิแจ้งเตือนอัตโนมัติเมื่อเข้าเว็บ (ครั้งละ 1 ต่อ session) */
+export async function autoPromptNotificationsOnEntry() {
+  if (sessionStorage.getItem(AUTO_PROMPT_KEY)) return;
+  if (getIOSPushBlockReason()) return;
+
+  try {
+    await waitForServiceWorker();
+  } catch {
+    // ยังลองขอ permission ต่อได้
+  }
+
+  if (!canUseWebNotifications()) return;
+
+  if (Notification.permission === 'granted') {
+    if (!isPushRegisteredLocally()) {
+      await subscribeAndRegisterPush();
+      notifRefreshUi?.();
+    }
+    return;
+  }
+
+  if (Notification.permission === 'denied') return;
+
+  sessionStorage.setItem(AUTO_PROMPT_KEY, '1');
+  const result = await requestNotificationPermission();
+  notifRefreshUi?.();
+
+  if (result === 'granted') {
+    await subscribeAndRegisterPush();
+    notifRefreshUi?.();
+  }
 }
 
 export function getNotificationPermission() {
