@@ -63,9 +63,12 @@ function showPlayerDetailsDrawer() {
   return true;
 }
 
+let _playerDetailsFillToken = 0;
+
 function hidePlayerDetailsDrawer() {
   const overlay = document.getElementById('player-details-drawer-overlay');
   if (!overlay || !overlay.classList.contains('active')) return;
+  _playerDetailsFillToken++;
   overlay.classList.remove('active');
   unlockScrollForPlayerDrawer();
 }
@@ -3961,32 +3964,54 @@ function playRankSoundEffect(player) {
 function openPlayerDetails(name) {
   window._playerDetailsLastOpenAt = Date.now();
 
-  // === FORCE SHOW DRAWER AS EARLY AS POSSIBLE ===
-  // This is the key fix: we open the popup immediately on any row click.
-  // Even if later lookup or content building has issues, the user will see the drawer.
   if (!showPlayerDetailsDrawer()) {
     console.error('[openPlayerDetails] overlay element not found in DOM');
     return;
   }
 
-  // Safe setter
   const setText = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = (val != null ? val : '');
   };
 
-  // Clear dynamic areas so we don't show stale content if we have to early-return
+  const lookupName = (name || '').trim();
+  setText('detail-player-name', lookupName);
+  setText('detail-teams-score', '—');
+  setText('detail-prediction-score', '—');
+  setText('detail-prediction-guess', '—');
+  setText('detail-total-score', '—');
+
   const statsContainer = document.getElementById('detail-team-stats-container');
   const grid = document.getElementById('detail-teams-grid');
   if (statsContainer) statsContainer.innerHTML = '';
-  if (grid) grid.innerHTML = '';
+  if (grid) {
+    grid.innerHTML = '<div class="player-drawer-loading" aria-busy="true">กำลังโหลด...</div>';
+  }
 
-  // === IMPORTANT: Show player name at the very top IMMEDIATELY in the header ===
-  const immediateName = (name || '').trim();
-  setText('detail-player-name', immediateName);
+  const token = ++_playerDetailsFillToken;
+  const runFill = () => {
+    if (token !== _playerDetailsFillToken) return;
+    fillPlayerDetailsDrawer(name, token);
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(runFill));
+  } else {
+    setTimeout(runFill, 32);
+  }
+}
+
+function fillPlayerDetailsDrawer(name, token) {
+  if (token !== _playerDetailsFillToken) return;
+
+  const setText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (val != null ? val : '');
+  };
 
   try {
     recalculateAll();
+    if (token !== _playerDetailsFillToken) return;
 
     // Lenient name lookup (trim + case-insensitive fallback for robustness)
     const lookupName = (name || '').trim();
@@ -4003,12 +4028,14 @@ function openPlayerDetails(name) {
       setText('detail-prediction-score', '0.00');
       setText('detail-prediction-guess', '-');
       setText('detail-total-score', '0.00');
-      if (grid) {
-        grid.innerHTML = '<div style="padding:20px; color:#f43f5e; font-weight:600;">ไม่พบข้อมูลผู้เล่นนี้ในระบบ (อาจเพิ่งถูกลบ หรือชื่อไม่ตรง)</div>';
+      const notFoundGrid = document.getElementById('detail-teams-grid');
+      if (notFoundGrid) {
+        notFoundGrid.innerHTML = '<div style="padding:20px; color:#f43f5e; font-weight:600;">ไม่พบข้อมูลผู้เล่นนี้ในระบบ (อาจเพิ่งถูกลบ หรือชื่อไม่ตรง)</div>';
       }
       return;
     }
 
+    if (token !== _playerDetailsFillToken) return;
     playRankSoundEffect(player);
 
     // Populate header numbers (name goes only into the h2 in the drawer header)
