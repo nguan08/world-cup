@@ -158,39 +158,40 @@ export async function sendBroadcastNotification(message) {
   return ok;
 }
 
+async function saveToLocalDevMirror(payload) {
+  if (!isLocalDevHost() || !app.isAdmin) return false;
+  try {
+    const body = { ...payload, adminPassword: app.ADMIN_PASSWORD };
+    const response = await fetch(resolveAppPath('api/save'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (response.ok) {
+      console.log('[Persist] Mirrored data to local data.json');
+      return true;
+    }
+    console.warn('[Persist] Local /api/save failed:', response.status, response.statusText);
+  } catch {
+    console.log('[Persist] Local /api/save unavailable');
+  }
+  return false;
+}
+
 export async function saveToServer({ quiet = false } = {}) {
   const payload = buildPayload();
 
-  if (isLocalDevHost()) {
-    try {
-      const body = { ...payload };
-      if (app.isAdmin) {
-        body.adminPassword = app.ADMIN_PASSWORD;
-      }
-      const response = await fetch(resolveAppPath('api/save'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (response.ok) {
-        console.log('Successfully synced data to server data.json');
-        return true;
-      }
-      if (response.status === 401 || response.status === 403) {
-        console.warn('Server refused save (admin auth required):', response.status);
-      } else {
-        console.warn('Server refused to save data:', response.statusText);
-      }
-    } catch {
-      console.log('[Persist] Local /api/save unavailable — trying world-cup GitHub API');
-    }
+  if (!app.isAdmin) {
+    return false;
   }
 
+  // Keep local dev data.json in sync, but never treat it as the source of truth for GitHub Pages.
+  await saveToLocalDevMirror(payload);
+
   const token = getGitHubToken();
-  if (!app.isAdmin || !token) {
-    if (app.isAdmin && !token) {
-      console.warn('[Persist] Admin save skipped: no GitHub token');
-    }
+  if (!token) {
+    console.warn('[Persist] Admin save skipped: no GitHub token');
+    if (!quiet) notifyAdminSave('ไม่มี GitHub Token — ซิงค์ GitHub ไม่ได้', true);
     return false;
   }
   if (!isValidGitHubToken(token)) {
@@ -205,7 +206,7 @@ export async function saveToServer({ quiet = false } = {}) {
     return true;
   } catch (e) {
     console.error('[Persist] world-cup GitHub save failed:', e);
-    if (!quiet) notifyAdminSave(`ซิงค์ world-cup ล้มเหลว: ${e.message}`, true);
+    if (!quiet) notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
     return false;
   }
 }
