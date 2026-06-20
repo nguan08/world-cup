@@ -10,15 +10,16 @@ const lines = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8').split('\n');
 const slice = (start, end) => lines.slice(start - 1, end).join('\n');
 
 const sections = [
-  [2558, 2651],
-  [2654, 2682],
-  [2685, 2881],
-  [2901, 2907],
-  [2908, 2911],
-  [2914, 2926],
-  [2929, 2934],
-  [2937, 2956],
-  [2958, 2963],
+  [444, 450],
+  [453, 546],
+  [549, 577],
+  [580, 776],
+  [796, 802],
+  [803, 806],
+  [809, 821],
+  [824, 829],
+  [832, 851],
+  [853, 858],
 ];
 
 let body = sections.map(([s, e]) => slice(s, e)).join('\n\n');

@@ -20,6 +20,7 @@ import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
 
+
 // Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
 app._playerDrawerSavedScrollY = 0;
 app._playerDrawerScrollLocked = false;
@@ -343,9 +344,15 @@ function handleSimulationScoreChange(matchId, isHome, val) {
 
   if (window._simTimeout) clearTimeout(window._simTimeout);
   window._simTimeout = setTimeout(() => {
-    if (document.getElementById('dashboard')?.classList.contains('active')) renderDashboard();
-    else if (document.getElementById('tools')?.classList.contains('active')) renderTools();
-    else recalculateAll();
+    recalculateAll();
+    const dash = document.getElementById('dashboard');
+    if (dash?.classList.contains('active')) {
+      updateDashboardStatCards();
+      renderDashboardTopLeaders();
+      scheduleScoreChartRender();
+    } else if (document.getElementById('tools')?.classList.contains('active')) {
+      renderTools();
+    }
   }, 300);
 }
 
@@ -1038,9 +1045,36 @@ function setupLiveMatchesCarousel() {
   });
 }
 
-function renderDashboard() {
-  recalculateAll();
+let _scoreChartRenderRaf1 = 0;
+let _scoreChartRenderRaf2 = 0;
 
+function getScoreChartCacheKey() {
+  const finished = app.matches.filter(m => m.status === 'finished').length;
+  const simCount = Object.keys(app.simulationScores || {}).length;
+  const leaderScore = app.processedPlayers[0] ? app.processedPlayers[0].totalScore : 0;
+  return `${app.matches.length}:${finished}:${simCount}:${leaderScore}:${app.processedPlayers.length}`;
+}
+
+function scheduleScoreChartRender() {
+  if (_scoreChartRenderRaf1) cancelAnimationFrame(_scoreChartRenderRaf1);
+  if (_scoreChartRenderRaf2) cancelAnimationFrame(_scoreChartRenderRaf2);
+  _scoreChartRenderRaf1 = requestAnimationFrame(() => {
+    _scoreChartRenderRaf1 = 0;
+    _scoreChartRenderRaf2 = requestAnimationFrame(() => {
+      _scoreChartRenderRaf2 = 0;
+      const dash = document.getElementById('dashboard');
+      if (!dash || !dash.classList.contains('active')) return;
+      const svgEl = getCachedEl('score-chart-svg');
+      if (!svgEl) return;
+      const cacheKey = getScoreChartCacheKey();
+      if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
+      renderScoreChart();
+      svgEl.dataset.chartCacheKey = cacheKey;
+    });
+  });
+}
+
+function updateDashboardStatCards() {
   const totalEl = getCachedEl('stat-total-players');
   if (totalEl) totalEl.textContent = app.processedPlayers.length;
 
@@ -1051,13 +1085,9 @@ function renderDashboard() {
   const playedCount = app.matches.filter(m => m.status === 'finished').length;
   const playedEl = getCachedEl('stat-played-matches');
   if (playedEl) playedEl.textContent = `${playedCount} / ${app.matches.length}`;
+}
 
-  // ── Score Distribution Line Chart ──────────────────────────
-  renderScoreChart();
-
-  // ── Recent Matches (Yesterday & Today) ──────────────────────
-  renderRecentMatches();
-
+function renderDashboardTopLeaders() {
   // ── Top 10 Leaders table ───────────────────────────────────
   const tbody = getCachedEl('top-leaders-tbody');
   if (tbody) {
@@ -1179,7 +1209,16 @@ function renderDashboard() {
     });
     tbody.appendChild(fragment);
   }
+}
 
+function renderDashboard(options = {}) {
+  const { forceRecalc = true } = options;
+  if (forceRecalc || !app.processedPlayers?.length) recalculateAll();
+
+  updateDashboardStatCards();
+  scheduleScoreChartRender();
+  renderRecentMatches();
+  renderDashboardTopLeaders();
   renderTeamSelections(sortStatsArray(buildStatsArray()), 'compact');
 }
 
@@ -1337,7 +1376,7 @@ function setLeaderboardFilterEmptyState(isEmpty) {
 }
 
 function renderLeaderboard(options = {}) {
-  const { forceRecalc = true } = options;
+  const { forceRecalc = false } = options;
   if (forceRecalc) recalculateAll();
 
   const searchEl = getCachedEl('leaderboard-search');
@@ -1818,7 +1857,11 @@ function renderScoreChart() {
   let labelsGroup = '';
   let hoverHelpers = '';
 
-  playerRankHistory.forEach(ph => {
+  const playersToDraw = isMobile
+    ? playerRankHistory.filter(ph => (ph.ranks[stepsCount] || 99) <= 10)
+    : playerRankHistory;
+
+  playersToDraw.forEach(ph => {
     let pathPoints = [];
     for (let i = 0; i <= stepsCount; i++) {
       const x = xOf(i);
@@ -1827,18 +1870,21 @@ function renderScoreChart() {
     }
     const pathD = `M ${pathPoints.join(' L ')}`;
     const color = getPlayerColor(ph.zone);
+    const dotR = isMobile ? '2.4' : '3.2';
 
     // Rank line path
     linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" data-zone="${ph.zone}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
 
-    // Invisible thick path to make hover easier
-    hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
+    // Invisible thick path to make hover easier (desktop only — saves SVG nodes on mobile)
+    if (!isMobile) {
+      hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
+    }
 
     // Trend dots
     for (let i = 0; i <= stepsCount; i++) {
       const x = xOf(i);
       const y = yOf(ph.ranks[i]);
-      dotsGroup += `<circle cx="${x}" cy="${y}" r="3.2" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
+      dotsGroup += `<circle cx="${x}" cy="${y}" r="${dotR}" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
     }
 
     // Label at the end of the line
@@ -4341,20 +4387,15 @@ function setPlayerDrawerStatsExpanded(statsContainer, expanded) {
 function bindPlayerDrawerStatsToggle(statsContainer, player, matchesByTeam) {
   if (!statsContainer) return;
 
-  let tableHtml = '';
-  try {
-    tableHtml = buildPlayerStatsTableHtml(player, matchesByTeam);
-  } catch (err) {
-    console.error('[bindPlayerDrawerStatsToggle] build table failed:', err);
-    tableHtml = '<p class="player-stats-table__empty">โหลดตารางไม่สำเร็จ</p>';
-  }
+  statsContainer._drawerStatsPlayer = player;
+  statsContainer._drawerStatsMatches = matchesByTeam;
 
   statsContainer.innerHTML = `
     <button type="button" class="team-stats-toggle" aria-expanded="false">
       <span class="team-stats-toggle__label">📊 สถิติทีม (ตาราง)</span>
       <span class="team-stats-toggle__arrow" aria-hidden="true">▼</span>
     </button>
-    <div class="player-detail-stats-table-wrap is-collapsed">${tableHtml}</div>
+    <div class="player-detail-stats-table-wrap is-collapsed"></div>
   `;
 
   if (!statsContainer._statsToggleBound) {
@@ -4368,6 +4409,18 @@ function bindPlayerDrawerStatsToggle(statsContainer, player, matchesByTeam) {
       const tableWrapper = statsContainer.querySelector('.player-detail-stats-table-wrap');
       if (!tableWrapper) return;
       const willExpand = tableWrapper.classList.contains('is-collapsed');
+      if (willExpand && !tableWrapper.dataset.loaded) {
+        try {
+          tableWrapper.innerHTML = buildPlayerStatsTableHtml(
+            statsContainer._drawerStatsPlayer,
+            statsContainer._drawerStatsMatches
+          );
+          tableWrapper.dataset.loaded = '1';
+        } catch (err) {
+          console.error('[bindPlayerDrawerStatsToggle] build table failed:', err);
+          tableWrapper.innerHTML = '<p class="player-stats-table__empty">โหลดตารางไม่สำเร็จ</p>';
+        }
+      }
       setPlayerDrawerStatsExpanded(statsContainer, willExpand);
     };
     statsContainer.addEventListener('click', handleToggle);
@@ -4904,6 +4957,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  let _html2canvasPromise = null;
+  async function loadHtml2Canvas() {
+    if (typeof html2canvas === 'function') return html2canvas;
+    if (!_html2canvasPromise) {
+      _html2canvasPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.async = true;
+        script.onload = () => resolve(window.html2canvas);
+        script.onerror = () => reject(new Error('html2canvas load failed'));
+        document.head.appendChild(script);
+      });
+    }
+    return _html2canvasPromise;
+  }
+
   const PAGE_EXPORT_BG = '#07070a';
   const PAGE_EXPORT_CARD_BG = '#16161d';
   const PAGE_EXPORT_BRAND = 'YEC-BR World Cup 2026 Challenge';
@@ -5070,11 +5139,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function capturePageExportRoot(exportRoot, fileName) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+    const html2canvasFn = await loadHtml2Canvas();
     const captureWidth = Math.ceil(exportRoot.scrollWidth || exportRoot.offsetWidth);
     const captureHeight = Math.ceil(exportRoot.scrollHeight || exportRoot.offsetHeight);
     const scale = Math.min(2, window.devicePixelRatio > 1 ? 2 : 1.5);
 
-    const canvas = await html2canvas(exportRoot, {
+    const canvas = await html2canvasFn(exportRoot, {
       backgroundColor: PAGE_EXPORT_BG,
       scale,
       useCORS: true,
@@ -5102,7 +5172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return alert('ไม่พบตารางคะแนนเพื่อส่งออก');
     }
 
-    if (typeof html2canvas !== 'function') {
+    try { await loadHtml2Canvas(); } catch (_) {
       return alert('ระบบส่งออกภาพยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
     }
 
@@ -5148,7 +5218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return alert('กรุณาเปิดหน้าสถิติทีมก่อนบันทึกภาพ');
     }
 
-    if (typeof html2canvas !== 'function') {
+    try { await loadHtml2Canvas(); } catch (_) {
       return alert('ระบบส่งออกภาพยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
     }
 
@@ -5393,10 +5463,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // - Mobile header taps (brand/hamburger)
   // - Main content clicks that are NOT coming from a player row (.hoverable)
 
-  // Mobile header tap → close stats drawer (safe)
+  // Mobile header tap (logo area) → close stats drawer; menu button handles its own open/close flow
   const mobileHeader = document.getElementById('mobile-header');
   if (mobileHeader) {
-    mobileHeader.addEventListener('click', () => {
+    mobileHeader.addEventListener('click', (e) => {
+      if (e.target.closest('#menu-toggle-btn')) return;
       const overlay = document.getElementById('player-details-drawer-overlay');
       if (overlay && overlay.classList.contains('active')) {
         setTimeout(hidePlayerDetailsDrawer, 0);
@@ -5540,7 +5611,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     alert('บันทึกข้อมูลผู้เล่นเรียบร้อย!');
     recalculateAll();
     renderDashboard();
-    renderLeaderboard();
+    renderLeaderboard({ forceRecalc: true });
     renderPlayers();
   });
 
@@ -5554,7 +5625,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 const debouncedResize = debounce(() => {
   const dashboardPage = getCachedEl('dashboard');
   if (dashboardPage && dashboardPage.classList.contains('active')) {
-    renderScoreChart();
+    const svgEl = getCachedEl('score-chart-svg');
+    if (svgEl) delete svgEl.dataset.chartCacheKey;
+    scheduleScoreChartRender();
   }
 }, 160);
 window.addEventListener('resize', debouncedResize);

@@ -5,6 +5,14 @@ import { saveToServer } from './persist.js';
 let _recalcHook = null;
 export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn : null; }
 
+export function getTeamByName(name) {
+  if (!getTeamByName._map) {
+    getTeamByName._map = Object.create(null);
+    for (const team of TEAMS) getTeamByName._map[team.name] = team;
+  }
+  return getTeamByName._map[name] || null;
+}
+
 export function calculateTeamPoints(targetMatches = app.matches) {
   const teamScores = {};
 
@@ -81,8 +89,8 @@ export function calculateTeamPoints(targetMatches = app.matches) {
     }
 
     // Calculate final points based on multiplier: (resultPoints + goals) * multiplier
-    const hTeam = TEAMS.find(t => t.name === match.home);
-    const aTeam = TEAMS.find(t => t.name === match.away);
+    const hTeam = getTeamByName(match.home);
+    const aTeam = getTeamByName(match.away);
 
     if (hTeam && teamScores[match.home]) {
       teamScores[match.home].points += (homeResPoints + h) * hTeam.multiplier;
@@ -114,8 +122,8 @@ export function calculatePredictionPoints(user, finalMatch) {
   const calcHomeGoals = rawHomeGoals <= 1 ? 1 : rawHomeGoals;
   const calcAwayGoals = rawAwayGoals <= 1 ? 1 : rawAwayGoals;
 
-  const hTeam = TEAMS.find(t => t.name === finalMatch.home);
-  const aTeam = TEAMS.find(t => t.name === finalMatch.away);
+  const hTeam = getTeamByName(finalMatch.home);
+  const aTeam = getTeamByName(finalMatch.away);
 
   const hMult = hTeam ? hTeam.multiplier : 1;
   const aMult = aTeam ? aTeam.multiplier : 1;
@@ -141,7 +149,7 @@ export function processPlayers(teamScores) {
       const tScore = teamScores[teamName] ? teamScores[teamName].points : 0;
       teamsScore += tScore;
 
-      const teamObj = TEAMS.find(t => t.name === teamName);
+      const teamObj = getTeamByName(teamName);
       teamBreakdown.push({
         name: teamName,
         zone: teamObj ? teamObj.zone : 'blue',

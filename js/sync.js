@@ -19,6 +19,28 @@ export function clearCachedData() {
   cachedKeys.forEach(key => localStorage.removeItem(key));
 }
 
+function readStoredJsonArray(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function applySeedFallback() {
+  if (!app.matches?.length && INITIAL_MATCHES.length) {
+    app.matches = [...INITIAL_MATCHES];
+    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+  }
+  if (!app.players?.length && INITIAL_PLAYERS.length) {
+    app.players = [...INITIAL_PLAYERS];
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+  }
+}
+
 export async function initData() {
   let serverData = { matches: [], players: [], eliminatedTeams: [] };
   
@@ -40,16 +62,40 @@ export async function initData() {
   }
 
   // 2. Fetch server data with cache busting to ensure the latest file is loaded
+  let serverFetchOk = false;
   try {
     const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
       serverData = await res.json();
+      serverFetchOk = true;
     }
   } catch (e) {
     console.error('Failed to fetch data.json from server:', e);
   }
 
-  const hasServerData = serverData.matches && serverData.matches.length > 0;
+  const serverMatches = Array.isArray(serverData.matches) ? serverData.matches : [];
+  const serverPlayers = Array.isArray(serverData.players) ? serverData.players : [];
+  const serverIsBlank = serverFetchOk && serverMatches.length === 0 && serverPlayers.length === 0;
+
+  if (serverIsBlank) {
+    clearCachedData();
+    app.matches = [...INITIAL_MATCHES];
+    app.players = [...INITIAL_PLAYERS];
+    app.manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
+    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+    if (serverData.broadcast) {
+      app.broadcast = serverData.broadcast;
+      updateBroadcastBanner(serverData.broadcast);
+    }
+    processBroadcast(serverData, { onInit: true });
+    loadEliminatedTeams();
+    app.lastDataRefreshTime = new Date();
+    return;
+  }
+
+  const hasServerData = serverMatches.length > 0;
   // On GitHub Pages there is no /api/save — treat data.json as the shared source of truth
   if (!app.isSyncEnabled && hasServerData) {
     app.isSyncEnabled = true;
@@ -77,8 +123,8 @@ export async function initData() {
     localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
   } else {
 
-    const storedMatches = localStorage.getItem('worldcup_matches');
-    const storedPlayers = localStorage.getItem('worldcup_players');
+    const storedMatches = readStoredJsonArray('worldcup_matches');
+    const storedPlayers = readStoredJsonArray('worldcup_players');
     
     // Load override lists from localStorage with safety try-catch
     let manuallyEditedMatches = [];
@@ -102,8 +148,7 @@ export async function initData() {
 
       // Preserve any locally manually edited app.matches on top of the latest server data
       if (storedMatches) {
-        const localMatches = JSON.parse(storedMatches);
-        localMatches.forEach(lm => {
+        storedMatches.forEach(lm => {
           if (manuallyEditedMatches.some(id => id == lm.id)) {
             const idx = app.matches.findIndex(m => m.id == lm.id);
             if (idx !== -1) {
@@ -127,7 +172,7 @@ export async function initData() {
 
       localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
     } else if (storedMatches) {
-      app.matches = JSON.parse(storedMatches);
+      app.matches = [...storedMatches];
       
       // Auto-sync app.matches from server data (for automated scrapes)
       let updated = false;
@@ -178,7 +223,7 @@ export async function initData() {
     }
     
     if (storedPlayers) {
-      app.players = JSON.parse(storedPlayers);
+      app.players = [...storedPlayers];
       
       // Auto-sync app.players from server data if there are new ones
       let updated = false;
@@ -204,6 +249,7 @@ export async function initData() {
   processBroadcast(serverData, { onInit: true });
 
   loadEliminatedTeams();
+  applySeedFallback();
   app.lastDataRefreshTime = new Date();
 }
 
@@ -327,6 +373,7 @@ function setupPollChannel() {
 }
 
 export async function pollServerData() {
+  if (document.hidden) return;
   try {
     const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;

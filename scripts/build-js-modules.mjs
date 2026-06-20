@@ -24,21 +24,23 @@ function exportify(code) {
 
 fs.mkdirSync(OUT, { recursive: true });
 
-// ── constants.js (lines 3–2259) ──
+// ── constants.js (lines 3–142): teams + helpers only; data lives in data.json ──
 fs.writeFileSync(
   path.join(OUT, 'constants.js'),
-  `// Team data, initial seed, formatting helpers\n${exportify(slice(3, 2259))}\n`
+  `// Team data and formatting helpers (match/player data: data.json)\n${exportify(slice(3, 142))}\n\nexport const INITIAL_MATCHES = [];\nexport const INITIAL_PLAYERS = [];\n`
 );
 
 // ── bundle.js: UI, rendering, events ──
-const EXCLUDE_RANGES = [[2260, 3100]];
+// Exclude duplicated module code (utils/state/admin/scoring/sync/persist) still in app.js
+const EXCLUDE_RANGES = [[148, 994]];
 
 function isExcluded(lineNum) {
   return EXCLUDE_RANGES.some(([a, b]) => lineNum >= a && lineNum <= b);
 }
 
+const BUNDLE_START = 148;
 const bundleLines = [];
-for (let i = 2260; i <= lines.length; i++) {
+for (let i = BUNDLE_START; i <= lines.length; i++) {
   if (!isExcluded(i)) bundleLines.push(lines[i - 1]);
 }
 
