@@ -333,9 +333,9 @@
     {
       "home": "เนเธอร์แลนด์",
       "away": "สวีเดน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 33
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1781934546252,
-    "message": "⚽ อัปเดตสกอร์: ตุรกี 0-1 ปารากวัย",
-    "sentAt": "2026-06-20T05:49:06.252Z"
+    "id": 1781997475633,
+    "message": "⚽ อัปเดตสกอร์: เนเธอร์แลนด์ 5-1 สวีเดน",
+    "sentAt": "2026-06-20T23:17:55.633Z"
   }
 }
