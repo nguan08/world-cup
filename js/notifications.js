@@ -48,13 +48,12 @@ export function initNotifications() {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
-      const { type, message, broadcast } = event.data || {};
-      if (broadcast) updateBroadcastBanner(broadcast);
-      if (type === 'DATA_UPDATED' || type === 'BROADCAST') {
-        displayBroadcastMessage(message || 'มีการอัปเดตข้อมูลใหม่', {
-          browserType: type === 'BROADCAST' ? 'broadcast' : 'data',
-          markShown: false
-        });
+      const { type, message } = event.data || {};
+      if (type === 'SCORE_UPDATED' && message) {
+        showUpdateToast(message, { durationMs: SCORE_TOAST_MS });
+        if (isMobileDevice() && navigator.vibrate) {
+          try { navigator.vibrate([80, 40, 80]); } catch { /* ignore */ }
+        }
       }
     });
   }
@@ -192,19 +191,6 @@ export function flushPendingNotification() {
   }
   localStorage.removeItem(PENDING_NOTIF_KEY);
 
-  if (pending.type === 'broadcast' && pending.broadcast?.id) {
-    const bc = pending.broadcast;
-    const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
-    if (bc.id <= shownId) return;
-    updateBroadcastBanner(bc);
-    displayBroadcastMessage(pending.message || `📢 ${getBroadcastMessage(bc)}`, {
-      browserType: 'broadcast',
-      broadcastId: bc.id,
-      autoDismiss: true
-    });
-    return;
-  }
-
   if (pending.type === 'score' && pending.changes?.length) {
     const changes = filterUnnotifiedScoreChanges(pending.changes);
     if (!changes.length) return;
@@ -215,9 +201,6 @@ export function flushPendingNotification() {
     return;
   }
 
-  if (pending.message) {
-    showUpdateToast(pending.message, { durationMs: DEFAULT_TOAST_MS });
-  }
 }
 
 export function flushPendingBroadcast() {
@@ -328,7 +311,7 @@ export function processScoreUpdates(changes, { onInit = false } = {}) {
 
   if (document.hidden) {
     queuePendingNotification({ type: 'score', changes: fresh, message });
-    showBrowserNotification(message, 'data');
+    showBrowserNotification(message);
     return true;
   }
 
@@ -344,14 +327,12 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
   }
 
   const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
-  const isUnread = bc.id > shownId;
-
-  if (isUnread) {
-    updateBroadcastBanner(bc);
-  } else {
+  if (bc.id <= shownId) {
     hideBroadcastBanner();
     return false;
   }
+
+  updateBroadcastBanner(bc);
 
   if (onInit && shownId === 0 && bc.sentAt) {
     const age = Date.now() - Date.parse(bc.sentAt);
@@ -361,22 +342,8 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
     }
   }
 
-  if (document.hidden) {
-    queuePendingNotification({
-      type: 'broadcast',
-      broadcast: bc,
-      message: `📢 ${getBroadcastMessage(bc)}`
-    });
-    showBrowserNotification(`📢 ${getBroadcastMessage(bc)}`, 'broadcast');
-    return true;
-  }
-
-  displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
-    browserType: 'broadcast',
-    broadcastId: bc.id,
-    autoDismiss: true
-  });
-  return true;
+  markBroadcastShown(bc.id);
+  return false;
 }
 
 function displayBroadcastMessage(text, {
@@ -447,12 +414,10 @@ async function closeExistingNotifications() {
   }
 }
 
-async function showBrowserNotification(text, type = 'data') {
+async function showBrowserNotification(text) {
   if (!canUseWebNotifications() || Notification.permission !== 'granted') return;
 
-  const title = type === 'broadcast'
-    ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน'
-    : 'World Cup 2026 — อัปเดตข้อมูล';
+  const title = 'World Cup 2026 — อัปเดตสกอร์';
   const options = {
     body: text.replace(/^📢\s*/, ''),
     icon: resolveAppPath('icons/icon-192.png'),

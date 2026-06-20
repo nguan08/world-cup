@@ -19,7 +19,7 @@ import { saveToServer, sendBroadcastNotification } from './persist.js';
 import { setRecalcHook } from './scoring.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
-import { initNotifications, notifyDataUpdate } from './notifications.js';
+import { initNotifications } from './notifications.js';
 
 
 

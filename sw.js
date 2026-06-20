@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v22';
+const CACHE_NAME = 'wc2026-v23';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -95,8 +95,7 @@ async function networkFirstData(request) {
       const text = await clone.text();
       const hash = simpleHash(text);
       if (lastDataHash && hash !== lastDataHash) {
-        let message = 'มีการอัปเดตสกอร์หรือข้อมูลใหม่';
-        let isBroadcast = false;
+        let scoreMsg = '';
         try {
           const data = JSON.parse(text);
           const bc = data.broadcast;
@@ -104,44 +103,33 @@ async function networkFirstData(request) {
             const lastBroadcastId = await getStoredBroadcastId();
             if (bc.id > lastBroadcastId) {
               await setStoredBroadcastId(bc.id);
-              message = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
-              isBroadcast = true;
             }
           }
-          if (!isBroadcast) {
-            const scoreMsg = await getScoreUpdateMessage(data.matches);
-            if (scoreMsg) message = scoreMsg;
-          }
+          scoreMsg = await getScoreUpdateMessage(data.matches);
         } catch {
-          // keep default message
+          // ignore parse errors
         }
-        const msgType = isBroadcast ? 'BROADCAST' : 'DATA_UPDATED';
-        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        const payload = {
-          type: msgType,
-          message: isBroadcast ? `📢 ${message}` : message
-        };
-        if (isBroadcast) {
-          try {
-            const data = JSON.parse(text);
-            if (data.broadcast) payload.broadcast = data.broadcast;
-          } catch { /* ignore */ }
-        }
-        clients.forEach((client) => client.postMessage(payload));
-        try {
-          await closeAllNotifications();
-          await self.registration.showNotification(
-            isBroadcast ? 'World Cup 2026 — แจ้งเตือนจากแอดมิน' : 'World Cup 2026 — อัปเดตข้อมูล',
-            {
-              body: message,
-              icon: iconUrl(),
-              badge: iconUrl(),
-              tag: NOTIFICATION_TAG,
-              renotify: true
+
+        if (scoreMsg) {
+          const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          const hasVisibleClient = clients.some((client) => client.visibilityState === 'visible');
+          clients.forEach((client) => {
+            client.postMessage({ type: 'SCORE_UPDATED', message: scoreMsg });
+          });
+          if (!hasVisibleClient) {
+            try {
+              await closeAllNotifications();
+              await self.registration.showNotification('World Cup 2026 — อัปเดตสกอร์', {
+                body: scoreMsg.replace(/^⚽\s*/, ''),
+                icon: iconUrl(),
+                badge: iconUrl(),
+                tag: NOTIFICATION_TAG,
+                renotify: true
+              });
+            } catch {
+              // permission not granted
             }
-          );
-        } catch {
-          // permission not granted
+          }
         }
       }
       lastDataHash = hash;

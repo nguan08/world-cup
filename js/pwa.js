@@ -138,17 +138,6 @@ async function registerServiceWorker() {
       reg = await navigator.serviceWorker.register(resolveAppPath('sw.js'), { scope });
     }
     serviceWorkerReadyPromise = Promise.resolve(reg);
-    reg.addEventListener('updatefound', () => {
-      const worker = reg.installing;
-      if (!worker) return;
-      worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-          import('./notifications.js').then(({ notifyDataUpdate }) => {
-            notifyDataUpdate({ type: 'app', message: 'มีเวอร์ชันแอปใหม่ — รีเฟรชเพื่ออัปเดต' });
-          });
-        }
-      });
-    });
   } catch (e) {
     console.warn('[PWA] Service worker registration failed', e);
   }

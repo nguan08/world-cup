@@ -2,7 +2,6 @@ import { app } from './state.js';
 import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
 import {
-  notifyDataUpdate,
   processBroadcast,
   processScoreUpdates,
   flushPendingNotification,
@@ -355,20 +354,15 @@ export async function pollServerData() {
       app.broadcast = serverData.broadcast;
       updateBroadcastBanner(serverData.broadcast);
     }
-    const broadcasted = processBroadcast(serverData);
+    processBroadcast(serverData);
     const scoreNotified = scoreChanges.length ? processScoreUpdates(scoreChanges) : false;
-    if (changed || broadcasted || scoreNotified) {
+    if (changed || scoreNotified) {
       app.lastDataRefreshTime = new Date();
-      if (!document.hidden) {
-        if (changed) {
-          updateDataSyncStatus('updating');
-          recalculateAll();
-          _refreshPage();
-          updateDataSyncStatus('updated', scoreNotified ? 'สกอร์อัปเดต' : 'มีข้อมูลใหม่');
-        }
-        if (!broadcasted && !scoreNotified && changed) notifyDataUpdate({ type: 'data' });
-      } else if (changed && !broadcasted && !scoreNotified) {
-        notifyDataUpdate({ type: 'data', forceBrowserNotify: true });
+      if (!document.hidden && changed) {
+        updateDataSyncStatus('updating');
+        recalculateAll();
+        _refreshPage();
+        updateDataSyncStatus('updated', scoreNotified ? 'สกอร์อัปเดต' : 'มีข้อมูลใหม่');
       }
     }
   } catch (e) {
