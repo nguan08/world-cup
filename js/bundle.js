@@ -67,10 +67,13 @@ function showPlayerDetailsDrawer() {
 let _playerDetailsFillToken = 0;
 let _playerDetailsFillRaf1 = 0;
 let _playerDetailsFillRaf2 = 0;
+let _playerDetailsFillDebounceTimer = null;
+let _pendingDrawerFillName = '';
 let _rankSoundTimerId = null;
 let _rankSpeechTimerId = null;
 let _lastRankSoundAt = 0;
 const RANK_SOUND_COOLDOWN_MS = 2000;
+const MOBILE_DRAWER_FILL_DEBOUNCE_MS = 220;
 
 function cancelPlayerDetailsFillSchedule() {
   if (_playerDetailsFillRaf1) {
@@ -81,6 +84,22 @@ function cancelPlayerDetailsFillSchedule() {
     cancelAnimationFrame(_playerDetailsFillRaf2);
     _playerDetailsFillRaf2 = 0;
   }
+  if (_playerDetailsFillDebounceTimer) {
+    clearTimeout(_playerDetailsFillDebounceTimer);
+    _playerDetailsFillDebounceTimer = null;
+  }
+}
+
+function getFinishedMatchesByTeam() {
+  const map = new Map();
+  for (const m of app.matches) {
+    if (m.status !== 'finished') continue;
+    if (!map.has(m.home)) map.set(m.home, []);
+    if (!map.has(m.away)) map.set(m.away, []);
+    map.get(m.home).push(m);
+    map.get(m.away).push(m);
+  }
+  return map;
 }
 
 function cancelRankSoundEffects() {
@@ -164,6 +183,7 @@ function attachPlayerRowOpenHandlers() {
       if (!row) return;
 
       e.stopPropagation();
+      e._playerDrawerOpenHandled = true;
       const name = row.dataset.playerName;
       if (name) {
         openPlayerDetails(name);
@@ -177,6 +197,7 @@ function attachPlayerRowOpenHandlers() {
   //    (e.g. very deep nesting, shadow DOM in future, or browser quirks on mobile).
   if (!document._playerRowDocOpenBound) {
     document.addEventListener('click', (e) => {
+      if (e._playerDrawerOpenHandled) return;
       const row = e.target.closest('tr.hoverable[data-player-name]');
       if (!row) return;
 
@@ -4002,11 +4023,13 @@ function scheduleRankSoundEffect(player, token) {
     || player.rank === 61 || player.rank === 62;
   if (!isSpecialRank) return;
 
-  cancelRankSoundEffects();
-
   const onMobile = isMobileDevice();
   const isLoserRank = player.rank === 61 || player.rank === 62;
-  const delayMs = onMobile ? (isLoserRank ? 650 : 500) : 220;
+  if (onMobile && isLoserRank) return;
+
+  cancelRankSoundEffects();
+
+  const delayMs = onMobile ? 500 : 220;
 
   _rankSoundTimerId = setTimeout(() => {
     _rankSoundTimerId = null;
@@ -4029,7 +4052,9 @@ function openPlayerDetails(name) {
   if (!lookupName) return;
 
   const now = Date.now();
-  if (lookupName === _lastOpenPlayerName && now - _lastOpenPlayerAt < 80) return;
+  const onMobile = isMobileDevice();
+  const dedupeMs = onMobile ? 140 : 80;
+  if (lookupName === _lastOpenPlayerName && now - _lastOpenPlayerAt < dedupeMs) return;
   _lastOpenPlayerName = lookupName;
   _lastOpenPlayerAt = now;
   window._playerDetailsLastOpenAt = now;
@@ -4037,6 +4062,7 @@ function openPlayerDetails(name) {
   cancelRankSoundEffects();
   cancelPlayerDetailsFillSchedule();
   _playerDetailsFillToken++;
+  _pendingDrawerFillName = lookupName;
 
   if (!showPlayerDetailsDrawer()) {
     console.error('[openPlayerDetails] overlay element not found in DOM');
@@ -4065,8 +4091,20 @@ function openPlayerDetails(name) {
   const runFill = () => {
     _playerDetailsFillRaf2 = 0;
     if (token !== _playerDetailsFillToken) return;
-    fillPlayerDetailsDrawer(lookupName, token);
+    fillPlayerDetailsDrawer(_pendingDrawerFillName || lookupName, token);
   };
+
+  if (onMobile) {
+    _playerDetailsFillDebounceTimer = setTimeout(() => {
+      _playerDetailsFillDebounceTimer = null;
+      if (typeof requestAnimationFrame === 'function') {
+        _playerDetailsFillRaf1 = requestAnimationFrame(runFill);
+      } else {
+        runFill();
+      }
+    }, MOBILE_DRAWER_FILL_DEBOUNCE_MS);
+    return;
+  }
 
   if (typeof requestAnimationFrame === 'function') {
     _playerDetailsFillRaf1 = requestAnimationFrame(() => {
@@ -4078,6 +4116,189 @@ function openPlayerDetails(name) {
   }
 }
 
+function buildPlayerStatsTableHtml(player, matchesByTeam) {
+  const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
+  let statsHTML = `
+    <table class="team-stats-summary team-stats-summary--drawer">
+      <thead>
+        <tr>
+          <th style="text-align:left;">ทีม</th>
+          <th>กลุ่ม</th>
+          <th>โซน</th>
+          <th>เล่น</th>
+          <th>ชนะ</th>
+          <th>เสมอ</th>
+          <th>แพ้</th>
+          <th>ประตู</th>
+          <th>แต้มสะสม</th>
+          <th>สถานะ</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
+  tbList.forEach(tb => {
+    const teamMatches = matchesByTeam.get(tb.name) || [];
+    let wins = 0, draws = 0, losses = 0, goalsFor = 0;
+
+    teamMatches.forEach(m => {
+      if (m.home === tb.name) {
+        goalsFor += m.homeScore;
+        if (m.homeScore > m.awayScore) wins++;
+        else if (m.homeScore < m.awayScore) losses++;
+        else {
+          if (m.isKnockout && m.penaltyWinner) {
+            if (m.penaltyWinner === 'home') wins++; else losses++;
+          } else draws++;
+        }
+      } else {
+        goalsFor += m.awayScore;
+        if (m.awayScore > m.homeScore) wins++;
+        else if (m.awayScore < m.homeScore) losses++;
+        else {
+          if (m.isKnockout && m.penaltyWinner) {
+            if (m.penaltyWinner === 'away') wins++; else losses++;
+          } else draws++;
+        }
+      }
+    });
+
+    totalPts += (tb.points || 0); totalPlayed += teamMatches.length;
+    totalW += wins; totalD += draws; totalL += losses; totalGF += goalsFor;
+
+    const eliminated = isTeamEliminated(tb.name);
+    const statusBadge = eliminated
+      ? '<span style="color:#f43f5e; font-weight:600; font-size:11px;">ตกรอบ</span>'
+      : '<span style="color:#34d399; font-weight:600; font-size:11px;">ยังอยู่</span>';
+
+    statsHTML += `
+      <tr style="border-left: 3px solid var(--zone-${tb.zone});">
+        <td>${buildTeamBadgeHtml(tb.name, tb.zone, { extraStyle: 'padding:2px 6px; font-size:11px;' })}</td>
+        <td style="text-align:center;">${getWcGroupBadgeHtml(getTeamWcGroup(tb.name))}</td>
+        <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${formatZoneDisplayLabel(tb.zone).toUpperCase()}</span></td>
+        <td>${teamMatches.length}</td>
+        <td style="color:#34d399;">${wins}</td>
+        <td style="color:var(--zone-yellow);">${draws}</td>
+        <td style="color:#f43f5e;">${losses}</td>
+        <td>${goalsFor}</td>
+        <td style="font-weight:700; color:var(--primary);">${(tb.points || 0).toFixed(1)}</td>
+        <td>${statusBadge}</td>
+      </tr>
+    `;
+  });
+
+  statsHTML += `
+      </tbody>
+      <tfoot>
+        <tr class="team-stats-summary__total-row">
+          <td colspan="3">รวม</td>
+          <td>${totalPlayed}</td>
+          <td class="team-stats-w">${totalW}</td>
+          <td class="team-stats-d">${totalD}</td>
+          <td class="team-stats-l">${totalL}</td>
+          <td>${totalGF}</td>
+          <td class="team-stats-pts">${totalPts.toFixed(1)}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  return statsHTML;
+}
+
+function bindPlayerDrawerElimButtons(grid, name) {
+  grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const team = btn.getAttribute('data-elim-team');
+      if (app.manualEliminatedTeams.has(team)) {
+        app.manualEliminatedTeams.delete(team);
+      } else {
+        app.manualEliminatedTeams.add(team);
+      }
+      await saveEliminatedTeams();
+      recalculateAll();
+      openPlayerDetails(name);
+      renderDashboard();
+      if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({ forceRecalc: false });
+      if (document.getElementById('players') && document.getElementById('players').classList.contains('active')) renderPlayers();
+    });
+  });
+}
+
+function bindPlayerDrawerAdminButtons(player, name) {
+  const deleteBtn = document.getElementById('delete-player-btn');
+  const editBtn = document.getElementById('edit-player-selections-btn');
+
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
+        app.players = app.players.filter(p => p.name !== name);
+        localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+        if (app.isSyncEnabled) {
+          await saveToServer();
+        }
+        hidePlayerDetailsDrawer();
+        recalculateAll();
+        renderDashboard();
+        renderLeaderboard();
+        renderPlayers();
+      });
+    };
+  }
+
+  if (editBtn) {
+    editBtn.onclick = () => {
+      hidePlayerDetailsDrawer();
+      openPlayerForm(player);
+    };
+  }
+
+  if (deleteBtn && editBtn) {
+    if (app.isAdmin) {
+      deleteBtn.style.display = 'block';
+      editBtn.style.display = 'block';
+    } else {
+      deleteBtn.style.display = 'none';
+      editBtn.style.display = 'none';
+    }
+  }
+}
+
+function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx, onDone) {
+  if (token !== _playerDetailsFillToken) return;
+
+  const batchSize = isMobileDevice() ? 2 : tbList.length;
+  const end = Math.min(startIdx + batchSize, tbList.length);
+
+  for (let ti = startIdx; ti < end; ti++) {
+    if (token !== _playerDetailsFillToken) return;
+    const tb = tbList[ti];
+    const item = document.createElement('div');
+    const eliminated = isTeamEliminated(tb.name);
+    const elimBadge = eliminated
+      ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
+      : '<span class="player-team-status player-team-status--in">อยู่</span>';
+    const elimToggleBtn = app.isAdmin
+      ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
+      : '';
+    const teamMatches = matchesByTeam.get(tb.name) || [];
+    const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
+
+    item.className = `player-team-item player-team-item--${tb.zone}`;
+    item.innerHTML = buildPlayerTeamItemHtml(tb, { elimBadge, elimToggleBtn, matchHistoryHTML });
+    grid.appendChild(item);
+  }
+
+  if (end < tbList.length) {
+    requestAnimationFrame(() => appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, end, onDone));
+    return;
+  }
+
+  onDone();
+}
+
 function fillPlayerDetailsDrawer(name, token) {
   if (token !== _playerDetailsFillToken) return;
 
@@ -4086,8 +4307,12 @@ function fillPlayerDetailsDrawer(name, token) {
     if (el) el.textContent = (val != null ? val : '');
   };
 
+  const onMobile = isMobileDevice();
+
   try {
-    recalculateAll();
+    if (!onMobile || !app.processedPlayers?.length) {
+      recalculateAll();
+    }
     if (token !== _playerDetailsFillToken) return;
 
     // Lenient name lookup (trim + case-insensitive fallback for robustness)
@@ -4121,134 +4346,55 @@ function fillPlayerDetailsDrawer(name, token) {
     setText('detail-prediction-guess', player.guess);
     setText('detail-total-score', (player.totalScore || 0).toFixed(2));
 
-    // === Now build the detailed sections (stats + per-team list) ===
-    // Wrapped so that even if this part throws, the drawer is already visible.
+    const matchesByTeam = getFinishedMatchesByTeam();
+    if (token !== _playerDetailsFillToken) return;
+
+    const finishDrawerFill = () => {
+      if (token !== _playerDetailsFillToken) return;
+      bindPlayerDrawerAdminButtons(player, name);
+      scheduleRankSoundEffect(player, token);
+    };
+
     try {
-      // ── Team Stats Summary (optional section) ────────────────────────────
       const statsContainer = document.getElementById('detail-team-stats-container');
       if (statsContainer) {
-        const tbList = Array.isArray(player.teamBreakdown) ? player.teamBreakdown : [];
-        let statsHTML = `
+        statsContainer.innerHTML = `
           <button type="button" class="team-stats-toggle" id="toggle-team-stats-btn">
             <span class="team-stats-toggle__label">📊 สถิติทีม (ตาราง)</span>
             <span class="team-stats-toggle__arrow" id="toggle-stats-arrow">▼</span>
           </button>
-          <div id="team-stats-table-wrapper" class="player-detail-stats-table-wrap" style="display:none;">
-            <table class="team-stats-summary team-stats-summary--drawer">
-              <thead>
-                <tr>
-                  <th style="text-align:left;">ทีม</th>
-                  <th>กลุ่ม</th>
-                  <th>โซน</th>
-                  <th>เล่น</th>
-                  <th>ชนะ</th>
-                  <th>เสมอ</th>
-                  <th>แพ้</th>
-                  <th>ประตู</th>
-                  <th>แต้มสะสม</th>
-                  <th>สถานะ</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div id="team-stats-table-wrapper" class="player-detail-stats-table-wrap" style="display:none;"></div>
         `;
-        
-        let totalPts = 0, totalPlayed = 0, totalW = 0, totalD = 0, totalL = 0, totalGF = 0;
-        tbList.forEach(tb => {
-          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
-          let wins = 0, draws = 0, losses = 0, goalsFor = 0;
-          
-          teamMatches.forEach(m => {
-            if (m.home === tb.name) {
-              goalsFor += m.homeScore;
-              if (m.homeScore > m.awayScore) wins++;
-              else if (m.homeScore < m.awayScore) losses++;
-              else {
-                if (m.isKnockout && m.penaltyWinner) {
-                  if (m.penaltyWinner === 'home') wins++; else losses++;
-                } else draws++;
-              }
-            } else {
-              goalsFor += m.awayScore;
-              if (m.awayScore > m.homeScore) wins++;
-              else if (m.awayScore < m.homeScore) losses++;
-              else {
-                if (m.isKnockout && m.penaltyWinner) {
-                  if (m.penaltyWinner === 'away') wins++; else losses++;
-                } else draws++;
-              }
-            }
-          });
-          
-          totalPts += (tb.points || 0); totalPlayed += teamMatches.length;
-          totalW += wins; totalD += draws; totalL += losses; totalGF += goalsFor;
-          
-          const eliminated = isTeamEliminated(tb.name);
-          const statusBadge = eliminated 
-            ? '<span style="color:#f43f5e; font-weight:600; font-size:11px;">ตกรอบ</span>'
-            : '<span style="color:#34d399; font-weight:600; font-size:11px;">ยังอยู่</span>';
-          
-          statsHTML += `
-            <tr style="border-left: 3px solid var(--zone-${tb.zone});">
-              <td>${buildTeamBadgeHtml(tb.name, tb.zone, { extraStyle: 'padding:2px 6px; font-size:11px;' })}</td>
-              <td style="text-align:center;">${getWcGroupBadgeHtml(getTeamWcGroup(tb.name))}</td>
-              <td><span class="team-badge team-${tb.zone}" style="padding:2px 6px; font-size:9px;">${formatZoneDisplayLabel(tb.zone).toUpperCase()}</span></td>
-              <td>${teamMatches.length}</td>
-              <td style="color:#34d399;">${wins}</td>
-              <td style="color:var(--zone-yellow);">${draws}</td>
-              <td style="color:#f43f5e;">${losses}</td>
-              <td>${goalsFor}</td>
-              <td style="font-weight:700; color:var(--primary);">${(tb.points || 0).toFixed(1)}</td>
-              <td>${statusBadge}</td>
-            </tr>
-          `;
-        });
-        
-        statsHTML += `
-              </tbody>
-              <tfoot>
-                <tr class="team-stats-summary__total-row">
-                  <td colspan="3">รวม</td>
-                  <td>${totalPlayed}</td>
-                  <td class="team-stats-w">${totalW}</td>
-                  <td class="team-stats-d">${totalD}</td>
-                  <td class="team-stats-l">${totalL}</td>
-                  <td>${totalGF}</td>
-                  <td class="team-stats-pts">${totalPts.toFixed(1)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        `;
-        
-        if (token !== _playerDetailsFillToken) return;
-        statsContainer.innerHTML = statsHTML;
-        
-        // Toggle stats visibility
+
         const toggleBtn = document.getElementById('toggle-team-stats-btn');
         const tableWrapper = document.getElementById('team-stats-table-wrapper');
         const arrow = document.getElementById('toggle-stats-arrow');
         if (toggleBtn && tableWrapper) {
           toggleBtn.addEventListener('click', () => {
             const isHidden = tableWrapper.style.display === 'none';
+            if (isHidden && !tableWrapper.dataset.loaded) {
+              tableWrapper.innerHTML = buildPlayerStatsTableHtml(player, matchesByTeam);
+              tableWrapper.dataset.loaded = '1';
+            }
             tableWrapper.style.display = isHidden ? 'block' : 'none';
             if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
           });
+
+          if (!onMobile) {
+            tableWrapper.innerHTML = buildPlayerStatsTableHtml(player, matchesByTeam);
+            tableWrapper.dataset.loaded = '1';
+          }
         }
       }
 
-      // ── Per-team list with match history ────────────────────────────
-      // Sort teams by the date they first played (เรียงตามวันที่เตะ) — oldest first.
-      // Teams with no finished app.matches go to the end.
       const grid = document.getElementById('detail-teams-grid');
       if (grid) {
         grid.innerHTML = '';
         let tbList = Array.isArray(player.teamBreakdown) ? [...player.teamBreakdown] : [];
-
-        // Pre-compute earliest play date for each team for stable sorting
         const teamEarliestDate = {};
+
         tbList.forEach(tb => {
-          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
+          const teamMatches = matchesByTeam.get(tb.name) || [];
           if (teamMatches.length > 0) {
             const dates = teamMatches
               .map(m => m.date ? new Date(m.date).getTime() : Infinity)
@@ -4265,91 +4411,20 @@ function fillPlayerDetailsDrawer(name, token) {
           if (da === db) return 0;
           return da - db;
         });
-        
-        for (let ti = 0; ti < tbList.length; ti++) {
+
+        appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, 0, () => {
           if (token !== _playerDetailsFillToken) return;
-          const tb = tbList[ti];
-          const item = document.createElement('div');
-
-          const eliminated = isTeamEliminated(tb.name);
-          const elimBadge = eliminated
-            ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
-            : '<span class="player-team-status player-team-status--in">อยู่</span>';
-
-          const elimToggleBtn = app.isAdmin
-            ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
-            : '';
-
-          const teamMatches = app.matches.filter(m => m.status === 'finished' && (m.home === tb.name || m.away === tb.name));
-          const matchHistoryHTML = buildPlayerTeamMatchHistoryHtml(tb, teamMatches);
-
-          item.className = `player-team-item player-team-item--${tb.zone}`;
-          item.innerHTML = buildPlayerTeamItemHtml(tb, { elimBadge, elimToggleBtn, matchHistoryHTML });
-          grid.appendChild(item);
-        }
-        
-        // Toggle-elim buttons (admin)
-        grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const team = btn.getAttribute('data-elim-team');
-            if (app.manualEliminatedTeams.has(team)) {
-              app.manualEliminatedTeams.delete(team);
-            } else {
-              app.manualEliminatedTeams.add(team);
-            }
-            await saveEliminatedTeams();
-            recalculateAll();
-            openPlayerDetails(name);
-            renderDashboard();
-            if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({forceRecalc: false});
-            if (document.getElementById('players') && document.getElementById('players').classList.contains('active')) renderPlayers();
-          });
+          bindPlayerDrawerElimButtons(grid, name);
+          finishDrawerFill();
         });
+        return;
       }
 
-      // Admin buttons (delete / edit)
-      const deleteBtn = document.getElementById('delete-player-btn');
-      const editBtn = document.getElementById('edit-player-selections-btn');
-      
-      if (deleteBtn) {
-        deleteBtn.onclick = () => {
-          showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
-            app.players = app.players.filter(p => p.name !== name);
-            localStorage.setItem('worldcup_players', JSON.stringify(app.players));
-            if (app.isSyncEnabled) {
-              await saveToServer();
-            }
-            hidePlayerDetailsDrawer();
-            recalculateAll();
-            renderDashboard();
-            renderLeaderboard();
-            renderPlayers();
-          });
-        };
-      }
-      
-      if (editBtn) {
-        editBtn.onclick = () => {
-          hidePlayerDetailsDrawer();
-          openPlayerForm(player);
-        };
-      }
-      
-      if (deleteBtn && editBtn) {
-        if (app.isAdmin) {
-          deleteBtn.style.display = 'block';
-          editBtn.style.display = 'block';
-        } else {
-          deleteBtn.style.display = 'none';
-          editBtn.style.display = 'none';
-        }
-      }
+      finishDrawerFill();
     } catch (innerErr) {
       console.error('[openPlayerDetails] error while building details content (drawer is already visible):', innerErr);
+      finishDrawerFill();
     }
-
-    scheduleRankSoundEffect(player, token);
 
   } catch (err) {
     console.error('Error in openPlayerDetails:', err);
