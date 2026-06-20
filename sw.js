@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v16';
+const CACHE_NAME = 'wc2026-v17';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -89,7 +89,7 @@ async function networkFirstData(request) {
       const text = await clone.text();
       const hash = simpleHash(text);
       if (lastDataHash && hash !== lastDataHash) {
-        let message = 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่';
+        let message = 'มีการอัปเดตสกอร์หรือข้อมูลใหม่';
         let isBroadcast = false;
         try {
           const data = JSON.parse(text);
@@ -101,6 +101,10 @@ async function networkFirstData(request) {
               message = bc.message || 'มีการแจ้งเตือนจากแอดมิน — ตรวจสอบผลล่าสุดในแอป';
               isBroadcast = true;
             }
+          }
+          if (!isBroadcast) {
+            const scoreMsg = await getScoreUpdateMessage(data.matches);
+            if (scoreMsg) message = scoreMsg;
           }
         } catch {
           // keep default message
@@ -158,6 +162,52 @@ async function getStoredBroadcastId() {
 async function setStoredBroadcastId(id) {
   const cache = await caches.open(META_CACHE);
   await cache.put(BROADCAST_META_KEY, new Response(String(id)));
+}
+
+const MATCHES_META_KEY = '/__last_matches_scores__';
+
+function matchScoreKey(m) {
+  if (!m) return '';
+  return `${m.id}:${m.homeScore ?? 'n'}-${m.awayScore ?? 'n'}-${m.status || 'pending'}`;
+}
+
+async function getStoredMatchScores() {
+  const cache = await caches.open(META_CACHE);
+  const res = await cache.match(MATCHES_META_KEY);
+  if (!res) return {};
+  try {
+    return JSON.parse(await res.text());
+  } catch {
+    return {};
+  }
+}
+
+async function setStoredMatchScores(map) {
+  const cache = await caches.open(META_CACHE);
+  await cache.put(MATCHES_META_KEY, new Response(JSON.stringify(map)));
+}
+
+async function getScoreUpdateMessage(matches) {
+  if (!Array.isArray(matches) || !matches.length) return '';
+  const prev = await getStoredMatchScores();
+  const next = {};
+  const changed = [];
+
+  for (const m of matches) {
+    next[String(m.id)] = matchScoreKey(m);
+    const old = prev[String(m.id)];
+    if (old && old !== next[String(m.id)] && (m.homeScore != null || m.status === 'finished')) {
+      changed.push(m);
+    }
+  }
+
+  await setStoredMatchScores(next);
+  if (!changed.length) return '';
+
+  const last = changed[changed.length - 1];
+  const line = `${last.home} ${last.homeScore ?? '-'}-${last.awayScore ?? '-'} ${last.away}`;
+  if (changed.length === 1) return `⚽ อัปเดตสกอร์: ${line}`;
+  return `⚽ อัปเดตสกอร์ ${changed.length} นัด — ${line}`;
 }
 
 async function notifyClients(message) {

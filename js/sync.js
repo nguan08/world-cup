@@ -1,7 +1,15 @@
 import { app } from './state.js';
 import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
 import { recalculateAll, loadEliminatedTeams } from './scoring.js';
-import { notifyDataUpdate, processBroadcast, flushPendingBroadcast, updateBroadcastBanner } from './notifications.js';
+import {
+  notifyDataUpdate,
+  processBroadcast,
+  processScoreUpdates,
+  flushPendingBroadcast,
+  flushPendingScoreUpdate,
+  findScoreChanges,
+  updateBroadcastBanner
+} from './notifications.js';
 import { isMobileDevice } from './device.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
@@ -50,6 +58,14 @@ export async function initData() {
   }
 
   const hasServerData = serverData.matches && serverData.matches.length > 0;
+  let cachedMatchesForScores = [];
+  try {
+    cachedMatchesForScores = JSON.parse(localStorage.getItem('worldcup_matches') || '[]');
+    if (!Array.isArray(cachedMatchesForScores)) cachedMatchesForScores = [];
+  } catch {
+    cachedMatchesForScores = [];
+  }
+  const initScoreChanges = findScoreChanges(cachedMatchesForScores, serverData.matches || []);
   // On GitHub Pages there is no /api/save — treat data.json as the shared source of truth
   if (!app.isSyncEnabled && hasServerData) {
     app.isSyncEnabled = true;
@@ -202,6 +218,9 @@ export async function initData() {
     updateBroadcastBanner(serverData.broadcast);
   }
   processBroadcast(serverData, { onInit: true });
+  if (initScoreChanges.length) {
+    processScoreUpdates(initScoreChanges, { onInit: true });
+  }
 
   loadEliminatedTeams();
   app.lastDataRefreshTime = new Date();
@@ -331,23 +350,25 @@ export async function pollServerData() {
     const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const serverData = await res.json();
+    const scoreChanges = findScoreChanges(app.matches, serverData.matches || []);
     const changed = mergeServerDataIntoLocal(serverData);
     if (serverData.broadcast) {
       app.broadcast = serverData.broadcast;
       updateBroadcastBanner(serverData.broadcast);
     }
     const broadcasted = processBroadcast(serverData);
-    if (changed || broadcasted) {
+    const scoreNotified = scoreChanges.length ? processScoreUpdates(scoreChanges) : false;
+    if (changed || broadcasted || scoreNotified) {
       app.lastDataRefreshTime = new Date();
       if (!document.hidden) {
         if (changed) {
           updateDataSyncStatus('updating');
           recalculateAll();
           _refreshPage();
-          updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
+          updateDataSyncStatus('updated', scoreNotified ? 'สกอร์อัปเดต' : 'มีข้อมูลใหม่');
         }
-        if (!broadcasted && changed) notifyDataUpdate({ type: 'data' });
-      } else if (changed && !broadcasted) {
+        if (!broadcasted && !scoreNotified && changed) notifyDataUpdate({ type: 'data' });
+      } else if (changed && !broadcasted && !scoreNotified) {
         notifyDataUpdate({ type: 'data', forceBrowserNotify: true });
       }
     }
@@ -367,11 +388,13 @@ export function setupAutoRefresh() {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       flushPendingBroadcast();
+      flushPendingScoreUpdate();
       pollServerData();
     }
   });
   window.addEventListener('pageshow', () => {
     flushPendingBroadcast();
+    flushPendingScoreUpdate();
     pollServerData();
   });
 }

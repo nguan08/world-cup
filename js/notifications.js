@@ -22,8 +22,11 @@ let showingBroadcastToastId = 0;
 
 const SHOWN_BROADCAST_KEY = 'worldcup_shownBroadcastId';
 const PENDING_BROADCAST_KEY = 'worldcup_pendingBroadcast';
+const PENDING_SCORE_KEY = 'worldcup_pendingScoreUpdate';
+const NOTIFIED_SCORES_KEY = 'worldcup_notifiedMatchScores';
 const BROADCAST_STALE_MS = 24 * 60 * 60 * 1000;
 const BROADCAST_TOAST_MS = 6000;
+const SCORE_TOAST_MS = 6000;
 const DEFAULT_TOAST_MS = 8000;
 
 export function initNotifications() {
@@ -37,6 +40,7 @@ export function initNotifications() {
   setupIOSPushBanner();
   setupIOSPushListeners();
   flushPendingBroadcast();
+  flushPendingScoreUpdate();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
@@ -52,10 +56,19 @@ export function initNotifications() {
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) flushPendingBroadcast();
+    if (!document.hidden) {
+      flushPendingBroadcast();
+      flushPendingScoreUpdate();
+    }
   });
-  window.addEventListener('pageshow', flushPendingBroadcast);
-  window.addEventListener('focus', flushPendingBroadcast);
+  window.addEventListener('pageshow', () => {
+    flushPendingBroadcast();
+    flushPendingScoreUpdate();
+  });
+  window.addEventListener('focus', () => {
+    flushPendingBroadcast();
+    flushPendingScoreUpdate();
+  });
 }
 
 export function getNotificationPermission() {
@@ -104,6 +117,118 @@ export function updateBroadcastBanner(bc) {
 
 export function hideBroadcastBanner() {
   currentBannerId = 0;
+}
+
+function getMatchScoreKey(match) {
+  if (!match) return '';
+  return `${match.homeScore ?? 'n'}-${match.awayScore ?? 'n'}-${match.status || 'pending'}-${match.penaltyWinner || ''}`;
+}
+
+export function findScoreChanges(localMatches, serverMatches) {
+  if (!Array.isArray(serverMatches) || !serverMatches.length) return [];
+  if (!Array.isArray(localMatches) || !localMatches.length) return [];
+
+  const changes = [];
+  for (const sm of serverMatches) {
+    const lm = localMatches.find((m) => m.id == sm.id);
+    if (!lm) {
+      if (sm.homeScore != null || sm.status === 'finished') changes.push(sm);
+      continue;
+    }
+    const changed = getMatchScoreKey(lm) !== getMatchScoreKey(sm);
+    if (changed && (sm.homeScore != null || sm.status === 'finished')) {
+      changes.push(sm);
+    }
+  }
+  return changes;
+}
+
+function filterUnnotifiedScoreChanges(changes) {
+  let notified = {};
+  try {
+    notified = JSON.parse(localStorage.getItem(NOTIFIED_SCORES_KEY) || '{}');
+  } catch {
+    notified = {};
+  }
+  return changes.filter((m) => notified[String(m.id)] !== getMatchScoreKey(m));
+}
+
+function markScoresNotified(matches) {
+  let notified = {};
+  try {
+    notified = JSON.parse(localStorage.getItem(NOTIFIED_SCORES_KEY) || '{}');
+  } catch {
+    notified = {};
+  }
+  for (const m of matches) {
+    notified[String(m.id)] = getMatchScoreKey(m);
+  }
+  localStorage.setItem(NOTIFIED_SCORES_KEY, JSON.stringify(notified));
+}
+
+function formatMatchScoreLine(match) {
+  const home = match.homeScore ?? '-';
+  const away = match.awayScore ?? '-';
+  let line = `${match.home} ${home}-${away} ${match.away}`;
+  if (match.penaltyWinner) line += ` (จุดโทษ: ${match.penaltyWinner})`;
+  return line;
+}
+
+export function formatScoreUpdateMessage(changes) {
+  if (!changes?.length) return 'มีการอัปเดตสกอร์ใหม่';
+  if (changes.length === 1) return `⚽ อัปเดตสกอร์: ${formatMatchScoreLine(changes[0])}`;
+  const latest = changes[changes.length - 1];
+  return `⚽ อัปเดตสกอร์ ${changes.length} นัด — ${formatMatchScoreLine(latest)}`;
+}
+
+function displayScoreUpdateMessage(message, { changes = [], autoDismiss = false } = {}) {
+  showUpdateToast(message, {
+    durationMs: autoDismiss ? SCORE_TOAST_MS : DEFAULT_TOAST_MS,
+    onDismiss: () => {
+      if (changes.length) markScoresNotified(changes);
+    }
+  });
+  if (isMobileDevice() && navigator.vibrate) {
+    try { navigator.vibrate([80, 40, 80]); } catch { /* ignore */ }
+  }
+}
+
+function queuePendingScoreUpdate(changes, message) {
+  localStorage.setItem(PENDING_SCORE_KEY, JSON.stringify({ changes, message }));
+}
+
+export function flushPendingScoreUpdate() {
+  if (document.hidden) return;
+  const raw = localStorage.getItem(PENDING_SCORE_KEY);
+  if (!raw) return;
+  try {
+    const payload = JSON.parse(raw);
+    localStorage.removeItem(PENDING_SCORE_KEY);
+    const changes = filterUnnotifiedScoreChanges(payload?.changes || []);
+    if (!changes.length) return;
+    displayScoreUpdateMessage(
+      payload?.message || formatScoreUpdateMessage(changes),
+      { changes, autoDismiss: true }
+    );
+  } catch {
+    localStorage.removeItem(PENDING_SCORE_KEY);
+  }
+}
+
+export function processScoreUpdates(changes, { onInit = false } = {}) {
+  const fresh = filterUnnotifiedScoreChanges(changes || []);
+  if (!fresh.length) return false;
+
+  const message = formatScoreUpdateMessage(fresh);
+
+  if (document.hidden) {
+    queuePendingScoreUpdate(fresh, message);
+    showBrowserNotification(message, 'data');
+    return true;
+  }
+
+  displayScoreUpdateMessage(message, { changes: fresh, autoDismiss: true });
+  return true;
 }
 
 export function flushPendingBroadcast() {
