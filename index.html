@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YEC-BR World Cup 2026 Challenge</title>
   <meta name="description" content="ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026 ของกลุ่ม YEC-BR">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#6366f1" id="theme-color-meta">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="WC 2026">
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.webmanifest?v=20260620-pwa-v25">
+  <link rel="manifest" href="manifest.webmanifest?v=20260620-pwa-black-bar">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://flagcdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://flagcdn.com">
-  <link rel="stylesheet" href="style.css?v=20260620-tools-sim-mobile">
+  <link rel="stylesheet" href="style.css?v=20260620-pwa-black-bar">
   <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
   <script>
     (function () {
@@ -32,6 +32,15 @@
 
       window.__wcDeferredInstallPrompt = null;
       window.__wcAppBase = wcAppBase();
+
+      var isPwaStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.matchMedia('(display-mode: fullscreen)').matches
+        || window.navigator.standalone === true;
+      if (isPwaStandalone) {
+        document.documentElement.classList.add('pwa-standalone');
+        var themeMeta = document.getElementById('theme-color-meta');
+        if (themeMeta) themeMeta.setAttribute('content', '#000000');
+      }
 
       window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
@@ -948,6 +957,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-tools-sim-v1"></script>
+  <script type="module" src="js/main.js?v=20260620-chart-ecg-neon"></script>
 </body>
 </html>

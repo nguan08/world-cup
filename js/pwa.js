@@ -147,8 +147,17 @@ function canInstallAsRealPwa() {
   return window.isSecureContext && location.protocol === 'https:';
 }
 
+const PWA_STATUS_BAR_COLOR = '#000000';
+const BROWSER_THEME_COLOR = '#6366f1';
+
 function applyStandaloneClass() {
-  document.documentElement.classList.toggle('pwa-standalone', isStandaloneMode());
+  const standalone = isStandaloneMode();
+  document.documentElement.classList.toggle('pwa-standalone', standalone);
+  const themeMeta = document.getElementById('theme-color-meta')
+    || document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', standalone ? PWA_STATUS_BAR_COLOR : BROWSER_THEME_COLOR);
+  }
 }
 
 export function waitForServiceWorker(timeoutMs = 15000) {

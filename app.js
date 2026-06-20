@@ -2898,9 +2898,7 @@ function renderScoreChart() {
   let labelsGroup = '';
   let hoverHelpers = '';
 
-  const playersToDraw = isMobile
-    ? playerRankHistory.filter(ph => (ph.ranks[stepsCount] || 99) <= 10)
-    : playerRankHistory;
+  const playersToDraw = playerRankHistory;
 
   playersToDraw.forEach(ph => {
     let pathPoints = [];
@@ -2911,15 +2909,12 @@ function renderScoreChart() {
     }
     const pathD = `M ${pathPoints.join(' L ')}`;
     const color = getPlayerColor(ph.zone);
-    const dotR = isMobile ? '2.4' : '3.2';
+    const dotR = '3.2';
 
     // Rank line path
     linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" data-zone="${ph.zone}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
 
-    // Invisible thick path to make hover easier (desktop only — saves SVG nodes on mobile)
-    if (!isMobile) {
-      hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
-    }
+    hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
     // Trend dots
     for (let i = 0; i <= stepsCount; i++) {
@@ -2972,7 +2967,7 @@ function renderScoreChart() {
 
   // Setup SVG dimensions — width tracks chart-card container, height follows viewBox ratio
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svgEl.setAttribute('preserveAspectRatio', isMobile ? 'none' : 'xMidYMid meet');
+  svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svgEl.setAttribute('width', '100%');
   svgEl.style.minWidth = '0';
   svgEl.style.maxWidth = '100%';
@@ -2982,6 +2977,10 @@ function renderScoreChart() {
   svgEl.dataset.chartW = String(W);
   svgEl.dataset.chartH = String(H);
   svgEl.dataset.chartPlotRightX = String(plotRightX);
+  svgEl.dataset.chartPlotW = String(chartW);
+  svgEl.dataset.chartPadL = String(padL);
+  svgEl.style.setProperty('--chart-plot-w', chartW + 'px');
+  svgEl.style.setProperty('--chart-pad-l', padL + 'px');
 
   if (isMobile) {
     svgEl.setAttribute('height', H);
@@ -3005,13 +3004,16 @@ function renderScoreChart() {
         <rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"/>
       </clipPath>
       <pattern id="chart-ecg-grid" width="${gridCell}" height="${gridCell}" patternUnits="userSpaceOnUse" x="${padL}" y="${padT}">
-        <path d="M ${gridCell} 0 L 0 0 0 ${gridCell}" fill="none" stroke="rgba(0,255,102,0.1)" stroke-width="0.5"/>
+        <path d="M ${gridCell} 0 L 0 0 0 ${gridCell}" fill="none" stroke="rgba(0,255,102,0.12)" stroke-width="0.55"/>
       </pattern>
+      ${getChartNeonFilterDefs()}
     </defs>
     ${plotBg || `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`}
     <g class="chart-monitor-overlay" clip-path="url(#chart-plot-clip)">
-      <rect class="chart-monitor-tint" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="3"/>
-      <rect class="chart-monitor-grid" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="3" fill="url(#chart-ecg-grid)"/>
+      <rect class="chart-monitor-tint" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4"/>
+      <rect class="chart-monitor-grid" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4" fill="url(#chart-ecg-grid)"/>
+      <rect class="chart-monitor-scan" x="${padL}" y="${padT}" width="2" height="${chartH}" rx="1" fill="rgba(255,45,85,0.5)"/>
+      <rect class="chart-monitor-scan-glow" x="${padL - 8}" y="${padT}" width="18" height="${chartH}" rx="3" fill="rgba(255,45,85,0.18)"/>
     </g>
     ${yGridLines}
     <line x1="${axisLineX}" x2="${axisLineX}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
@@ -3083,23 +3085,64 @@ function renderScoreChart() {
 const CHART_ZONE_PULSE = {
   blue: {
     phosphor: '#00d4ff',
-    core: '#b8f4ff',
+    core: '#e8fcff',
+    hot: '#ffffff',
     baseline: '#0891b2',
-    tint: 'rgba(0, 20, 36, 0.62)'
+    tint: 'rgba(0, 20, 36, 0.72)',
+    grid: 'rgba(0, 212, 255, 0.14)',
+    scan: 'rgba(0, 212, 255, 0.55)',
+    scanGlow: 'rgba(0, 212, 255, 0.2)'
   },
   green: {
     phosphor: '#00ff66',
-    core: '#ccffdd',
+    core: '#e8fff0',
+    hot: '#ffffff',
     baseline: '#00b347',
-    tint: 'rgba(0, 14, 6, 0.62)'
+    tint: 'rgba(0, 14, 6, 0.72)',
+    grid: 'rgba(0, 255, 102, 0.14)',
+    scan: 'rgba(0, 255, 102, 0.55)',
+    scanGlow: 'rgba(0, 255, 102, 0.2)'
   },
   red: {
-    phosphor: '#ff4d6d',
-    core: '#ffd6e0',
+    phosphor: '#ff2d55',
+    core: '#ffe8ee',
+    hot: '#ffffff',
     baseline: '#c9184a',
-    tint: 'rgba(24, 4, 10, 0.62)'
+    tint: 'rgba(28, 4, 12, 0.78)',
+    grid: 'rgba(255, 45, 85, 0.16)',
+    scan: 'rgba(255, 45, 85, 0.65)',
+    scanGlow: 'rgba(255, 45, 85, 0.22)'
   }
 };
+
+function getChartNeonFilterDefs() {
+  return `
+    <filter id="chart-neon-blue" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="b3"/>
+      <feMerge>
+        <feMergeNode in="b3"/><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="chart-neon-green" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="b3"/>
+      <feMerge>
+        <feMergeNode in="b3"/><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="chart-neon-red" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="b3"/>
+      <feMerge>
+        <feMergeNode in="b3"/><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  `;
+}
 
 // let chartHoverPlayer / chartPulseAnimPlayer are provided via state.js named exports in bundle
 
@@ -3136,6 +3179,7 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
   const zoneStyle = getChartZonePulseStyle(zone);
   clearChartPulseLayer(svgEl);
   const pulsePathD = extendChartPulsePathToPlotEnd(pathD, svgEl);
+  const neonFilter = `url(#chart-neon-${zone})`;
 
   const layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   layer.setAttribute('class', 'chart-pulse-layer');
@@ -3143,7 +3187,7 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
   layer.setAttribute('data-player', playerName);
   layer.setAttribute('clip-path', 'url(#chart-plot-clip)');
 
-  const mkPath = (cls, stroke, width, opacity) => {
+  const mkPath = (cls, stroke, width, opacity, opts = {}) => {
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     p.setAttribute('class', cls);
     p.setAttribute('d', pulsePathD);
@@ -3153,35 +3197,39 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
     p.setAttribute('stroke-linecap', 'round');
     p.setAttribute('stroke-linejoin', 'round');
     p.setAttribute('opacity', String(opacity));
+    if (opts.filter) p.setAttribute('filter', opts.filter);
     return p;
   };
 
-  layer.appendChild(mkPath('chart-ecg-baseline', zoneStyle.phosphor, 2, 0.42));
-  layer.appendChild(mkPath('chart-ecg-glow', zoneStyle.phosphor, 7, 0.32));
-  layer.appendChild(mkPath('chart-ecg-core', zoneStyle.phosphor, 2.5, 1));
+  layer.appendChild(mkPath('chart-ecg-baseline', zoneStyle.phosphor, 1.8, 0.32, { filter: neonFilter }));
+  layer.appendChild(mkPath('chart-ecg-trail', zoneStyle.phosphor, 3.5, 0.55, { filter: neonFilter }));
+  layer.appendChild(mkPath('chart-ecg-bloom', zoneStyle.phosphor, 16, 0.5, { filter: neonFilter }));
+  layer.appendChild(mkPath('chart-ecg-glow', zoneStyle.phosphor, 9, 0.85, { filter: neonFilter }));
+  layer.appendChild(mkPath('chart-ecg-core', zoneStyle.core, 3, 1, { filter: neonFilter }));
+  layer.appendChild(mkPath('chart-ecg-hot', zoneStyle.hot, 1.4, 1, { filter: neonFilter }));
   svgEl.appendChild(layer);
 
-  const sourceLine = chartFindPlayerEl(svgEl, '.trend-line', playerName);
-  if (sourceLine) {
-    sourceLine.setAttribute('stroke-width', '1');
-    sourceLine.setAttribute('stroke-opacity', '0.05');
-  }
-
-  const glow = layer.querySelector('.chart-ecg-glow');
-  const pathLen = glow.getTotalLength();
-  const cometLen = Math.min(Math.max(pathLen * 0.18, 48), 110);
+  const measurePath = layer.querySelector('.chart-ecg-glow');
+  const pathLen = measurePath.getTotalLength();
+  const cometLen = Math.min(Math.max(pathLen * 0.3, 72), 160);
   const dashGap = pathLen + cometLen;
-  const duration = Math.max(0.9, Math.min(1.6, pathLen / 220));
+  const duration = Math.max(1.6, Math.min(3.2, pathLen / 160));
 
   layer.style.setProperty('--ecg-comet', String(cometLen));
   layer.style.setProperty('--ecg-gap', String(dashGap));
   layer.style.setProperty('--ecg-offset', String(-dashGap));
   layer.style.setProperty('--ecg-dur', duration + 's');
 
-  layer.querySelectorAll('.chart-ecg-glow, .chart-ecg-core').forEach(path => {
+  layer.querySelectorAll('.chart-ecg-bloom, .chart-ecg-glow, .chart-ecg-core, .chart-ecg-hot').forEach(path => {
     path.setAttribute('stroke-dasharray', `${cometLen} ${pathLen}`);
     path.setAttribute('stroke-dashoffset', '0');
   });
+
+  const sourceLine = chartFindPlayerEl(svgEl, '.trend-line', playerName);
+  if (sourceLine) {
+    sourceLine.setAttribute('stroke-width', '1');
+    sourceLine.setAttribute('stroke-opacity', '0.06');
+  }
 
   requestAnimationFrame(() => {
     layer.classList.add('chart-pulse-running');
@@ -3210,6 +3258,9 @@ function resolveChartHoverTarget(node, stopAt) {
 function setChartMonitorOverlay(svgEl, zone) {
   if (!svgEl) return;
   const tint = svgEl.querySelector('.chart-monitor-tint');
+  const scan = svgEl.querySelector('.chart-monitor-scan');
+  const scanGlow = svgEl.querySelector('.chart-monitor-scan-glow');
+  const gridPattern = svgEl.querySelector('#chart-ecg-grid path');
 
   if (!zone) {
     svgEl.classList.remove('chart-ecg-active');
@@ -3218,9 +3269,15 @@ function setChartMonitorOverlay(svgEl, zone) {
   }
 
   const zoneStyle = getChartZonePulseStyle(zone);
+  const plotW = svgEl.dataset.chartPlotW || svgEl.style.getPropertyValue('--chart-plot-w') || '400px';
   svgEl.classList.add('chart-ecg-active');
   svgEl.setAttribute('data-ecg-zone', zone);
+  svgEl.style.setProperty('--chart-plot-w', /px$/.test(plotW) ? plotW : plotW + 'px');
+  svgEl.style.setProperty('--ecg-scan-dur', '2.6s');
   if (tint) tint.setAttribute('fill', zoneStyle.tint);
+  if (scan) scan.setAttribute('fill', zoneStyle.scan);
+  if (scanGlow) scanGlow.setAttribute('fill', zoneStyle.scanGlow);
+  if (gridPattern) gridPattern.setAttribute('stroke', zoneStyle.grid);
 }
 
 function bindChartHoverInteractions() {
@@ -3253,6 +3310,23 @@ function bindChartHoverInteractions() {
     const hlSelect = document.getElementById('chart-highlight-select');
     highlightPlayerInChart(hlSelect ? hlSelect.value : '');
   });
+
+  const handleChartTouch = (e) => {
+    const svgEl = document.getElementById('score-chart-svg');
+    if (!svgEl) return;
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const chartTarget = resolveChartHoverTarget(target, container);
+    if (!chartTarget) return;
+    const playerName = chartTarget.getAttribute('data-player');
+    if (!playerName || playerName === chartHoverPlayer) return;
+    chartHoverPlayer = playerName;
+    highlightPlayerInChart(playerName);
+  };
+
+  container.addEventListener('touchstart', handleChartTouch, { passive: true });
+  container.addEventListener('touchmove', handleChartTouch, { passive: true });
 }
 
 function setChartLinePulse(playerName) {
@@ -6509,6 +6583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (chartHighlightSelect) {
     chartHighlightSelect.addEventListener('change', (e) => {
       chartHoverPlayer = '';
+      lastHighlightPlayer = e.target.value || '';
       highlightPlayerInChart(e.target.value);
     });
   }

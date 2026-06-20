@@ -6,8 +6,8 @@
   "start_url": "/world-cup/?source=pwa",
   "scope": "/world-cup/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "any",
   "lang": "th",
   "icons": [

@@ -702,11 +702,11 @@ h1 {
   box-sizing: border-box;
 }
 
-/* Heart monitor pulse — lightweight CSS sweep on hover (1 player only) */
+/* Heart monitor — cardiogram neon pulse loop (highlight / hover) */
 #score-chart-svg .chart-monitor-overlay {
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.35s ease;
 }
 
 #score-chart-svg.chart-ecg-active .chart-monitor-overlay {
@@ -714,48 +714,125 @@ h1 {
 }
 
 #score-chart-svg .chart-monitor-tint {
-  fill: rgba(0, 14, 6, 0.62);
-  stroke: rgba(255, 255, 255, 0.05);
+  fill: rgba(0, 14, 6, 0.72);
+  stroke: rgba(255, 255, 255, 0.04);
   stroke-width: 1;
 }
 
 #score-chart-svg.chart-ecg-active[data-ecg-zone="blue"] .chart-monitor-tint {
-  fill: rgba(0, 20, 36, 0.62);
+  fill: rgba(0, 20, 36, 0.72);
 }
 
 #score-chart-svg.chart-ecg-active[data-ecg-zone="green"] .chart-monitor-tint {
-  fill: rgba(0, 14, 6, 0.62);
+  fill: rgba(0, 14, 6, 0.72);
 }
 
 #score-chart-svg.chart-ecg-active[data-ecg-zone="red"] .chart-monitor-tint {
-  fill: rgba(24, 4, 10, 0.62);
+  fill: rgba(28, 4, 12, 0.78);
 }
 
 #score-chart-svg .chart-monitor-grid {
-  opacity: 0.9;
+  opacity: 0.85;
+}
+
+#score-chart-svg.chart-ecg-active .chart-monitor-grid {
+  animation: chart-ecg-grid-pulse 2.4s ease-in-out infinite;
+}
+
+#score-chart-svg .chart-monitor-scan,
+#score-chart-svg .chart-monitor-scan-glow {
+  opacity: 0;
+}
+
+#score-chart-svg.chart-ecg-active .chart-monitor-scan {
+  opacity: 0.95;
+  animation: chart-ecg-scan var(--ecg-scan-dur, 2.6s) linear infinite;
+}
+
+#score-chart-svg.chart-ecg-active .chart-monitor-scan-glow {
+  opacity: 1;
+  animation: chart-ecg-scan var(--ecg-scan-dur, 2.6s) linear infinite;
 }
 
 #score-chart-svg .chart-pulse-layer {
   pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 #score-chart-svg .chart-pulse-layer path {
   vector-effect: non-scaling-stroke;
 }
 
+#score-chart-svg .chart-pulse-running .chart-ecg-baseline {
+  animation: chart-ecg-heartbeat 1.15s ease-in-out infinite;
+}
+
+#score-chart-svg .chart-pulse-running .chart-ecg-trail {
+  animation: chart-ecg-trail-pulse 2.2s ease-in-out infinite;
+}
+
+#score-chart-svg .chart-pulse-running .chart-ecg-bloom,
 #score-chart-svg .chart-pulse-running .chart-ecg-glow,
-#score-chart-svg .chart-pulse-running .chart-ecg-core {
-  animation: chart-ecg-sweep var(--ecg-dur, 3s) linear infinite;
+#score-chart-svg .chart-pulse-running .chart-ecg-core,
+#score-chart-svg .chart-pulse-running .chart-ecg-hot {
+  animation: chart-ecg-sweep var(--ecg-dur, 2.4s) linear infinite;
+}
+
+#score-chart-svg .chart-pulse-running .chart-ecg-hot {
+  animation-duration: calc(var(--ecg-dur, 2.4s) * 0.98);
 }
 
 @keyframes chart-ecg-sweep {
   from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: var(--ecg-offset, -200); }
+  to { stroke-dashoffset: var(--ecg-offset, -240); }
+}
+
+@keyframes chart-ecg-heartbeat {
+  0%, 100% { opacity: 0.22; }
+  12% { opacity: 0.48; }
+  24% { opacity: 0.3; }
+  36% { opacity: 0.55; }
+  48% { opacity: 0.28; }
+  60% { opacity: 0.42; }
+}
+
+@keyframes chart-ecg-trail-pulse {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.68; }
+}
+
+@keyframes chart-ecg-grid-pulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes chart-ecg-scan {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.95;
+  }
+  94% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(var(--chart-plot-w, 400px));
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #score-chart-svg.chart-ecg-active .chart-monitor-grid,
+  #score-chart-svg.chart-ecg-active .chart-monitor-scan,
+  #score-chart-svg.chart-ecg-active .chart-monitor-scan-glow,
+  #score-chart-svg .chart-pulse-running .chart-ecg-baseline,
+  #score-chart-svg .chart-pulse-running .chart-ecg-trail,
+  #score-chart-svg .chart-pulse-running .chart-ecg-bloom,
   #score-chart-svg .chart-pulse-running .chart-ecg-glow,
-  #score-chart-svg .chart-pulse-running .chart-ecg-core {
+  #score-chart-svg .chart-pulse-running .chart-ecg-core,
+  #score-chart-svg .chart-pulse-running .chart-ecg-hot {
     animation: none;
     stroke-dashoffset: 0;
   }
@@ -3818,8 +3895,21 @@ html.is-admin .player-details-drawer__actions {
   background: #fbbf24;
 }
 
+html.pwa-standalone {
+  background-color: #000000;
+}
+
+html.pwa-standalone body {
+  background-color: #0c0c12;
+}
+
 html.pwa-standalone .mobile-header {
   padding-top: max(12px, env(safe-area-inset-top, 12px));
+  background: #000000;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .admin-actions {
@@ -8421,6 +8511,10 @@ td.tools-sim-scores {
     height: 30px !important;
     font-size: 12px !important;
     line-height: 30px !important;
+  }
+
+  #chart-card #chart-svg-container {
+    min-height: 200px;
   }
 }
 
