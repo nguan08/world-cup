@@ -3850,49 +3850,24 @@ function scheduleRankNagBeep(ctx, { start, freq = 440, peak = 0.075 }) {
   });
 }
 
-function scheduleRankSadWah(ctx, { start, duration, freqStart, freqEnd, peak = 0.09, type = 'sawtooth' }) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const wobble = ctx.createOscillator();
-  const wobbleGain = ctx.createGain();
+/** Two-beat nag: แพ้ (beep) → แล้ว (slide down) */
+function scheduleRankTauntPhrase(ctx, { start, peak = 0.072, nagLevel = 0 }) {
+  const high = 548 + nagLevel * 16;
+  const low = 418 + nagLevel * 6;
 
-  osc.type = type;
-  wobble.type = 'sine';
-  wobble.frequency.value = 5.5;
-  wobbleGain.gain.value = freqStart * 0.018;
-
-  osc.frequency.setValueAtTime(freqStart, start);
-  osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 42), start + duration * 0.72);
-  osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd * 0.82, 38), start + duration);
-
-  wobble.connect(wobbleGain);
-  wobbleGain.connect(osc.frequency);
-
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.linearRampToValueAtTime(peak, start + 0.04);
-  gain.gain.setValueAtTime(peak * 0.9, start + duration * 0.35);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  wobble.start(start);
-  osc.start(start);
-  wobble.stop(start + duration + 0.02);
-  osc.stop(start + duration + 0.02);
-}
-
-function scheduleRankMournfulWhine(ctx, { start, duration, freq, peak = 0.07, slideTo = 55 }) {
-  [0, 11].forEach((cents) => {
-    const detune = cents === 0 ? 0 : 13;
-    scheduleRankTone(ctx, {
-      start,
-      duration,
-      freq: freq * Math.pow(2, cents / 1200),
-      type: cents === 0 ? 'sawtooth' : 'triangle',
-      peak: cents === 0 ? peak : peak * 0.42,
-      slideTo: slideTo * Math.pow(2, cents / 1200)
-    });
+  scheduleRankNagBeep(ctx, { start, freq: high, peak });
+  scheduleRankTone(ctx, {
+    start: start + 0.12,
+    duration: 0.16,
+    freq: low,
+    type: 'square',
+    peak: peak * 0.9,
+    slideTo: low * 0.7
   });
+
+  if (nagLevel >= 1) {
+    scheduleRankNagBeep(ctx, { start: start + 0.26, freq: high * 0.94, peak: peak * 0.5 });
+  }
 }
 
 function playWinnerFanfare() {
@@ -3933,66 +3908,25 @@ function playLoserFailSound(light = false) {
     if (!ctx) return;
     const now = ctx.currentTime;
 
-    if (light) {
-      [0, 0.28, 0.56].forEach((at, i) => {
-        scheduleRankNagBeep(ctx, { start: now + at, freq: 410 - i * 35, peak: 0.062 });
+    const repeats = light ? 3 : 5;
+    const gap = light ? 0.36 : 0.34;
+
+    for (let i = 0; i < repeats; i++) {
+      scheduleRankTauntPhrase(ctx, {
+        start: now + i * gap,
+        peak: Math.min(0.068 + i * 0.005, 0.088),
+        nagLevel: i
       });
-      scheduleRankSadWah(ctx, {
-        start: now + 0.88,
-        duration: 0.58,
-        freqStart: 210,
-        freqEnd: 68,
-        peak: 0.072,
-        type: 'triangle'
-      });
-      scheduleRankMournfulWhine(ctx, {
-        start: now + 1.42,
-        duration: 0.75,
-        freq: 165,
-        peak: 0.05,
-        slideTo: 46
-      });
-      return;
     }
 
-    [0, 0.17, 0.34, 0.51].forEach((at) => {
-      scheduleRankNagBeep(ctx, { start: now + at, freq: 498, peak: 0.068 });
-    });
-
-    scheduleRankTone(ctx, {
-      start: now + 0.72,
-      duration: 0.55,
-      freq: 162,
-      type: 'square',
-      peak: 0.1,
-      slideTo: 78
-    });
-
-    scheduleRankNoise(ctx, { start: now + 0.68, duration: 0.75, peak: 0.038, frequency: 210 });
-
-    [
-      { at: 1.18, start: 207, end: 112 },
-      { at: 1.62, start: 178, end: 88 },
-      { at: 2.06, start: 149, end: 58 }
-    ].forEach(({ at, start, end }) => {
-      scheduleRankSadWah(ctx, {
-        start: now + at,
-        duration: 0.4,
-        freqStart: start,
-        freqEnd: end,
-        peak: 0.092,
-        type: 'sawtooth'
+    const tail = now + repeats * gap;
+    [0, 0.09, 0.18, 0.28].forEach((off, i) => {
+      scheduleRankNagBeep(ctx, {
+        start: tail + off,
+        freq: 510 - i * 28,
+        peak: 0.066 + i * 0.004
       });
     });
-
-    scheduleRankMournfulWhine(ctx, {
-      start: now + 2.58,
-      duration: 1.15,
-      freq: 248,
-      peak: 0.058,
-      slideTo: 42
-    });
-    scheduleRankNoise(ctx, { start: now + 2.62, duration: 1.0, peak: 0.028, frequency: 165 });
   } catch (_) {
     /* ignore audio errors */
   }
@@ -4004,7 +3938,7 @@ function speakRankPhrase(type, options = {}) {
   const { repeat = 1, delayMs = 0 } = options;
   const phrases = {
     winner: ['โคตรเทพเลยพี่!', 'แชมป์เปี้ยนสุดยอด!'],
-    loser: ['แพ้แล้วจ้า...', 'อันดับท้ายสุดเลยนะ...', 'เสียใจด้วยครับ...']
+    loser: ['แพ้แล้วจ้า', 'แพ้แล้วนะ', 'แพ้แล้วๆ', 'แพ้แล้วไง']
   };
   window.speechSynthesis.cancel();
 
@@ -4020,9 +3954,9 @@ function speakRankPhrase(type, options = {}) {
       utter.pitch = 1.08 + Math.random() * 0.12;
       utter.volume = 1;
     } else if (type === 'loser') {
-      utter.rate = 0.72 + Math.random() * 0.08;
-      utter.pitch = 0.52 + Math.random() * 0.1;
-      utter.volume = 0.95;
+      utter.rate = 1.05 + Math.random() * 0.1;
+      utter.pitch = 0.95 + Math.random() * 0.12;
+      utter.volume = 1;
     } else {
       utter.rate = 0.62 + Math.random() * 0.08;
       utter.pitch = 0.48 + Math.random() * 0.1;
@@ -4056,8 +3990,8 @@ function playRankSoundEffect(player, options = {}) {
     if (!skipSpeech) {
       _rankSpeechTimerId = setTimeout(() => {
         _rankSpeechTimerId = null;
-        speakRankPhrase('loser');
-      }, lightLoser ? 500 : 900);
+        speakRankPhrase('loser', { repeat: 2, delayMs: 320 });
+      }, lightLoser ? 400 : 700);
     }
   }
 }
