@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v23';
+const CACHE_NAME = 'wc2026-v24';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [
@@ -41,9 +41,21 @@ function iconUrl() {
   return new URL('icons/icon-192.png', base).href;
 }
 
+async function cacheStaticAssets(cache) {
+  await Promise.all(STATIC_ASSETS.map(async (asset) => {
+    try {
+      await cache.add(asset);
+    } catch (e) {
+      console.warn('[SW] cache skip', asset, e);
+    }
+  }));
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => cacheStaticAssets(cache))
+      .then(() => self.skipWaiting())
   );
 });
 

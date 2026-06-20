@@ -3,11 +3,15 @@
 import { getAppBasePath, resolveAppPath } from './app-path.js';
 
 const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
+const INSTALL_ENGAGEMENT_MS = 30000;
 
 let deferredInstallPrompt = window.__wcDeferredInstallPrompt || null;
 let lastInstallTap = 0;
 let serviceWorkerReadyPromise = null;
 let pwaUiReady = false;
+let pageLoadAt = Date.now();
+let userInteracted = false;
+let installUiTimer = null;
 
 function captureInstallPrompt(e) {
   e.preventDefault();
@@ -42,18 +46,48 @@ function syncCapturedInstallPrompt() {
 
 function onInstallPromptReady() {
   syncCapturedInstallPrompt();
-  if (pwaUiReady) {
+  if (pwaUiReady) refreshInstallButton();
+}
+
+function hasInstallEngagement() {
+  return userInteracted && Date.now() - pageLoadAt >= INSTALL_ENGAGEMENT_MS;
+}
+
+function getInstallEngagementWaitSec() {
+  return Math.max(1, Math.ceil((INSTALL_ENGAGEMENT_MS - (Date.now() - pageLoadAt)) / 1000));
+}
+
+function markUserInteracted() {
+  userInteracted = true;
+}
+
+function startInstallUiPolling() {
+  if (installUiTimer || !isAndroid() || !canInstallAsRealPwa() || isStandaloneMode()) return;
+  installUiTimer = window.setInterval(() => {
+    syncCapturedInstallPrompt();
     refreshInstallButton();
-  }
+    if (getCapturedInstallPrompt() || isStandaloneMode()) {
+      clearInterval(installUiTimer);
+      installUiTimer = null;
+    }
+  }, 2000);
+  window.setTimeout(() => {
+    if (installUiTimer) {
+      clearInterval(installUiTimer);
+      installUiTimer = null;
+    }
+  }, 90000);
 }
 
 export function initPWA() {
   pwaUiReady = true;
+  pageLoadAt = Date.now();
   syncCapturedInstallPrompt();
   registerServiceWorker();
   ensureInstallModal();
   applyStandaloneClass();
   refreshInstallButton();
+  startInstallUiPolling();
   document.getElementById('pwa-mode-status')?.remove();
   window.addEventListener('wc-installprompt-ready', onInstallPromptReady);
   window.addEventListener('wc-installprompt-cleared', onInstallPromptReady);
@@ -61,6 +95,9 @@ export function initPWA() {
   window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
     applyStandaloneClass();
     refreshInstallButton();
+  });
+  ['click', 'touchstart', 'keydown'].forEach((type) => {
+    document.addEventListener(type, markUserInteracted, { passive: true, once: false });
   });
 }
 
@@ -159,7 +196,6 @@ function bindInstallButton(btn) {
   };
 
   btn.addEventListener('click', handler);
-  btn.addEventListener('touchend', handler, { passive: false });
 }
 
 function getCapturedInstallPrompt() {
@@ -215,6 +251,15 @@ function waitForInstallPrompt(timeoutMs = 2500) {
   });
 }
 
+function showInstallWaitMessage() {
+  const sec = getInstallEngagementWaitSec();
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) {
+    btn.textContent = `รออีก ~${sec} วินาที…`;
+    window.setTimeout(() => refreshInstallButton(), 2500);
+  }
+}
+
 function onInstallButtonClick() {
   if (!canInstallAsRealPwa()) {
     closeMobileSidebar();
@@ -223,8 +268,15 @@ function onInstallButtonClick() {
   }
 
   const prompt = getCapturedInstallPrompt();
-  if (invokeInstallPrompt(prompt)) {
+  if (prompt && invokeInstallPrompt(prompt)) {
     closeMobileSidebar();
+    return;
+  }
+
+  markUserInteracted();
+  if (!hasInstallEngagement()) {
+    closeMobileSidebar();
+    showInstallWaitMessage();
     return;
   }
 
@@ -234,23 +286,25 @@ function onInstallButtonClick() {
     btn.disabled = true;
     btn.textContent = 'กำลังเตรียมติดตั้ง…';
   }
-  closeMobileSidebar();
 
   void (async () => {
     try {
       await waitForServiceWorker().catch(() => {});
-      if (isAndroid()) {
-        await waitForInstallPrompt(2500);
-        refreshInstallButton();
+      const latePrompt = await waitForInstallPrompt(8000);
+      refreshInstallButton();
+      closeMobileSidebar();
+      if (latePrompt) {
+        if (btn) btn.textContent = 'กดอีกครั้งเพื่อติดตั้ง';
+        return;
       }
       showManualInstallHelp();
     } catch (e) {
       console.warn('[PWA] Install prompt failed', e);
+      closeMobileSidebar();
       showManualInstallHelp();
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = originalLabel;
         refreshInstallButton();
       }
     }
@@ -291,8 +345,8 @@ function getInstallSteps() {
       steps: canInstallAsRealPwa()
         ? [
             hasPrompt
-              ? 'กดปุ่ม <strong>"ติดตั้งแอป (PWA)"</strong> อีกครั้ง — ควรเห็น dialog ติดตั้งของ Chrome'
-              : 'รอ 5–10 วินาที แล้วรีเฟรชหน้า จากนั้นกดปุ่ม <strong>"ติดตั้งแอป"</strong> อีกครั้ง',
+              ? 'กดปุ่ม <strong>"ติดตั้งแอป"</strong> — ควรเห็น dialog ติดตั้งของ Chrome'
+              : 'ใช้งานเว็บอย่างน้อย <strong>30 วินาที</strong> แล้วกดปุ่ม <strong>"ติดตั้งแอป"</strong> อีกครั้ง',
             'หรือกด ⋮ มุมขวาบน → <strong>"ติดตั้งแอป"</strong> / <strong>"Add to Home screen"</strong>',
             'กด "ติดตั้ง" แล้วเปิดจากไอคอน WC 2026 บนหน้าจอหลัก',
             'ถ้าติดตั้งสำเร็จ: ไม่มีแถบ URL, สลับแอปเห็นเป็นแอปแยก (ไม่ใช่แท็บ Chrome)'
@@ -446,13 +500,17 @@ function refreshInstallButton() {
   }
 
   if (deferredInstallPrompt || window.__wcDeferredInstallPrompt) {
-    btn.textContent = 'ติดตั้งแอป (PWA)';
+    btn.textContent = 'ติดตั้งแอป';
     btn.hidden = false;
+    btn.disabled = false;
     return;
   }
 
   if (isAndroid() && canInstallAsRealPwa()) {
-    btn.textContent = 'ติดตั้งแอป';
+    btn.disabled = false;
+    btn.textContent = hasInstallEngagement()
+      ? 'ติดตั้งแอป'
+      : `ติดตั้งแอป (รอ ~${getInstallEngagementWaitSec()} วิ)`;
     btn.hidden = false;
     return;
   }

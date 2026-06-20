@@ -1,10 +1,10 @@
 {
-  "id": "https://nguan08.github.io/world-cup/",
+  "id": "/world-cup/",
   "name": "YEC-BR World Cup 2026 Challenge",
   "short_name": "WC 2026",
   "description": "ระบบแสดงผลและจัดการการทายผลฟุตบอลโลก 2026",
-  "start_url": "https://nguan08.github.io/world-cup/?source=pwa",
-  "scope": "https://nguan08.github.io/world-cup/",
+  "start_url": "/world-cup/?source=pwa",
+  "scope": "/world-cup/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#6366f1",
@@ -12,19 +12,19 @@
   "lang": "th",
   "icons": [
     {
-      "src": "https://nguan08.github.io/world-cup/icons/icon-192.png",
+      "src": "/world-cup/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://nguan08.github.io/world-cup/icons/icon-512.png",
+      "src": "/world-cup/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://nguan08.github.io/world-cup/icons/icon-512.png",
+      "src": "/world-cup/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
