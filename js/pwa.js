@@ -15,7 +15,6 @@ function captureInstallPrompt(e) {
   window.__wcDeferredInstallPrompt = e;
   if (pwaUiReady) {
     refreshInstallButton();
-    renderPwaModeStatus();
   }
 }
 
@@ -31,7 +30,6 @@ if (typeof window !== 'undefined') {
     clearInstallPrompt();
     if (pwaUiReady) {
       refreshInstallButton();
-      renderPwaModeStatus();
     }
   });
 }
@@ -46,7 +44,6 @@ function onInstallPromptReady() {
   syncCapturedInstallPrompt();
   if (pwaUiReady) {
     refreshInstallButton();
-    renderPwaModeStatus();
   }
 }
 
@@ -57,13 +54,12 @@ export function initPWA() {
   ensureInstallModal();
   applyStandaloneClass();
   refreshInstallButton();
-  renderPwaModeStatus();
+  document.getElementById('pwa-mode-status')?.remove();
   window.addEventListener('wc-installprompt-ready', onInstallPromptReady);
   window.addEventListener('wc-installprompt-cleared', onInstallPromptReady);
   window.addEventListener('resize', refreshInstallButton);
   window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
     applyStandaloneClass();
-    renderPwaModeStatus();
     refreshInstallButton();
   });
 }
@@ -257,7 +253,6 @@ function onInstallButtonClick() {
       if (isAndroid()) {
         await waitForInstallPrompt(2500);
         refreshInstallButton();
-        renderPwaModeStatus();
       }
       showManualInstallHelp();
     } catch (e) {
@@ -442,39 +437,6 @@ export function showManualInstallHelp({ preferRedirect = false } = {}) {
   });
 
   overlay.classList.add('active');
-}
-
-function renderPwaModeStatus() {
-  let box = document.getElementById('pwa-mode-status');
-  if (!box) {
-    const btn = document.getElementById('pwa-install-btn');
-    if (!btn) return;
-    box = document.createElement('div');
-    box.id = 'pwa-mode-status';
-    box.className = 'pwa-mode-status';
-    btn.parentElement?.insertBefore(box, btn);
-  }
-
-  if (isStandaloneMode()) {
-    box.className = 'pwa-mode-status pwa-mode-status--app';
-    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดแอป (ติดตั้งแล้ว)';
-    return;
-  }
-
-  if (!canInstallAsRealPwa() && isMobileDevice()) {
-    box.className = 'pwa-mode-status pwa-mode-status--warn';
-    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดเว็บ — ติดตั้งจริงต้องใช้ HTTPS';
-    return;
-  }
-
-  if (deferredInstallPrompt || window.__wcDeferredInstallPrompt) {
-    box.className = 'pwa-mode-status pwa-mode-status--ready';
-    box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> พร้อมติดตั้งแอป';
-    return;
-  }
-
-  box.className = 'pwa-mode-status pwa-mode-status--browser';
-  box.innerHTML = '<span class="pwa-mode-status__dot" aria-hidden="true"></span> โหมดเบราว์เซอร์';
 }
 
 function refreshInstallButton() {

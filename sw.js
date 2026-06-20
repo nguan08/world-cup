@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v19';
+const CACHE_NAME = 'wc2026-v20';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const STATIC_ASSETS = [

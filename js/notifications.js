@@ -40,8 +40,9 @@ export function initNotifications() {
   injectToastStyles();
   ensureToastElement();
   renderNotificationControls();
-  setupIOSPushBanner();
-  setupIOSPushListeners();
+  document.getElementById('ios-push-hint-bar')?.remove();
+  document.getElementById('ios-push-hint-styles')?.remove();
+  document.documentElement.classList.remove('has-ios-push-hint');
   flushPendingBroadcast();
   flushPendingScoreUpdate();
 
@@ -616,124 +617,6 @@ function renderNotificationControls() {
         : 'ลงทะเบียน Push ไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'
     });
   });
-}
-
-function setupIOSPushListeners() {
-  if (!isIOS()) return;
-  const refresh = () => {
-    renderIOSPushBanner();
-    notifRefreshUi?.();
-  };
-  ['standalone', 'fullscreen', 'minimal-ui'].forEach((mode) => {
-    window.matchMedia(`(display-mode: ${mode})`).addEventListener('change', refresh);
-  });
-  window.addEventListener('pageshow', refresh);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) refresh();
-  });
-}
-
-function renderIOSPushBanner() {
-  if (!isIOS()) return;
-  const block = getIOSPushBlockReason();
-  let bar = document.getElementById('ios-push-hint-bar');
-  if (!block) {
-    if (bar) {
-      bar.hidden = true;
-      bar.classList.remove('ios-push-hint-bar--visible');
-    }
-    document.documentElement.classList.remove('has-ios-push-hint');
-    return;
-  }
-
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'ios-push-hint-bar';
-    bar.className = 'ios-push-hint-bar';
-    bar.setAttribute('role', 'status');
-    bar.innerHTML = `
-      <div class="ios-push-hint-bar__inner">
-        <span class="ios-push-hint-bar__icon" aria-hidden="true">📱</span>
-        <p class="ios-push-hint-bar__text" id="ios-push-hint-text"></p>
-        <button type="button" class="ios-push-hint-bar__btn" id="ios-push-hint-action">วิธีติดตั้ง</button>
-      </div>
-    `;
-    document.body.prepend(bar);
-    injectIOSPushStyles();
-    bar.querySelector('#ios-push-hint-action')?.addEventListener('click', () => {
-      if (getIOSPushBlockReason() === 'ios-use-safari') {
-        window.open('https://nguan08.github.io/world-cup/', '_blank', 'noopener');
-      } else {
-        import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
-      }
-    });
-  }
-
-  const textEl = bar.querySelector('#ios-push-hint-text');
-  if (textEl) textEl.textContent = iosPushStatusText();
-  const actionBtn = bar.querySelector('#ios-push-hint-action');
-  if (actionBtn) {
-    actionBtn.textContent = getIOSPushBlockReason() === 'ios-use-safari' ? 'เปิด Safari' : 'วิธีติดตั้ง';
-  }
-  bar.hidden = false;
-  document.documentElement.classList.add('has-ios-push-hint');
-  requestAnimationFrame(() => bar.classList.add('ios-push-hint-bar--visible'));
-}
-
-function setupIOSPushBanner() {
-  renderIOSPushBanner();
-}
-
-function injectIOSPushStyles() {
-  if (document.getElementById('ios-push-hint-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'ios-push-hint-styles';
-  style.textContent = `
-    .ios-push-hint-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 99998;
-      padding: max(10px, env(safe-area-inset-top, 10px)) 12px 10px;
-      background: linear-gradient(135deg, rgba(30, 64, 175, 0.96), rgba(67, 56, 202, 0.96));
-      border-bottom: 1px solid rgba(255,255,255,0.15);
-      transform: translateY(-100%);
-      transition: transform 0.3s ease;
-    }
-    .ios-push-hint-bar--visible { transform: translateY(0); }
-    .ios-push-hint-bar__inner {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 640px;
-      margin: 0 auto;
-    }
-    .ios-push-hint-bar__text {
-      flex: 1;
-      margin: 0;
-      font-size: 12px;
-      line-height: 1.35;
-      color: #fff;
-      font-weight: 600;
-    }
-    .ios-push-hint-bar__btn {
-      flex-shrink: 0;
-      border: 1px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.12);
-      color: #fff;
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    html.has-ios-push-hint { scroll-padding-top: 56px; }
-    html.has-ios-push-hint .mobile-header { top: 52px; }
-
-  `;
-  document.head.appendChild(style);
 }
 
 function injectToastStyles() {
