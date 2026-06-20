@@ -3839,6 +3839,62 @@ function scheduleRankTone(ctx, { start, duration, freq, type = 'triangle', peak 
   osc.stop(start + duration + 0.02);
 }
 
+function scheduleRankNagBeep(ctx, { start, freq = 440, peak = 0.075 }) {
+  scheduleRankTone(ctx, { start, duration: 0.11, freq, type: 'square', peak });
+  scheduleRankTone(ctx, {
+    start: start + 0.004,
+    duration: 0.1,
+    freq: freq * 1.028,
+    type: 'sawtooth',
+    peak: peak * 0.38
+  });
+}
+
+function scheduleRankSadWah(ctx, { start, duration, freqStart, freqEnd, peak = 0.09, type = 'sawtooth' }) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const wobble = ctx.createOscillator();
+  const wobbleGain = ctx.createGain();
+
+  osc.type = type;
+  wobble.type = 'sine';
+  wobble.frequency.value = 5.5;
+  wobbleGain.gain.value = freqStart * 0.018;
+
+  osc.frequency.setValueAtTime(freqStart, start);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 42), start + duration * 0.72);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd * 0.82, 38), start + duration);
+
+  wobble.connect(wobbleGain);
+  wobbleGain.connect(osc.frequency);
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(peak, start + 0.04);
+  gain.gain.setValueAtTime(peak * 0.9, start + duration * 0.35);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  wobble.start(start);
+  osc.start(start);
+  wobble.stop(start + duration + 0.02);
+  osc.stop(start + duration + 0.02);
+}
+
+function scheduleRankMournfulWhine(ctx, { start, duration, freq, peak = 0.07, slideTo = 55 }) {
+  [0, 11].forEach((cents) => {
+    const detune = cents === 0 ? 0 : 13;
+    scheduleRankTone(ctx, {
+      start,
+      duration,
+      freq: freq * Math.pow(2, cents / 1200),
+      type: cents === 0 ? 'sawtooth' : 'triangle',
+      peak: cents === 0 ? peak : peak * 0.42,
+      slideTo: slideTo * Math.pow(2, cents / 1200)
+    });
+  });
+}
+
 function playWinnerFanfare() {
   try {
     const ctx = getRankAudioContext();
@@ -3871,79 +3927,72 @@ function playWinnerFanfare() {
   }
 }
 
-function playLoserFailSoundUltraLight() {
-  try {
-    const ctx = getRankAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-    scheduleRankTone(ctx, {
-      start: now,
-      duration: 0.22,
-      freq: 180,
-      type: 'square',
-      peak: 0.07,
-      slideTo: 95
-    });
-  } catch (_) {
-    /* ignore audio errors */
-  }
-}
-
 function playLoserFailSound(light = false) {
-  if (light) {
-    playLoserFailSoundUltraLight();
-    return;
-  }
-
   try {
     const ctx = getRankAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
 
-    scheduleRankTone(ctx, {
-      start: now,
-      duration: 0.42,
-      freq: 196,
-      type: 'square',
-      peak: 0.11
-    });
-    scheduleRankTone(ctx, {
-      start: now + 0.46,
-      duration: 0.62,
-      freq: 147,
-      type: 'square',
-      peak: 0.11,
-      slideTo: 98
+    if (light) {
+      [0, 0.28, 0.56].forEach((at, i) => {
+        scheduleRankNagBeep(ctx, { start: now + at, freq: 410 - i * 35, peak: 0.062 });
+      });
+      scheduleRankSadWah(ctx, {
+        start: now + 0.88,
+        duration: 0.58,
+        freqStart: 210,
+        freqEnd: 68,
+        peak: 0.072,
+        type: 'triangle'
+      });
+      scheduleRankMournfulWhine(ctx, {
+        start: now + 1.42,
+        duration: 0.75,
+        freq: 165,
+        peak: 0.05,
+        slideTo: 46
+      });
+      return;
+    }
+
+    [0, 0.17, 0.34, 0.51].forEach((at) => {
+      scheduleRankNagBeep(ctx, { start: now + at, freq: 498, peak: 0.068 });
     });
 
-    scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
-    scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
-
     scheduleRankTone(ctx, {
-      start: now + 1.15,
-      duration: 0.42,
-      freq: 233,
-      type: 'triangle',
+      start: now + 0.72,
+      duration: 0.55,
+      freq: 162,
+      type: 'square',
       peak: 0.1,
-      slideTo: 130
-    });
-    scheduleRankTone(ctx, {
-      start: now + 1.62,
-      duration: 0.48,
-      freq: 185,
-      type: 'triangle',
-      peak: 0.095,
-      slideTo: 88
+      slideTo: 78
     });
 
-    scheduleRankTone(ctx, {
-      start: now + 2.15,
-      duration: 0.7,
-      freq: 320,
-      type: 'sawtooth',
-      peak: 0.06,
-      slideTo: 55
+    scheduleRankNoise(ctx, { start: now + 0.68, duration: 0.75, peak: 0.038, frequency: 210 });
+
+    [
+      { at: 1.18, start: 207, end: 112 },
+      { at: 1.62, start: 178, end: 88 },
+      { at: 2.06, start: 149, end: 58 }
+    ].forEach(({ at, start, end }) => {
+      scheduleRankSadWah(ctx, {
+        start: now + at,
+        duration: 0.4,
+        freqStart: start,
+        freqEnd: end,
+        peak: 0.092,
+        type: 'sawtooth'
+      });
     });
+
+    scheduleRankMournfulWhine(ctx, {
+      start: now + 2.58,
+      duration: 1.15,
+      freq: 248,
+      peak: 0.058,
+      slideTo: 42
+    });
+    scheduleRankNoise(ctx, { start: now + 2.62, duration: 1.0, peak: 0.028, frequency: 165 });
   } catch (_) {
     /* ignore audio errors */
   }
