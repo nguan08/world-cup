@@ -65,11 +65,44 @@ function showPlayerDetailsDrawer() {
 }
 
 let _playerDetailsFillToken = 0;
+let _playerDetailsFillRaf1 = 0;
+let _playerDetailsFillRaf2 = 0;
+let _rankSoundTimerId = null;
+let _rankSpeechTimerId = null;
+let _lastRankSoundAt = 0;
+const RANK_SOUND_COOLDOWN_MS = 2000;
+
+function cancelPlayerDetailsFillSchedule() {
+  if (_playerDetailsFillRaf1) {
+    cancelAnimationFrame(_playerDetailsFillRaf1);
+    _playerDetailsFillRaf1 = 0;
+  }
+  if (_playerDetailsFillRaf2) {
+    cancelAnimationFrame(_playerDetailsFillRaf2);
+    _playerDetailsFillRaf2 = 0;
+  }
+}
+
+function cancelRankSoundEffects() {
+  if (_rankSoundTimerId) {
+    clearTimeout(_rankSoundTimerId);
+    _rankSoundTimerId = null;
+  }
+  if (_rankSpeechTimerId) {
+    clearTimeout(_rankSpeechTimerId);
+    _rankSpeechTimerId = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (_) { /* ignore */ }
+  }
+}
 
 function hidePlayerDetailsDrawer() {
   const overlay = document.getElementById('player-details-drawer-overlay');
   if (!overlay || !overlay.classList.contains('active')) return;
   _playerDetailsFillToken++;
+  cancelPlayerDetailsFillSchedule();
+  cancelRankSoundEffects();
   overlay.classList.remove('active');
   unlockScrollForPlayerDrawer();
 }
@@ -129,8 +162,6 @@ function attachPlayerRowOpenHandlers() {
     tbody.addEventListener('click', (e) => {
       const row = e.target.closest('tr.hoverable[data-player-name]');
       if (!row) return;
-      const overlay = document.getElementById('player-details-drawer-overlay');
-      if (overlay && overlay.classList.contains('active')) return;
 
       e.stopPropagation();
       const name = row.dataset.playerName;
@@ -149,11 +180,6 @@ function attachPlayerRowOpenHandlers() {
       const row = e.target.closest('tr.hoverable[data-player-name]');
       if (!row) return;
 
-      const overlay = document.getElementById('player-details-drawer-overlay');
-      if (overlay && overlay.classList.contains('active')) return;
-
-      // Only act if this click was not already handled by a tbody listener above.
-      // We still call open here as a safety net.
       const name = row.dataset.playerName;
       if (name) {
         openPlayerDetails(name);
@@ -3845,7 +3871,30 @@ function playWinnerFanfare() {
   }
 }
 
+function playLoserFailSoundUltraLight() {
+  try {
+    const ctx = getRankAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    scheduleRankTone(ctx, {
+      start: now,
+      duration: 0.22,
+      freq: 180,
+      type: 'square',
+      peak: 0.07,
+      slideTo: 95
+    });
+  } catch (_) {
+    /* ignore audio errors */
+  }
+}
+
 function playLoserFailSound(light = false) {
+  if (light) {
+    playLoserFailSoundUltraLight();
+    return;
+  }
+
   try {
     const ctx = getRankAudioContext();
     if (!ctx) return;
@@ -3867,13 +3916,11 @@ function playLoserFailSound(light = false) {
       slideTo: 98
     });
 
-    if (!light) {
-      scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
-      scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
-    }
+    scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
+    scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
 
     scheduleRankTone(ctx, {
-      start: now + (light ? 0.9 : 1.15),
+      start: now + 1.15,
       duration: 0.42,
       freq: 233,
       type: 'triangle',
@@ -3881,7 +3928,7 @@ function playLoserFailSound(light = false) {
       slideTo: 130
     });
     scheduleRankTone(ctx, {
-      start: now + (light ? 1.35 : 1.62),
+      start: now + 1.62,
       duration: 0.48,
       freq: 185,
       type: 'triangle',
@@ -3889,16 +3936,14 @@ function playLoserFailSound(light = false) {
       slideTo: 88
     });
 
-    if (!light) {
-      scheduleRankTone(ctx, {
-        start: now + 2.15,
-        duration: 0.7,
-        freq: 320,
-        type: 'sawtooth',
-        peak: 0.06,
-        slideTo: 55
-      });
-    }
+    scheduleRankTone(ctx, {
+      start: now + 2.15,
+      duration: 0.7,
+      freq: 320,
+      type: 'sawtooth',
+      peak: 0.06,
+      slideTo: 55
+    });
   } catch (_) {
     /* ignore audio errors */
   }
@@ -3960,7 +4005,10 @@ function playRankSoundEffect(player, options = {}) {
   if (player.rank === 61 || player.rank === 62) {
     playLoserFailSound(lightLoser);
     if (!skipSpeech) {
-      setTimeout(() => speakRankPhrase('loser'), lightLoser ? 500 : 900);
+      _rankSpeechTimerId = setTimeout(() => {
+        _rankSpeechTimerId = null;
+        speakRankPhrase('loser');
+      }, lightLoser ? 500 : 900);
     }
   }
 }
@@ -3971,18 +4019,41 @@ function scheduleRankSoundEffect(player, token) {
     || player.rank === 61 || player.rank === 62;
   if (!isSpecialRank) return;
 
-  const onMobile = isMobileDevice();
-  const delayMs = onMobile ? 500 : 220;
+  cancelRankSoundEffects();
 
-  setTimeout(() => {
+  const onMobile = isMobileDevice();
+  const isLoserRank = player.rank === 61 || player.rank === 62;
+  const delayMs = onMobile ? (isLoserRank ? 650 : 500) : 220;
+
+  _rankSoundTimerId = setTimeout(() => {
+    _rankSoundTimerId = null;
     if (token !== _playerDetailsFillToken) return;
-    playRankSoundEffect(player, { skipSpeech: onMobile, lightLoser: onMobile });
+
+    const now = Date.now();
+    if (now - _lastRankSoundAt < RANK_SOUND_COOLDOWN_MS) return;
+
+    _lastRankSoundAt = now;
+    playRankSoundEffect(player, { skipSpeech: onMobile, lightLoser: onMobile || isLoserRank });
   }, delayMs);
 }
 
+let _lastOpenPlayerName = '';
+let _lastOpenPlayerAt = 0;
+
 // PLAYER DETAILS MODAL
 function openPlayerDetails(name) {
-  window._playerDetailsLastOpenAt = Date.now();
+  const lookupName = (name || '').trim();
+  if (!lookupName) return;
+
+  const now = Date.now();
+  if (lookupName === _lastOpenPlayerName && now - _lastOpenPlayerAt < 80) return;
+  _lastOpenPlayerName = lookupName;
+  _lastOpenPlayerAt = now;
+  window._playerDetailsLastOpenAt = now;
+
+  cancelRankSoundEffects();
+  cancelPlayerDetailsFillSchedule();
+  _playerDetailsFillToken++;
 
   if (!showPlayerDetailsDrawer()) {
     console.error('[openPlayerDetails] overlay element not found in DOM');
@@ -3994,7 +4065,6 @@ function openPlayerDetails(name) {
     if (el) el.textContent = (val != null ? val : '');
   };
 
-  const lookupName = (name || '').trim();
   setText('detail-player-name', lookupName);
   setText('detail-teams-score', '—');
   setText('detail-prediction-score', '—');
@@ -4008,14 +4078,18 @@ function openPlayerDetails(name) {
     grid.innerHTML = '<div class="player-drawer-loading" aria-busy="true">กำลังโหลด...</div>';
   }
 
-  const token = ++_playerDetailsFillToken;
+  const token = _playerDetailsFillToken;
   const runFill = () => {
+    _playerDetailsFillRaf2 = 0;
     if (token !== _playerDetailsFillToken) return;
-    fillPlayerDetailsDrawer(name, token);
+    fillPlayerDetailsDrawer(lookupName, token);
   };
 
   if (typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(() => requestAnimationFrame(runFill));
+    _playerDetailsFillRaf1 = requestAnimationFrame(() => {
+      _playerDetailsFillRaf1 = 0;
+      _playerDetailsFillRaf2 = requestAnimationFrame(runFill);
+    });
   } else {
     setTimeout(runFill, 32);
   }
@@ -4164,6 +4238,7 @@ function fillPlayerDetailsDrawer(name, token) {
           </div>
         `;
         
+        if (token !== _playerDetailsFillToken) return;
         statsContainer.innerHTML = statsHTML;
         
         // Toggle stats visibility
@@ -4208,9 +4283,11 @@ function fillPlayerDetailsDrawer(name, token) {
           return da - db;
         });
         
-        tbList.forEach(tb => {
+        for (let ti = 0; ti < tbList.length; ti++) {
+          if (token !== _playerDetailsFillToken) return;
+          const tb = tbList[ti];
           const item = document.createElement('div');
-          
+
           const eliminated = isTeamEliminated(tb.name);
           const elimBadge = eliminated
             ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
@@ -4226,7 +4303,7 @@ function fillPlayerDetailsDrawer(name, token) {
           item.className = `player-team-item player-team-item--${tb.zone}`;
           item.innerHTML = buildPlayerTeamItemHtml(tb, { elimBadge, elimToggleBtn, matchHistoryHTML });
           grid.appendChild(item);
-        });
+        }
         
         // Toggle-elim buttons (admin)
         grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
