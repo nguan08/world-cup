@@ -838,7 +838,7 @@ h1 {
   }
 }
 
-/* Mobile / iOS: lighter chart — fewer nodes, no SVG filters, no ECG overlay */
+/* iOS only: lighter chart — fewer nodes, no SVG filters, no ECG overlay (PC + Android keep animation) */
 #score-chart-svg.chart-lite .trend-line,
 #score-chart-svg.chart-lite .trend-dot {
   transition: none !important;

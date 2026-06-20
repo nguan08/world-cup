@@ -1701,11 +1701,15 @@ function getChartEligibleMatches() {
     .sort((a, b) => a.id - b.id);
 }
 
-function isChartLiteMode() {
-  if (window.innerWidth <= 768) return true;
+function isIOSChartDevice() {
   const ua = navigator.userAgent || '';
   if (/iPhone|iPad|iPod/i.test(ua)) return true;
   return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+}
+
+/** iOS only — skip heavy ECG SVG filters/animations; PC + Android keep full effects */
+function isChartLiteMode() {
+  return isIOSChartDevice();
 }
 
 function applyChartMatchToTeamScores(match, teamScores) {
@@ -1871,7 +1875,7 @@ function renderScoreChart() {
     return innerW > 0 ? innerW : container.clientWidth || 0;
   })();
 
-  const isMobile = chartLite;
+  const isMobile = window.innerWidth <= 768;
   if (isMobile && container && containerW === 0) {
     requestAnimationFrame(() => renderScoreChart());
     return;

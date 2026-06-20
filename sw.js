@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v42-chart-fix';
+const CACHE_NAME = 'wc2026-v43-chart-anim-platform';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
