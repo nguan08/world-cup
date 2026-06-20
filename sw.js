@@ -1,6 +1,7 @@
-const CACHE_NAME = 'wc2026-v24';
+const CACHE_NAME = 'wc2026-v25';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
+const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
 const STATIC_ASSETS = [
   './',
   'index.html',
@@ -34,6 +35,18 @@ const NOTIFICATION_TAG = 'wc-latest';
 async function closeAllNotifications() {
   const notifications = await self.registration.getNotifications();
   notifications.forEach((n) => n.close());
+}
+
+async function setMobileNoUpdateNotif(enabled) {
+  const cache = await caches.open(META_CACHE);
+  await cache.put(MOBILE_NO_NOTIF_KEY, new Response(enabled ? '1' : '0'));
+}
+
+async function isMobileNoUpdateNotif() {
+  const cache = await caches.open(META_CACHE);
+  const res = await cache.match(MOBILE_NO_NOTIF_KEY);
+  if (!res) return false;
+  return (await res.text()) === '1';
 }
 
 function iconUrl() {
@@ -122,7 +135,7 @@ async function networkFirstData(request) {
           // ignore parse errors
         }
 
-        if (scoreMsg) {
+        if (scoreMsg && !(await isMobileNoUpdateNotif())) {
           const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
           const hasVisibleClient = clients.some((client) => client.visibilityState === 'visible');
           clients.forEach((client) => {
@@ -223,29 +236,31 @@ async function notifyClients(message) {
 }
 
 self.addEventListener('push', (event) => {
-  let payload = {
-    title: 'World Cup 2026 — แจ้งเตือนจากแอดมิน',
-    body: 'ตรวจสอบผลล่าสุดในแอป',
-    tag: 'wc-broadcast-push',
-    url: './'
-  };
-  try {
-    if (event.data) payload = { ...payload, ...event.data.json() };
-  } catch {
-    // keep defaults
-  }
-  event.waitUntil(
-    closeAllNotifications().then(() =>
-      self.registration.showNotification(payload.title, {
-        body: payload.body,
-        icon: iconUrl(),
-        badge: iconUrl(),
-        tag: NOTIFICATION_TAG,
-        renotify: true,
-        data: { url: payload.url || './' }
-      })
-    )
-  );
+  event.waitUntil((async () => {
+    if (await isMobileNoUpdateNotif()) return;
+
+    let payload = {
+      title: 'World Cup 2026 — แจ้งเตือนจากแอดมิน',
+      body: 'ตรวจสอบผลล่าสุดในแอป',
+      tag: 'wc-broadcast-push',
+      url: './'
+    };
+    try {
+      if (event.data) payload = { ...payload, ...event.data.json() };
+    } catch {
+      // keep defaults
+    }
+
+    await closeAllNotifications();
+    await self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: iconUrl(),
+      badge: iconUrl(),
+      tag: NOTIFICATION_TAG,
+      renotify: true,
+      data: { url: payload.url || './' }
+    });
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -266,4 +281,10 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'DISABLE_MOBILE_UPDATE_NOTIF') {
+    event.waitUntil(setMobileNoUpdateNotif(true));
+  }
+  if (event.data?.type === 'ENABLE_MOBILE_UPDATE_NOTIF') {
+    event.waitUntil(setMobileNoUpdateNotif(false));
+  }
 });

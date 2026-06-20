@@ -33,6 +33,32 @@ const DEFAULT_TOAST_MS = 8000;
 const AUTO_PROMPT_KEY = 'worldcup_notifAutoPrompted';
 const AUTO_PROMPT_DELAY_MS = 1200;
 
+function allowUpdateNotifications() {
+  return !isMobileDevice();
+}
+
+function syncMobileNotificationPref() {
+  if (!('serviceWorker' in navigator)) return;
+  const type = isMobileDevice() ? 'DISABLE_MOBILE_UPDATE_NOTIF' : 'ENABLE_MOBILE_UPDATE_NOTIF';
+  void navigator.serviceWorker.ready.then((reg) => {
+    reg.active?.postMessage({ type });
+  });
+}
+
+function clearPendingNotificationsSilently() {
+  migrateLegacyPendingNotifications();
+  const raw = localStorage.getItem(PENDING_NOTIF_KEY);
+  localStorage.removeItem(PENDING_NOTIF_KEY);
+  if (!raw) return;
+  try {
+    const pending = JSON.parse(raw);
+    if (pending.type === 'score' && pending.changes?.length) {
+      const changes = filterUnnotifiedScoreChanges(pending.changes);
+      if (changes.length) markScoresNotified(changes);
+    }
+  } catch { /* ignore */ }
+}
+
 export function initNotifications() {
   if (!localStorage.getItem(SHOWN_BROADCAST_KEY) && localStorage.getItem('worldcup_lastBroadcastId')) {
     localStorage.setItem(SHOWN_BROADCAST_KEY, localStorage.getItem('worldcup_lastBroadcastId'));
@@ -44,28 +70,31 @@ export function initNotifications() {
   document.getElementById('ios-push-hint-bar')?.remove();
   document.getElementById('ios-push-hint-styles')?.remove();
   document.documentElement.classList.remove('has-ios-push-hint');
-  flushPendingNotification();
+  syncMobileNotificationPref();
+  if (isMobileDevice()) {
+    clearPendingNotificationsSilently();
+    void closeExistingNotifications();
+  } else {
+    flushPendingNotification();
+  }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       const { type, message } = event.data || {};
-      if (type === 'SCORE_UPDATED' && message) {
+      if (type === 'SCORE_UPDATED' && message && allowUpdateNotifications()) {
         showUpdateToast(message, { durationMs: SCORE_TOAST_MS });
-        if (isMobileDevice() && navigator.vibrate) {
-          try { navigator.vibrate([80, 40, 80]); } catch { /* ignore */ }
-        }
       }
     });
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) flushPendingNotification();
+    if (!document.hidden && allowUpdateNotifications()) flushPendingNotification();
   });
   window.addEventListener('pageshow', () => {
-    flushPendingNotification();
+    if (allowUpdateNotifications()) flushPendingNotification();
   });
   window.addEventListener('focus', () => {
-    flushPendingNotification();
+    if (allowUpdateNotifications()) flushPendingNotification();
   });
 
   setTimeout(() => void autoPromptNotificationsOnEntry(), AUTO_PROMPT_DELAY_MS);
@@ -73,6 +102,7 @@ export function initNotifications() {
 
 /** ขอสิทธิแจ้งเตือนอัตโนมัติเมื่อเข้าเว็บ (ครั้งละ 1 ต่อ session) */
 export async function autoPromptNotificationsOnEntry() {
+  if (isMobileDevice()) return;
   if (sessionStorage.getItem(AUTO_PROMPT_KEY)) return;
   if (getIOSPushBlockReason()) return;
 
@@ -176,6 +206,10 @@ function migrateLegacyPendingNotifications() {
 }
 
 export function flushPendingNotification() {
+  if (!allowUpdateNotifications()) {
+    clearPendingNotificationsSilently();
+    return;
+  }
   if (document.hidden) return;
   migrateLegacyPendingNotifications();
 
@@ -307,6 +341,11 @@ export function processScoreUpdates(changes, { onInit = false } = {}) {
   const fresh = filterUnnotifiedScoreChanges(changes || []);
   if (!fresh.length) return false;
 
+  if (!allowUpdateNotifications()) {
+    markScoresNotified(fresh);
+    return true;
+  }
+
   const message = formatScoreUpdateMessage(fresh);
 
   if (document.hidden) {
@@ -389,6 +428,8 @@ function displayBroadcastMessage(text, {
 }
 
 export function notifyDataUpdate({ type = 'data', message, forceBrowserNotify = false } = {}) {
+  if (!allowUpdateNotifications()) return;
+
   const text = message || (type === 'data'
     ? 'มีการอัปเดตผลการแข่งขันหรือข้อมูลผู้เล่นใหม่'
     : 'มีการอัปเดตแอป');
@@ -415,6 +456,7 @@ async function closeExistingNotifications() {
 }
 
 async function showBrowserNotification(text) {
+  if (!allowUpdateNotifications()) return;
   if (!canUseWebNotifications() || Notification.permission !== 'granted') return;
 
   const title = 'World Cup 2026 — อัปเดตสกอร์';
@@ -451,6 +493,11 @@ async function showBrowserNotification(text) {
 let toastDismissHandler = null;
 
 export function showUpdateToast(message, { durationMs = DEFAULT_TOAST_MS, onDismiss } = {}) {
+  if (!allowUpdateNotifications()) {
+    onDismiss?.();
+    return;
+  }
+
   const toast = ensureToastElement();
   const textEl = toast.querySelector('.update-toast__text');
   clearTimeout(toastTimer);
