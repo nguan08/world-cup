@@ -7,10 +7,32 @@ const PWA_INSTALL_URL = 'https://nguan08.github.io/world-cup/';
 let deferredInstallPrompt = null;
 let lastInstallTap = 0;
 let serviceWorkerReadyPromise = null;
+let pwaUiReady = false;
+
+function captureInstallPrompt(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (pwaUiReady) {
+    refreshInstallButton();
+    renderPwaModeStatus();
+  }
+}
+
+// จับก่อน DOMContentLoaded — ไม่งั้น Android อาจพลาด beforeinstallprompt
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (pwaUiReady) {
+      refreshInstallButton();
+      renderPwaModeStatus();
+    }
+  });
+}
 
 export function initPWA() {
+  pwaUiReady = true;
   registerServiceWorker();
-  setupInstallPrompt();
   ensureInstallModal();
   applyStandaloneClass();
   refreshInstallButton();
@@ -111,21 +133,6 @@ async function registerServiceWorker() {
   }
 }
 
-function setupInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    refreshInstallButton();
-    renderPwaModeStatus();
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    refreshInstallButton();
-    renderPwaModeStatus();
-  });
-}
-
 function bindInstallButton(btn) {
   if (!btn || btn.dataset.bound) return;
   btn.dataset.bound = '1';
@@ -142,7 +149,6 @@ function bindInstallButton(btn) {
   };
 
   btn.addEventListener('click', handler);
-  btn.addEventListener('pointerup', handler);
 }
 
 function closeMobileSidebar() {
@@ -153,31 +159,74 @@ function closeMobileSidebar() {
   document.body.style.overflow = '';
 }
 
+function waitForInstallPrompt(timeoutMs = 4000) {
+  if (deferredInstallPrompt) return Promise.resolve(deferredInstallPrompt);
+  return new Promise((resolve) => {
+    const onPrompt = (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      done(deferredInstallPrompt);
+    };
+    const timer = setTimeout(() => done(deferredInstallPrompt), timeoutMs);
+    const done = (value) => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      resolve(value || null);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+  });
+}
+
 async function onInstallButtonClick() {
   closeMobileSidebar();
+
+  const btn = document.getElementById('pwa-install-btn');
+  const originalLabel = btn?.textContent || '';
 
   if (!canInstallAsRealPwa()) {
     showManualInstallHelp({ preferRedirect: true });
     return;
   }
 
-  if (deferredInstallPrompt) {
-    try {
-      deferredInstallPrompt.prompt();
-      const choice = await deferredInstallPrompt.userChoice;
-      if (choice?.outcome !== 'accepted') {
-        showManualInstallHelp();
-      }
-    } catch (e) {
-      console.warn('[PWA] Install prompt failed', e);
-      showManualInstallHelp();
-    }
-    deferredInstallPrompt = null;
-    refreshInstallButton();
-    return;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'กำลังเตรียมติดตั้ง…';
   }
 
-  showManualInstallHelp();
+  try {
+    await waitForServiceWorker().catch(() => {});
+    let prompt = deferredInstallPrompt;
+    if (!prompt && isAndroid()) {
+      prompt = await waitForInstallPrompt(4000);
+    }
+
+    if (!prompt) {
+      if (isAndroid()) {
+        showManualInstallHelp();
+      } else {
+        showManualInstallHelp();
+      }
+      return;
+    }
+
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+    deferredInstallPrompt = null;
+    refreshInstallButton();
+
+    if (choice?.outcome !== 'accepted') {
+      showManualInstallHelp();
+    }
+  } catch (e) {
+    console.warn('[PWA] Install prompt failed', e);
+    showManualInstallHelp();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      refreshInstallButton();
+    }
+  }
 }
 
 function getInstallSteps() {
@@ -399,6 +448,12 @@ function refreshInstallButton() {
 
   if (deferredInstallPrompt) {
     btn.textContent = 'ติดตั้งแอป (PWA)';
+    btn.hidden = false;
+    return;
+  }
+
+  if (isAndroid() && canInstallAsRealPwa()) {
+    btn.textContent = 'ติดตั้งแอป';
     btn.hidden = false;
     return;
   }
