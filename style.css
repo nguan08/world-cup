@@ -8376,7 +8376,51 @@ td.tools-sim-scores {
   }
 
   .tools-sim-delta-wrap {
-    padding: 14px 16px 16px;
+    padding: 10px 10px 12px;
+  }
+
+  .tools-sim-delta-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .tools-sim-matches-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .tools-sim-matches-grid .live-match-card {
+    padding: 10px 8px !important;
+  }
+
+  .tools-sim-matches-grid .live-match-meta {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+
+  .tools-sim-matches-grid .live-match-teams {
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .tools-sim-matches-grid .live-match-meta-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 4px;
+  }
+
+  .tools-sim-matches-grid .match-body-grid {
+    gap: 4px !important;
+    margin-top: 4px !important;
+  }
+
+  .tools-sim-matches-grid .tools-sim-input {
+    width: 32px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    line-height: 30px !important;
   }
 }
 
