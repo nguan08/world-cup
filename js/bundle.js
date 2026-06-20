@@ -1631,13 +1631,13 @@ function renderScoreChart() {
   const chartDaySteps = buildChartDaySteps(finishedMatches);
   const stepsCount = chartDaySteps.length;
 
-  // 2. Cache historical rank and score for all players
+  // 2. Cache historical rank and score for all app.players
   const playerRankHistory = app.players.map(p => {
     const curr = app.processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
       name: p.name,
       zone: curr.zone,
-      ranks: [1], // start all players tied at rank 1 before any finished matches
+      ranks: [1], // start all players tied at rank 1 before any finished app.matches
       scores: [0]
     };
   });
@@ -2013,7 +2013,7 @@ const CHART_ZONE_PULSE = {
   }
 };
 
-// let chartHoverPlayer / chartPulseAnimPlayer are provided via state.js named exports in bundle
+// let app.chartHoverPlayer / app.chartPulseAnimPlayer are provided via state.js named exports in bundle
 
 function chartFindPlayerEl(svgEl, selector, playerName) {
   return [...svgEl.querySelectorAll(selector)].find(el => el.getAttribute('data-player') === playerName) || null;
@@ -3730,13 +3730,13 @@ function renderToolsSimulator() {
   if (clearBtn && !clearBtn._simBound) {
     clearBtn._simBound = true;
     clearBtn.addEventListener('click', () => {
-      simulationScores = {};
+      app.simulationScores = {};
       recalculateAll();
       renderTools();
     });
   }
 
-  const pending = matches.filter(m => m.status !== 'finished').sort((a, b) => {
+  const pending = app.matches.filter(m => m.status !== 'finished').sort((a, b) => {
     if (a.date && b.date) return a.date.localeCompare(b.date);
     return a.id - b.id;
   });
@@ -3750,7 +3750,7 @@ function renderToolsSimulator() {
   }
 
   pending.forEach(m => {
-    const sim = simulationScores[m.id];
+    const sim = app.simulationScores[m.id];
     const hVal = sim ? (sim.homeScore !== null ? sim.homeScore : '') : '';
     const aVal = sim ? (sim.awayScore !== null ? sim.awayScore : '') : '';
     const hZone = getTeamZoneByName(m.home);
@@ -3778,7 +3778,7 @@ function renderToolsSimulator() {
     matchesEl.appendChild(row);
   });
 
-  const simCount = Object.keys(simulationScores).length;
+  const simCount = Object.keys(app.simulationScores).length;
   updateToolsSimChrome(simCount);
   const hasSim = simCount > 0;
   if (!deltaWrap || !deltaTbody) return;
@@ -3792,7 +3792,7 @@ function renderToolsSimulator() {
   const baselineRank = {};
   baseline.forEach(p => { baselineRank[p.name] = p.rank; });
 
-  const movers = processedPlayers
+  const movers = app.processedPlayers
     .map(p => ({
       name: p.name,
       actual: baselineRank[p.name],
@@ -3899,10 +3899,10 @@ function getPlayerMatchResultMeta(match, teamName) {
 
 function buildPlayerTeamMatchHistoryHtml(tb, teamMatches) {
   if (!teamMatches.length) {
-    return '<div class="player-team-app.matches player-team-app.matches--empty">ยังไม่มีการแข่งขัน</div>';
+    return '<div class="player-team-matches player-team-matches--empty">ยังไม่มีการแข่งขัน</div>';
   }
 
-  let html = '<div class="player-team-app.matches">';
+  let html = '<div class="player-team-matches">';
   teamMatches.forEach((m) => {
     const meta = getPlayerMatchResultMeta(m, tb.name);
     const oppName = meta.isHome ? m.away : m.home;
@@ -4207,13 +4207,13 @@ function playRankSoundEffect(player) {
 
 function getFinishedMatchesByTeam() {
   let finishedCount = 0;
-  for (const m of matches) { if (m.status === 'finished') finishedCount++; }
+  for (const m of app.matches) { if (m.status === 'finished') finishedCount++; }
   const cacheKey = `${app.matches.length}:${finishedCount}`;
   if (_finishedMatchesByTeamCache && _finishedMatchesCacheKey === cacheKey) {
     return _finishedMatchesByTeamCache;
   }
   const map = new Map();
-  for (const m of matches) {
+  for (const m of app.matches) {
     if (m.status !== 'finished') continue;
     if (!map.has(m.home)) map.set(m.home, []);
     if (!map.has(m.away)) map.set(m.away, []);
@@ -4254,7 +4254,7 @@ function appendPlayerTeamGridChunk(grid, tbList, matchesByTeam, token, startIdx,
     const elimBadge = eliminated
       ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
       : '<span class="player-team-status player-team-status--in">อยู่</span>';
-    const elimToggleBtn = (typeof isAdmin !== 'undefined' && isAdmin)
+    const elimToggleBtn = (typeof app.isAdmin !== 'undefined' && app.isAdmin)
       ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(tb.name)}">${eliminated ? '↩' : '✕'}</button>`
       : '';
     const teamMatches = matchesByTeam.get(tb.name) || [];
@@ -4384,16 +4384,16 @@ function fillPlayerDetailsDrawer(name, token) {
   const ios = isIOSDeviceForDrawer();
 
   try {
-    const canUseCached = (ios || onMobile) && (typeof processedPlayers !== 'undefined') && processedPlayers && processedPlayers.length;
+    const canUseCached = (ios || onMobile) && (typeof app.processedPlayers !== 'undefined') && app.processedPlayers && app.processedPlayers.length;
     if (!canUseCached) {
       if (typeof recalculateAll === 'function') recalculateAll();
     }
     if (token !== _playerDetailsFillToken) return;
 
     const lookupName = (name || '').trim();
-    let player = (typeof processedPlayers !== 'undefined') ? processedPlayers.find(p => p.name === lookupName) : null;
-    if (!player && typeof processedPlayers !== 'undefined') {
-      player = processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
+    let player = (typeof app.processedPlayers !== 'undefined') ? app.processedPlayers.find(p => p.name === lookupName) : null;
+    if (!player && typeof app.processedPlayers !== 'undefined') {
+      player = app.processedPlayers.find(p => (p.name || '').trim().toLowerCase() === lookupName.toLowerCase());
     }
 
     if (!player) {
@@ -4668,13 +4668,13 @@ async function handleMatchFormSubmit() {
   if (isFinal) {
     nextId = 100;
   } else {
-    const ids = matches.filter(m => m.id < 100).map(m => m.id);
+    const ids = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
   }
   
   // Verify ID is unique
-  if (matches.some(m => m.id == nextId)) {
-    const allIds = matches.filter(m => m.id < 100).map(m => m.id);
+  if (app.matches.some(m => m.id == nextId)) {
+    const allIds = app.matches.filter(m => m.id < 100).map(m => m.id);
     nextId = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
   }
   
@@ -4690,8 +4690,8 @@ async function handleMatchFormSubmit() {
     date: matchDate
   };
   
-  matches.push(newMatch);
-  localStorage.setItem('worldcup_matches', JSON.stringify(matches));
+  app.matches.push(newMatch);
+  localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
   await saveToServer();
   
   closeMatchForm();
@@ -4739,10 +4739,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');
   if (adminToggleBtn) {
     adminToggleBtn.addEventListener('click', () => {
-      if (isAdmin) {
+      if (app.isAdmin) {
         // Logout
         showCustomConfirm('คุณต้องการออกจากระบบแอดมินใช่หรือไม่?', () => {
-          isAdmin = false;
+          app.isAdmin = false;
           sessionStorage.setItem('worldcup_isAdmin', 'false');
           updateAdminUI();
           recalculateAll();
@@ -5119,7 +5119,7 @@ async function exportStatisticsImage() {
 
 async function exportMatchesImage() {
   // Get only finished matches that have scores
-  const finishedMatches = matches
+  const finishedMatches = app.matches
     .filter(m => m.status === 'finished' && m.homeScore != null && m.awayScore != null)
     .sort((a, b) => {
       const da = a.date || '9999-12-31';
@@ -5162,7 +5162,7 @@ async function exportMatchesImage() {
       <th style="width:60px;">แมตช์</th>
       <th>กลุ่ม</th>
       <th style="text-align:right;">ทีมเหย้า</th>
-      <th class="app.matches-export-score-th">สกอร์</th>
+      <th class="matches-export-score-th">สกอร์</th>
       <th>ทีมเยือน</th>
       <th>กลุ่ม</th>
       <th>เกมส์คะแนน</th>
@@ -5243,7 +5243,7 @@ async function exportMatchesImage() {
       const errorMsg = document.getElementById('login-error-msg');
       
       if (password === ADMIN_PASSWORD) {
-        isAdmin = true;
+        app.isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
         updateAdminUI();
         errorMsg.style.display = 'none';
@@ -5299,7 +5299,7 @@ async function exportMatchesImage() {
   const chartHighlightSelect = document.getElementById('chart-highlight-select');
   if (chartHighlightSelect) {
     chartHighlightSelect.addEventListener('change', (e) => {
-      chartHoverPlayer = '';
+      app.chartHoverPlayer = '';
       highlightPlayerInChart(e.target.value);
     });
   }
@@ -5447,11 +5447,11 @@ async function exportMatchesImage() {
     
     if (id) {
       // Edit mode (find by name)
-      if (id !== name && players.some(p => p.name === name)) {
+      if (id !== name && app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นใหม่นี้มีผู้ใช้งานอยู่แล้ว!');
         return;
       }
-      const pIdx = players.findIndex(p => p.name === id);
+      const pIdx = app.players.findIndex(p => p.name === id);
       if (pIdx !== -1) {
         players[pIdx].name = name;
         players[pIdx].guess = guess;
@@ -5460,19 +5460,19 @@ async function exportMatchesImage() {
     } else {
       // Add mode
       // Check duplicate name
-      if (players.some(p => p.name === name)) {
+      if (app.players.some(p => p.name === name)) {
         alert('ชื่อผู้เล่นนี้ถูกใช้งานแล้ว!');
         return;
       }
-      players.push({
+      app.players.push({
         name,
         teams: selectedTeams,
         guess
       });
     }
     
-    localStorage.setItem('worldcup_players', JSON.stringify(players));
-    if (isSyncEnabled) {
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    if (app.isSyncEnabled) {
       await saveToServer();
     }
     document.getElementById('player-form-drawer-overlay').classList.remove('active');
@@ -5507,7 +5507,7 @@ window.addEventListener('resize', debouncedResize);
 
 function getTeamPopularity(teamName) {
   let count = 0;
-  for (const p of players) {
+  for (const p of app.players) {
     if (p.teams && p.teams.includes(teamName)) count++;
   }
   return count;
@@ -5593,7 +5593,7 @@ renderTeamsMatrix = function() {
 };
 
 function buildTeamPlayersPopupItemHtml(playerName) {
-  return `<li class="team-app.players-list-item" data-player="${escapeHtml(playerName)}" role="button" tabindex="0">${escapeHtml(playerName)}</li>`;
+  return `<li class="team-players-list-item" data-player="${escapeHtml(playerName)}" role="button" tabindex="0">${escapeHtml(playerName)}</li>`;
 }
 
 function closeTeamSelectionPopup() {
@@ -5634,8 +5634,7 @@ window.showTeamSelectionPopup = function(teamName, event) {
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
 
-  const selectedBy = players
-    .filter(p => p.teams && p.teams.includes(teamName))
+  const selectedBy = app.players.filter(p => p.teams && p.teams.includes(teamName))
     .map(p => p.name)
     .sort((a, b) => a.localeCompare(b, 'th'));
   const popup = document.createElement('div');
@@ -5651,16 +5650,16 @@ window.showTeamSelectionPopup = function(teamName, event) {
     extraStyle: 'font-size:12px; padding:2px 6px;',
     clickable: false
   });
-  let html = `<h4><span class="team-app.players-popup__label">ผู้เลือก</span> ${teamBadge}<span class="team-app.players-popup__meta"> · ${escapeHtml(teamGroup)} (${selectedBy.length} คน)</span></h4>`;
+  let html = `<h4><span class="team-players-popup__label">ผู้เลือก</span> ${teamBadge}<span class="team-players-popup__meta"> · ${escapeHtml(teamGroup)} (${selectedBy.length} คน)</span></h4>`;
   if (selectedBy.length === 0) {
     html += '<div>ไม่มีผู้เลือก</div>';
   } else {
-    html += '<ul class="team-app.players-list-small">' + selectedBy.map(buildTeamPlayersPopupItemHtml).join('') + '</ul>';
+    html += '<ul class="team-players-list-small">' + selectedBy.map(buildTeamPlayersPopupItemHtml).join('') + '</ul>';
   }
   popup.innerHTML = html;
   document.body.appendChild(popup);
 
-  popup.querySelectorAll('.team-app.players-list-item[data-player]').forEach((li) => {
+  popup.querySelectorAll('.team-players-list-item[data-player]').forEach((li) => {
     const openPlayer = (e) => {
       e.stopPropagation();
       e.preventDefault();

@@ -98,6 +98,9 @@ function migrateBundleState(code) {
     const rest = full.slice(offset + token.length);
     if (/^\s*:/.test(rest)) return token;
     const charBefore = offset > 0 ? full[offset - 1] : '';
+    const charAfter = rest.length > 0 ? rest[0] : '';
+    // Keep CSS class / slug fragments (player-team-matches, team-players-list-item)
+    if (charBefore === '-' || charAfter === '-') return token;
     if (charBefore === '.') {
       const prefix = full.slice(Math.max(0, offset - 4), offset);
       if (prefix.endsWith('app.')) return token;
@@ -106,6 +109,56 @@ function migrateBundleState(code) {
     if (SKIP_WORDS.has(token)) return token;
     return `app.${token}`;
   });
+}
+
+function fixBareStateCodeRefs(code) {
+  const rules = [
+    [/(?<![.\w$-])matches\.(filter|find|forEach|push|some|map|sort|length)/g, 'app.matches.$1'],
+    [/(?<![.\w$-])matches\s*(?=[=;,\]\)\n])/g, 'app.matches'],
+    [/(?<![.\w$-])\[\.\.\.matches\]/g, '[...app.matches]'],
+    [/(?<![.\w$-])JSON\.stringify\(\s*matches\s*\)/g, 'JSON.stringify(app.matches)'],
+    [/\bfor\s*\(\s*(?:const|let)\s+(\w+)\s+of\s+matches\b/g, 'for (const $1 of app.matches'],
+    [/(?<![.\w$-])players\.(filter|find|forEach|push|some|map|findIndex|sort|length)/g, 'app.players.$1'],
+    [/(?<![.\w$-])players\s*\.(?=\s*(?:filter|map|find|some|forEach))/g, 'app.players.'],
+    [/(?<![.\w$-])players\s*(?=[=;,\]\)\n])/g, 'app.players'],
+    [/(?<![.\w$-])JSON\.stringify\(\s*players\s*\)/g, 'JSON.stringify(app.players)'],
+    [/\bfor\s*\(\s*(?:const|let)\s+(\w+)\s+of\s+players\b/g, 'for (const $1 of app.players'],
+    [/(?<![.\w$-])processedPlayers(?!\.)(?!\s*:)/g, 'app.processedPlayers'],
+    [/(?<![.\w$-])processedPlayers\./g, 'app.processedPlayers.'],
+    [/(?<![.\w$-])simulationScores\b/g, 'app.simulationScores'],
+    [/(?<![.\w$-])isAdmin\b/g, 'app.isAdmin'],
+    [/(?<![.\w$-])isSyncEnabled\b/g, 'app.isSyncEnabled'],
+    [/(?<![.\w$-])statsSortState\b/g, 'app.statsSortState'],
+    [/(?<![.\w$-])teamPoints\b/g, 'app.teamPoints'],
+    [/(?<![.\w$-])manualEliminatedTeams\b/g, 'app.manualEliminatedTeams'],
+    [/(?<![.\w$-])lastHighlightPlayer\b/g, 'app.lastHighlightPlayer'],
+    [/(?<![.\w$-])teamMatchesPlayedCounts\b/g, 'app.teamMatchesPlayedCounts'],
+    [/(?<![.\w$-])chartHoverPlayer\b/g, 'app.chartHoverPlayer'],
+    [/(?<![.\w$-])chartPulseAnimPlayer\b/g, 'app.chartPulseAnimPlayer'],
+    [/(?<![.\w$-])statsSortHandlersReady\b/g, 'app.statsSortHandlersReady'],
+    [/(?<![.\w$-])lastDataRefreshTime\b/g, 'app.lastDataRefreshTime'],
+    [/(?<![.\w$-])autoRefreshTimer\b/g, 'app.autoRefreshTimer'],
+  ];
+  for (const [re, repl] of rules) {
+    code = code.replace(re, repl);
+  }
+  return code.replace(/app\.app\./g, 'app.');
+}
+
+function fixQuotedStateKeyCorruption(code) {
+  const tabIds = ['matches', 'players', 'statistics', 'teams', 'tools', 'dashboard', 'leaderboard', 'payout'];
+  for (const key of tabIds) {
+    code = code.replace(new RegExp(`'app\\.${key}'`, 'g'), `'${key}'`);
+    code = code.replace(new RegExp(`"app\\.${key}"`, 'g'), `"${key}"`);
+  }
+  return code;
+}
+
+function fixCorruptedClassNames(code) {
+  return code
+    .replace(/player-team-app\.matches/g, 'player-team-matches')
+    .replace(/app\.matches-export/g, 'matches-export')
+    .replace(/team-app\.players/g, 'team-players');
 }
 
 bundleBody = migrateBundleState(bundleBody);
@@ -131,6 +184,9 @@ function fixUnderscoreStateAssignments(code) {
 }
 
 bundleBody = fixUnderscoreStateAssignments(bundleBody);
+bundleBody = fixBareStateCodeRefs(bundleBody);
+bundleBody = fixQuotedStateKeyCorruption(bundleBody);
+bundleBody = fixCorruptedClassNames(bundleBody);
 
 let bundleCode = bundleImports + bundleBody;
 
