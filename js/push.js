@@ -130,17 +130,3 @@ export async function triggerPushWorkflow() {
   }
 }
 
-export async function showLocalPushTestNotification() {
-  if (Notification.permission !== 'granted') return false;
-  try {
-    const reg = await waitForServiceWorker();
-    await reg.showNotification('World Cup 2026 — ทดสอบแจ้งเตือน', {
-      body: 'ถ้าเห็นข้อความนี้บนหน้าจอ แจ้งเตือนนอกแอปทำงานแล้ว',
-      tag: 'wc-push-test',
-      renotify: true
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}

@@ -11,7 +11,6 @@ import {
 } from './device.js';
 import {
   isPushRegisteredLocally,
-  showLocalPushTestNotification,
   subscribeAndRegisterPush
 } from './push.js';
 import { waitForServiceWorker } from './pwa.js';
@@ -600,8 +599,8 @@ function renderNotificationControls() {
       return;
     }
     if (perm === 'granted' && isPushRegisteredLocally()) {
-      btn.disabled = false;
-      btn.textContent = 'ทดสอบแจ้งเตือนนอกแอป';
+      btn.disabled = true;
+      btn.textContent = 'เปิดแจ้งเตือนนอกแอปแล้ว';
       return;
     }
     btn.disabled = false;
@@ -619,7 +618,7 @@ function renderNotificationControls() {
       if (block === 'ios-use-safari') {
         window.open('https://nguan08.github.io/world-cup/', '_blank', 'noopener');
         notifyDataUpdate({
-          type: 'test',
+          type: 'data',
           message: 'เปิดลิงก์ใน Safari แล้วกด แชร์ → เพิ่มไปหน้าจอโฮม'
         });
       } else if (block) {
@@ -631,13 +630,6 @@ function renderNotificationControls() {
     }
 
     if (perm === 'granted' && isPushRegisteredLocally()) {
-      const ok = await showLocalPushTestNotification();
-      notifyDataUpdate({
-        type: 'test',
-        message: ok
-          ? 'ส่งทดสอบแล้ว — ดูที่ศูนย์แจ้งเตือนของมือถือ'
-          : 'ทดสอบไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'
-      });
       return;
     }
 
@@ -656,8 +648,7 @@ function renderNotificationControls() {
     refreshUi(push);
 
     if (push.ok) {
-      await showLocalPushTestNotification();
-      notifyDataUpdate({ type: 'test', message: 'ลงทะเบียน Push นอกแอปสำเร็จ — ดูการแจ้งเตือนทดสอบบนหน้าจอ' });
+      notifyDataUpdate({ type: 'data', message: 'ลงทะเบียน Push นอกแอปสำเร็จ' });
       return;
     }
 
@@ -668,7 +659,7 @@ function renderNotificationControls() {
         import('./pwa.js').then((m) => m.showManualInstallHelp?.({ preferRedirect: false }));
       }
       notifyDataUpdate({
-        type: 'test',
+        type: 'data',
         message: push.reason === 'ios-need-update'
           ? 'อัปเดต iOS เป็น 16.4+ แล้วเปิดจากไอคอนแอปอีกครั้ง'
           : 'iPhone: ติดตั้งจาก Safari แล้วเปิดจากไอคอน จึงจะได้ Push นอกแอป'
@@ -677,7 +668,7 @@ function renderNotificationControls() {
     }
 
     notifyDataUpdate({
-      type: 'test',
+      type: 'data',
       message: push.message
         ? `ลงทะเบียน Push ไม่สำเร็จ: ${push.message}`
         : 'ลงทะเบียน Push ไม่สำเร็จ — ลองรีเฟรชแล้วกดอีกครั้ง'

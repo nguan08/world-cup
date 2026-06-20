@@ -3769,11 +3769,6 @@ html.is-admin .admin-broadcast-panel,
   color: var(--text-muted);
 }
 
-.admin-broadcast-preview-btn {
-  opacity: 0.85;
-  font-size: 11px !important;
-}
-
 .admin-broadcast-panel__input {
   width: 100%;
   padding: 8px 10px;
@@ -3785,9 +3780,7 @@ html.is-admin .admin-broadcast-panel,
   font-size: 12px;
 }
 
-.admin-broadcast-btn,
-.admin-broadcast-test-btn,
-.admin-broadcast-preview-btn {
+.admin-broadcast-btn {
   width: 100%;
   padding: 8px 12px !important;
   font-size: 12px !important;
