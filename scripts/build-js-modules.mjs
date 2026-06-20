@@ -46,7 +46,7 @@ const bundleImports = `// UI, rendering, events, player drawer, team popup
 import {
   TEAMS, TEAM_WC_GROUP_MEMBERS, INITIAL_MATCHES, INITIAL_PLAYERS,
   getTeamWcGroup, formatWcGroupLabel, formatZoneDisplayLabel,
-  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml
+  getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml, getTeamFlagUrl
 } from './constants.js';
 import { app } from './state.js';
 import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
@@ -109,6 +109,28 @@ function migrateBundleState(code) {
 }
 
 bundleBody = migrateBundleState(bundleBody);
+
+function fixTemplateLiteralStateRefs(code) {
+  for (const key of STATE_KEYS) {
+    code = code.replace(new RegExp(`\\$\\{${key}\\.`, 'g'), `\${app.${key}.`);
+    code = code.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), `\${app.${key}}`);
+    code = code.replace(new RegExp(`\\$\\{${key} `, 'g'), `\${app.${key} `);
+  }
+  return code;
+}
+
+bundleBody = fixTemplateLiteralStateRefs(bundleBody);
+
+function fixUnderscoreStateAssignments(code) {
+  for (const key of STATE_KEYS) {
+    if (!key.startsWith('_')) continue;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    code = code.replace(new RegExp(`(^|[^a-zA-Z0-9_.])${escaped}(?=\\s*[=;,)])`, 'gm'), `$1app.${key}`);
+  }
+  return code;
+}
+
+bundleBody = fixUnderscoreStateAssignments(bundleBody);
 
 let bundleCode = bundleImports + bundleBody;
 

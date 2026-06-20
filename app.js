@@ -6118,6 +6118,124 @@ function renderStatsZoneBreakdown(statsArray) {
   renderStatsGrandPills(grandEl, allTotal, allCount ? allTotal / allCount : 0);
 }
 
+function getFinalGuessBuckets() {
+  const buckets = Array.from({ length: 10 }, (_, guess) => ({ guess, players: [] }));
+  const noGuess = [];
+
+  players.forEach(player => {
+    const raw = player.guess;
+    if (raw == null || raw === '') {
+      noGuess.push(player);
+      return;
+    }
+    const guess = Number(raw);
+    if (!Number.isInteger(guess) || guess < 0 || guess > 9) {
+      noGuess.push(player);
+      return;
+    }
+    buckets[guess].players.push(player);
+  });
+
+  const byName = (a, b) => a.name.localeCompare(b.name, 'th');
+  buckets.forEach(bucket => bucket.players.sort(byName));
+  noGuess.sort(byName);
+  return { buckets, noGuess };
+}
+
+function buildStatsFinalGuessPlayerChip(playerName) {
+  return `<button type="button" class="stats-final-guess-player" data-player="${escapeHtml(playerName)}">${escapeHtml(playerName)}</button>`;
+}
+
+function renderStatsFinalGuess() {
+  const container = document.getElementById('stats-final-guess-bars');
+  const summaryEl = document.getElementById('stats-final-guess-summary');
+  const metaEl = document.getElementById('stats-final-guess-meta');
+  if (!container) return;
+
+  const finalMatch = matches.find(m => m.isFinal) || INITIAL_MATCHES.find(m => m.isFinal);
+  const { buckets, noGuess } = getFinalGuessBuckets();
+  const activeBuckets = buckets.filter(b => b.players.length > 0);
+  const guessedCount = players.length - noGuess.length;
+  const topBucket = [...activeBuckets].sort((a, b) => b.players.length - a.players.length)[0];
+  const actualTotal = finalMatch?.status === 'finished'
+    && finalMatch.homeScore != null
+    && finalMatch.awayScore != null
+    ? finalMatch.homeScore + finalMatch.awayScore
+    : null;
+
+  if (summaryEl) {
+    const noGuessNote = noGuess.length ? ` · ยังไม่ทาย ${noGuess.length}` : '';
+    summaryEl.textContent = `ทายแล้ว ${guessedCount}/${players.length} คน${noGuessNote}`;
+  }
+
+  if (metaEl) {
+    if (!finalMatch) {
+      metaEl.textContent = 'ยังไม่มีนัดชิงในระบบ';
+    } else {
+      const dateLabel = finalMatch.date
+        ? new Date(finalMatch.date + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '';
+      const matchLine = `${finalMatch.home} vs ${finalMatch.away}${dateLabel ? ` · ${dateLabel}` : ''}`;
+      if (actualTotal != null) {
+        const winners = buckets[actualTotal]?.players.length || 0;
+        metaEl.textContent = `${matchLine} · ผลจริงรวม ${actualTotal} ลูก · ทายถูก ${winners} คน`;
+      } else {
+        const popular = topBucket
+          ? ` · เลขยอดนิยม ${topBucket.guess} ลูก (${topBucket.players.length} คน)`
+          : '';
+        metaEl.textContent = `${matchLine} · รอผลนัดชิง${popular}`;
+      }
+    }
+  }
+
+  if (!activeBuckets.length) {
+    container.innerHTML = '<div class="stats-final-guess-empty">ยังไม่มีผู้ทายเลขใดเลย</div>';
+    return;
+  }
+
+  const maxCount = Math.max(...activeBuckets.map(b => b.players.length), 1);
+  const activeGuess = renderStatsFinalGuess._activeGuess ?? null;
+
+  container.innerHTML = activeBuckets
+    .sort((a, b) => a.guess - b.guess)
+    .map(({ guess, players: guessPlayers }) => {
+      const pct = Math.round((guessPlayers.length / maxCount) * 100);
+      const isWinner = actualTotal === guess;
+      const isOpen = activeGuess === guess;
+      const playerHtml = guessPlayers.map(p => buildStatsFinalGuessPlayerChip(p.name)).join('');
+      return `
+        <div class="stats-final-guess-bar-item${isWinner ? ' stats-final-guess-bar-item--winner' : ''}${isOpen ? ' is-open' : ''}">
+          <button type="button" class="stats-final-guess-bar-row" data-guess="${guess}" title="กดดูรายชื่อ">
+            <span class="stats-final-guess-bar-num">${guess}</span>
+            <span class="stats-final-guess-bar-wrap" aria-hidden="true">
+              <span class="stats-final-guess-bar-fill" style="width:${pct}%"></span>
+            </span>
+            <span class="stats-final-guess-bar-count">${guessPlayers.length}</span>
+          </button>
+          <div class="stats-final-guess-bar-players">${playerHtml}</div>
+        </div>`;
+    }).join('');
+
+  if (!container._finalGuessBound) {
+    container._finalGuessBound = true;
+    container.addEventListener('click', (e) => {
+      const chip = e.target.closest('.stats-final-guess-player[data-player]');
+      if (chip) {
+        e.stopPropagation();
+        e.preventDefault();
+        openPlayerDetails(chip.getAttribute('data-player'));
+        return;
+      }
+      const row = e.target.closest('.stats-final-guess-bar-row[data-guess]');
+      if (!row || !container.contains(row)) return;
+      e.stopPropagation();
+      const guess = Number(row.getAttribute('data-guess'));
+      renderStatsFinalGuess._activeGuess = renderStatsFinalGuess._activeGuess === guess ? null : guess;
+      renderStatsFinalGuess();
+    });
+  }
+}
+
 function renderStatistics() {
   setupStatsSortHandlers();
 
@@ -6128,6 +6246,7 @@ function renderStatistics() {
   const statsArray = sortStatsArray(buildStatsArray());
   renderStatsGroupBreakdown(statsArray);
   renderStatsZoneBreakdown(statsArray);
+  renderStatsFinalGuess();
   updateStatsSortUI();
 
   statsArray.forEach((s, idx) => {
@@ -6406,14 +6525,14 @@ function populateCompareSelects() {
 
   const prevA = selA.value;
   const prevB = selB.value;
-  const options = processedPlayers.map(p =>
+  const options = app.processedPlayers.map(p =>
     `<option value="${escapeHtml(p.name)}">#${p.rank} ${escapeHtml(p.name)} (${p.totalScore.toFixed(1)})</option>`
   ).join('');
 
   selA.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
   selB.innerHTML = '<option value="">— เลือกผู้เล่น —</option>' + options;
-  if (prevA && processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
-  if (prevB && processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
+  if (prevA && app.processedPlayers.some(p => p.name === prevA)) selA.value = prevA;
+  if (prevB && app.processedPlayers.some(p => p.name === prevB)) selB.value = prevB;
 }
 
 function renderToolsCompare() {
@@ -6437,10 +6556,113 @@ function getPlayerRemainingTeamCount(teams) {
   return teams.filter(t => !isTeamEliminated(t)).length;
 }
 
+function escapeTeamAttr(teamName) {
+  return escapeHtml(teamName).replace(/"/g, '&quot;');
+}
+
+function getCompareTeamFlagHtml(teamName) {
+  const url = getTeamFlagUrl(teamName);
+  const attr = escapeTeamAttr(teamName);
+  const initials = escapeHtml(teamName.slice(0, 2));
+  if (url) {
+    return `<span class="tools-compare-team-flag-wrap" data-team="${attr}" title="${attr}"><img src="${url}" alt="${attr}" class="tools-compare-team-flag" loading="lazy" width="24" height="24" onerror="this.style.display='none';this.nextElementSibling?.classList.add('is-visible')"><span class="tools-compare-team-flag-fallback">${initials}</span></span>`;
+  }
+  return `<span class="tools-compare-team-flag-wrap" data-team="${attr}" title="${attr}"><span class="tools-compare-team-flag-fallback is-visible">${initials}</span></span>`;
+}
+
+function updateCompareBenchHeaders(playerA, playerB) {
+  const nameElA = document.getElementById('compare-name-a');
+  const nameElB = document.getElementById('compare-name-b');
+  const rankElA = document.getElementById('compare-rank-a');
+  const rankElB = document.getElementById('compare-rank-b');
+  if (nameElA) nameElA.textContent = playerA ? playerA.name : 'เลือกผู้เล่นฝั่งซ้าย';
+  if (nameElB) nameElB.textContent = playerB ? playerB.name : 'เลือกผู้เล่นฝั่งขวา';
+  if (rankElA) rankElA.textContent = playerA ? `#${playerA.rank}` : '—';
+  if (rankElB) rankElB.textContent = playerB ? `#${playerB.rank}` : '—';
+}
+
+const COMPARE_ZONE_ORDER = { blue: 0, green: 1, yellow: 2, grey: 3, 'red-orange': 4 };
+
+function getCompareNumericWinner(a, b, higherBetter = true) {
+  if (a === b) return 'tie';
+  if (higherBetter) return a > b ? 'left' : 'right';
+  return a < b ? 'left' : 'right';
+}
+
+function getCompareZoneWinner(zoneA, zoneB) {
+  const orderA = COMPARE_ZONE_ORDER[zoneA] ?? 99;
+  const orderB = COMPARE_ZONE_ORDER[zoneB] ?? 99;
+  if (orderA === orderB) return 'tie';
+  return orderA < orderB ? 'left' : 'right';
+}
+
+function compareBenchCellClass(side, winner) {
+  if (winner === 'tie') return '';
+  return winner === side ? 'is-winner' : 'is-loser';
+}
+
+function renderCompareBenchRow(label, leftHtml, rightHtml, winner, highlight = false) {
+  const rowCls = highlight ? 'compare-bench-row compare-bench-row--highlight' : 'compare-bench-row';
+  return `
+    <div class="${rowCls}">
+      <div class="compare-bench-cell compare-bench-cell--left ${compareBenchCellClass('left', winner)}">${leftHtml}</div>
+      <div class="compare-bench-cell compare-bench-cell--label">${label}</div>
+      <div class="compare-bench-cell compare-bench-cell--right ${compareBenchCellClass('right', winner)}">${rightHtml}</div>
+    </div>`;
+}
+
+function getCompareTeamPoints(player, teamName) {
+  const tb = (player.teamBreakdown || []).find(x => x.name === teamName);
+  return tb ? tb.points : 0;
+}
+
+function sortCompareTeams(teamNames, player) {
+  return [...teamNames].sort((a, b) => {
+    const diff = getCompareTeamPoints(player, b) - getCompareTeamPoints(player, a);
+    return diff !== 0 ? diff : a.localeCompare(b, 'th');
+  });
+}
+
+function renderCompareTeamList(teamNames, player, side) {
+  if (!teamNames.length) {
+    return '<li class="compare-bench-team-empty">ไม่มี</li>';
+  }
+  const rowCls = side === 'right'
+    ? 'compare-bench-team-row compare-bench-team-row--right'
+    : 'compare-bench-team-row compare-bench-team-row--left';
+  return teamNames.map(teamName => {
+    const pts = getCompareTeamPoints(player, teamName).toFixed(1);
+    const attr = escapeTeamAttr(teamName);
+    const nameHtml = `<span class="compare-bench-team-name" data-team="${attr}">${escapeHtml(teamName)}</span>`;
+    const ptsHtml = `<span class="compare-bench-team-pts">${pts}</span>`;
+    const flagHtml = getCompareTeamFlagHtml(teamName);
+    const inner = side === 'right'
+      ? `${ptsHtml}${nameHtml}${flagHtml}`
+      : `${flagHtml}${nameHtml}${ptsHtml}`;
+    return `<li class="${rowCls}">${inner}</li>`;
+  }).join('');
+}
+
+function renderCompareSharedTeamList(teamNames) {
+  if (!teamNames.length) {
+    return '<li class="compare-bench-team-empty">ไม่มี</li>';
+  }
+  return teamNames.map(teamName =>
+    `<li class="compare-bench-team-row compare-bench-team-row--shared">${getCompareTeamFlagHtml(teamName)}</li>`
+  ).join('');
+}
+
 function formatCompareFinalGuess(player) {
   const guess = player.guess;
-  const guessText = (guess != null && guess !== undefined && guess !== '') ? `${guess} ลูก` : '—';
-  return `${guessText} · ${player.predictionScore.toFixed(1)}`;
+  const guessHtml = (guess != null && guess !== undefined && guess !== '')
+    ? `<span class="compare-bench-guess-goals">${guess} ลูก</span>`
+    : '—';
+  return `${guessHtml} · ${player.predictionScore.toFixed(1)}`;
+}
+
+function renderCompareZoneBadge(zone) {
+  const cls = getZoneBadgeClass(zone);
+  return `<span class="badge badge-${cls}">${formatZoneDisplayLabel(zone)}</span>`;
 }
 
 function renderToolsCompareResult() {
@@ -6450,84 +6672,117 @@ function renderToolsCompareResult() {
   if (!container) return;
 
   if (!nameA || !nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">เลือกผู้เล่น 2 คนเพื่อเปรียบเทียบ</p>';
+    updateCompareBenchHeaders(null, null);
+    container.innerHTML = '<p class="compare-bench-empty">เลือกผู้เล่น 2 คนเพื่อเปรียบเทียบ</p>';
     return;
   }
   if (nameA === nameB) {
-    container.innerHTML = '<p class="tools-empty-hint">กรุณาเลือกผู้เล่นคนละคน</p>';
+    const player = app.processedPlayers.find(p => p.name === nameA);
+    updateCompareBenchHeaders(player || null, null);
+    container.innerHTML = '<p class="compare-bench-empty">กรุณาเลือกผู้เล่นคนละคน</p>';
     return;
   }
 
-  const playerA = processedPlayers.find(p => p.name === nameA);
-  const playerB = processedPlayers.find(p => p.name === nameB);
+  const playerA = app.processedPlayers.find(p => p.name === nameA);
+  const playerB = app.processedPlayers.find(p => p.name === nameB);
   if (!playerA || !playerB) return;
+
+  updateCompareBenchHeaders(playerA, playerB);
 
   const teamsA = new Set(playerA.teams || []);
   const teamsB = new Set(playerB.teams || []);
-  const shared = [...teamsA].filter(t => teamsB.has(t));
-  const onlyA = [...teamsA].filter(t => !teamsB.has(t));
-  const onlyB = [...teamsB].filter(t => !teamsA.has(t));
+  const shared = sortCompareTeams([...teamsA].filter(t => teamsB.has(t)), playerA);
+  const onlyA = sortCompareTeams([...teamsA].filter(t => !teamsB.has(t)), playerA);
+  const onlyB = sortCompareTeams([...teamsB].filter(t => !teamsA.has(t)), playerB);
   const scoreDiff = playerA.totalScore - playerB.totalScore;
   const rankDiff = playerB.rank - playerA.rank;
+  const scoreTotal = playerA.totalScore + playerB.totalScore;
+  const leftBarPct = scoreTotal > 0 ? (playerA.totalScore / scoreTotal) * 100 : 50;
+  const rightBarPct = 100 - leftBarPct;
+  const verdictCls = scoreDiff > 0
+    ? 'compare-bench-verdict compare-bench-verdict--left'
+    : scoreDiff < 0
+      ? 'compare-bench-verdict compare-bench-verdict--right'
+      : 'compare-bench-verdict';
+  const matchesA = getPlayerTotalMatchesPlayed(playerA.teams);
+  const matchesB = getPlayerTotalMatchesPlayed(playerB.teams);
+  const remainingA = getPlayerRemainingTeamCount(playerA.teams);
+  const remainingB = getPlayerRemainingTeamCount(playerB.teams);
 
-  const zoneBadge = (zone) => {
-    const cls = getZoneBadgeClass(zone);
-    return `<span class="badge badge-${cls}">${formatZoneDisplayLabel(zone)}</span>`;
-  };
-
-  const teamBadges = (teamNames) => teamNames.map(t => {
-    const tb = (playerA.teamBreakdown || []).find(x => x.name === t)
-      || (playerB.teamBreakdown || []).find(x => x.name === t);
-    const zone = tb ? tb.zone : getTeamZoneByName(t);
-    const pts = tb ? tb.points.toFixed(1) : '0.0';
-    return `<span class="tools-compare-team-item">${buildTeamBadgeHtml(t, zone, { compact: true })}<span class="tools-compare-team-pts">${pts}</span></span>`;
-  }).join('');
+  const tableRows = [
+    renderCompareBenchRow(
+      'คะแนนรวม',
+      `<strong>${playerA.totalScore.toFixed(1)}</strong>`,
+      `<strong>${playerB.totalScore.toFixed(1)}</strong>`,
+      getCompareNumericWinner(playerA.totalScore, playerB.totalScore),
+      true
+    ),
+    renderCompareBenchRow(
+      'อันดับ',
+      `#${playerA.rank}`,
+      `#${playerB.rank}`,
+      getCompareNumericWinner(playerA.rank, playerB.rank, false)
+    ),
+    renderCompareBenchRow(
+      'โซน',
+      renderCompareZoneBadge(playerA.zone),
+      renderCompareZoneBadge(playerB.zone),
+      getCompareZoneWinner(playerA.zone, playerB.zone)
+    ),
+    renderCompareBenchRow(
+      'คะแนนทีม',
+      playerA.teamsScore.toFixed(1),
+      playerB.teamsScore.toFixed(1),
+      getCompareNumericWinner(playerA.teamsScore, playerB.teamsScore)
+    ),
+    renderCompareBenchRow(
+      'แข่ง',
+      `${matchesA} นัด`,
+      `${matchesB} นัด`,
+      getCompareNumericWinner(matchesA, matchesB)
+    ),
+    renderCompareBenchRow(
+      'ทีมที่เหลือ',
+      `${remainingA} ทีม`,
+      `${remainingB} ทีม`,
+      getCompareNumericWinner(remainingA, remainingB)
+    ),
+    renderCompareBenchRow(
+      'ทายนัดชิง',
+      formatCompareFinalGuess(playerA),
+      formatCompareFinalGuess(playerB),
+      getCompareNumericWinner(playerA.predictionScore, playerB.predictionScore)
+    )
+  ].join('');
 
   container.innerHTML = `
-    <div class="tools-compare-grid">
-      <div class="tools-compare-card tools-compare-card--a">
-        <div class="tools-compare-name">${escapeHtml(playerA.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerA.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerA.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerA.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerA.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>แข่ง</span>${getPlayerTotalMatchesPlayed(playerA.teams)} นัด</div>
-        <div class="tools-compare-stat"><span>ทีมที่เหลือ</span>${getPlayerRemainingTeamCount(playerA.teams)} ทีม</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${formatCompareFinalGuess(playerA)}</div>
-      </div>
-      <div class="tools-compare-mid">
-        <div class="tools-compare-diff ${scoreDiff > 0 ? 'tools-compare-diff--up' : scoreDiff < 0 ? 'tools-compare-diff--down' : ''}">
-          <span class="tools-compare-diff-label">ต่างคะแนน</span>
-          <strong>${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</strong>
+    <div class="${verdictCls}">
+      <div class="compare-bench-bar">
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--left" style="width:${leftBarPct.toFixed(1)}%">
+          <span>${playerA.totalScore.toFixed(1)}</span>
         </div>
-        <div class="tools-compare-diff">
-          <span class="tools-compare-diff-label">ต่างอันดับ</span>
-          <strong>${rankDiff > 0 ? '+' : ''}${rankDiff}</strong>
+        <div class="compare-bench-bar-seg compare-bench-bar-seg--right" style="width:${rightBarPct.toFixed(1)}%">
+          <span>${playerB.totalScore.toFixed(1)}</span>
         </div>
       </div>
-      <div class="tools-compare-card tools-compare-card--b">
-        <div class="tools-compare-name">${escapeHtml(playerB.name)}</div>
-        <div class="tools-compare-stat"><span>อันดับ</span><strong>#${playerB.rank}</strong></div>
-        <div class="tools-compare-stat"><span>โซน</span>${zoneBadge(playerB.zone)}</div>
-        <div class="tools-compare-stat"><span>คะแนนรวม</span><strong>${playerB.totalScore.toFixed(1)}</strong></div>
-        <div class="tools-compare-stat"><span>คะแนนทีม</span>${playerB.teamsScore.toFixed(1)}</div>
-        <div class="tools-compare-stat"><span>แข่ง</span>${getPlayerTotalMatchesPlayed(playerB.teams)} นัด</div>
-        <div class="tools-compare-stat"><span>ทีมที่เหลือ</span>${getPlayerRemainingTeamCount(playerB.teams)} ทีม</div>
-        <div class="tools-compare-stat"><span>ทายนัดชิง</span>${formatCompareFinalGuess(playerB)}</div>
+      <div class="compare-bench-verdict-meta">
+        <span class="compare-bench-verdict-diff">ต่างคะแนน ${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</span>
+        <span class="compare-bench-verdict-diff">ต่างอันดับ ${rankDiff > 0 ? '+' : ''}${rankDiff}</span>
       </div>
     </div>
-    <div class="tools-compare-teams">
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">ทีมร่วม (${shared.length})</div>
-        <div class="tools-compare-teams-badges">${shared.length ? teamBadges(shared) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+    <div class="compare-bench-table">${tableRows}</div>
+    <div class="compare-bench-teams">
+      <div class="compare-bench-teams-col compare-bench-teams-col--left">
+        <div class="compare-bench-teams-title">เฉพาะ <span>${escapeHtml(playerA.name)}</span> (${onlyA.length})</div>
+        <ul class="compare-bench-teams-list">${renderCompareTeamList(onlyA, playerA, 'left')}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerA.name)} (${onlyA.length})</div>
-        <div class="tools-compare-teams-badges">${onlyA.length ? teamBadges(onlyA) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--mid">
+        <div class="compare-bench-teams-title">ทีมร่วม (${shared.length})</div>
+        <ul class="compare-bench-teams-list compare-bench-teams-list--mid">${renderCompareSharedTeamList(shared)}</ul>
       </div>
-      <div class="tools-compare-teams-group">
-        <div class="tools-compare-teams-label">เฉพาะ ${escapeHtml(playerB.name)} (${onlyB.length})</div>
-        <div class="tools-compare-teams-badges">${onlyB.length ? teamBadges(onlyB) : '<span class="tools-empty-hint">ไม่มี</span>'}</div>
+      <div class="compare-bench-teams-col compare-bench-teams-col--right">
+        <div class="compare-bench-teams-title">เฉพาะ <span>${escapeHtml(playerB.name)}</span> (${onlyB.length})</div>
+        <ul class="compare-bench-teams-list">${renderCompareTeamList(onlyB, playerB, 'right')}</ul>
       </div>
     </div>
   `;
@@ -6781,7 +7036,7 @@ function initRankSoundVoices() {
   if (!('speechSynthesis' in window)) return;
   const pickVoice = () => {
     const voices = window.speechSynthesis.getVoices();
-    _rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
+    app._rankSpeechVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('th'))
       || voices.find(v => /th/i.test(v.lang || ''))
       || voices[0]
       || null;
@@ -6953,7 +7208,7 @@ function speakRankPhrase(type, options = {}) {
     const phrase = pool[index % pool.length];
     const utter = new SpeechSynthesisUtterance(phrase);
     utter.lang = 'th-TH';
-    if (_rankSpeechVoice) utter.voice = _rankSpeechVoice;
+    if (app._rankSpeechVoice) utter.voice = app._rankSpeechVoice;
 
     if (type === 'winner') {
       utter.rate = 0.92 + Math.random() * 0.08;
@@ -8324,12 +8579,12 @@ function getTeamPopularity(teamName) {
 
 // _maxPopularityCache provided via state.js named exports in bundle
 function getMaxPopularity() {
-  if (_maxPopularityCache !== null) return _maxPopularityCache;
+  if (app._maxPopularityCache !== null) return app._maxPopularityCache;
   let max = 1; // avoid div by zero
   TEAMS.forEach(t => {
     max = Math.max(max, getTeamPopularity(t.name));
   });
-  _maxPopularityCache = max;
+  app._maxPopularityCache = max;
   return max;
 }
 
@@ -8373,7 +8628,7 @@ function buildTeamBadgeHtml(teamName, zone, options = {}) {
 }
 
 function resetTeamPopularityCache() {
-  _maxPopularityCache = null;
+  app._maxPopularityCache = null;
 }
 
 // Reset cache when players update
