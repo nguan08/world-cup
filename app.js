@@ -1297,8 +1297,71 @@ function setupNavigation() {
   });
 }
 
+function isSimulationScoresComplete(sim) {
+  return !!(sim &&
+    sim.homeScore !== null && sim.homeScore !== undefined &&
+    sim.awayScore !== null && sim.awayScore !== undefined &&
+    !Number.isNaN(sim.homeScore) && !Number.isNaN(sim.awayScore));
+}
+
+function formatMatchPtsLabel(pts) {
+  const n = Number(pts);
+  return `${n > 0 ? '+' : ''}${pts}`;
+}
+
+function applySimulationPtsToCard(card, m, sim) {
+  const matchCenter = card.querySelector('.match-center-col');
+  if (!matchCenter) return;
+
+  let ptsRow = matchCenter.querySelector('.match-pts-row');
+  const showPts = isSimulationScoresComplete(sim);
+
+  if (!showPts) {
+    if (ptsRow) ptsRow.remove();
+    return;
+  }
+
+  const hTeamObj = TEAMS.find(t => t.name === m.home);
+  const aTeamObj = TEAMS.find(t => t.name === m.away);
+  const hMult = hTeamObj ? hTeamObj.multiplier : 1;
+  const aMult = aTeamObj ? aTeamObj.multiplier : 1;
+  const ptsMatch = { ...m, ...sim, status: 'finished' };
+  const hPts = getMatchGamePointsForTeam(ptsMatch, m.home, hMult).toFixed(1);
+  const aPts = getMatchGamePointsForTeam(ptsMatch, m.away, aMult).toFixed(1);
+  const ptsHtml = `
+    <div class="match-pts-row">
+      <span class="pts-label">${formatMatchPtsLabel(hPts)}</span>
+      <div style="width: 10px;"></div>
+      <span class="pts-label">${formatMatchPtsLabel(aPts)}</span>
+    </div>
+  `;
+
+  if (ptsRow) ptsRow.outerHTML = ptsHtml;
+  else matchCenter.insertAdjacentHTML('beforeend', ptsHtml);
+}
+
+function updateSimulationCardState(card, m, sim) {
+  if (!card || !m || m.status === 'finished') return;
+  card.classList.toggle('tools-sim-card--active', !!sim);
+  const statusEl = card.querySelector('.live-match-status');
+  if (!statusEl) return;
+  statusEl.textContent = sim ? 'จำลองผล' : 'รอแข่ง';
+  statusEl.className = `live-match-status ${sim ? 'simulated' : 'pending'}`;
+}
+
+function updateLiveMatchSimulationPts(matchId) {
+  const m = matches.find(x => x.id == matchId);
+  if (!m || m.status === 'finished') return;
+
+  const sim = simulationScores[matchId];
+  document.querySelectorAll(`[data-match-id="${matchId}"]`).forEach((card) => {
+    applySimulationPtsToCard(card, m, sim);
+    updateSimulationCardState(card, m, sim);
+  });
+}
+
 function handleSimulationScoreChange(matchId, isHome, val) {
-  const score = val === '' ? null : parseInt(val);
+  const score = val === '' ? null : parseInt(val, 10);
   if (!simulationScores[matchId]) {
     const m = matches.find(x => x.id == matchId);
     simulationScores[matchId] = {
@@ -1314,6 +1377,8 @@ function handleSimulationScoreChange(matchId, isHome, val) {
     delete simulationScores[matchId];
   }
 
+  updateLiveMatchSimulationPts(matchId);
+
   if (window._simTimeout) clearTimeout(window._simTimeout);
   window._simTimeout = setTimeout(() => {
     recalculateAll();
@@ -1323,7 +1388,8 @@ function handleSimulationScoreChange(matchId, isHome, val) {
       renderDashboardTopLeaders();
       scheduleScoreChartRender();
     } else if (document.getElementById('tools')?.classList.contains('active')) {
-      renderTools();
+      updateToolsSimChrome(Object.keys(simulationScores).length);
+      renderToolsSimDelta();
     }
   }, 300);
 }
@@ -1343,6 +1409,7 @@ function buildLiveMatchCard(m, index, options = {}) {
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
   if (mode === 'matches' || mode === 'live') card.classList.add('matches-page-card');
+  if (mode === 'tools') card.classList.add('tools-sim-card');
   card.dataset.matchId = String(m.id);
 
   const isSimulated = simulationScores[m.id];
@@ -1408,7 +1475,7 @@ function buildLiveMatchCard(m, index, options = {}) {
       </div>
     `;
   } else {
-    if (mode === 'live') {
+    if (mode === 'live' || mode === 'tools') {
       const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
       metaLeft = `${dateLabel} · แมตช์ที่ ${m.id} · ${getMatchRoundLabel(m)}`;
     } else {
@@ -1429,12 +1496,14 @@ function buildLiveMatchCard(m, index, options = {}) {
       aScore = isSimulated ? isSimulated.awayScore : null;
     }
 
-    if (isFinished || isSimulated) {
-      const ptsMatch = isSimulated ? { ...m, ...isSimulated, status: 'finished' } : m;
+    const simComplete = isSimulationScoresComplete(isSimulated);
+    if (isFinished || simComplete) {
+      const ptsMatch = simComplete ? { ...m, ...isSimulated, status: 'finished' } : m;
       hPts = getMatchGamePointsForTeam(ptsMatch, m.home, hMult).toFixed(1);
       aPts = getMatchGamePointsForTeam(ptsMatch, m.away, aMult).toFixed(1);
     }
 
+    const simFieldPrefix = mode === 'tools' ? 'tools-sim' : 'sim';
     scoreCenterHtml = isFinished ? `
       <div class="match-score-row live-match-score-desktop">
         <span class="score-num">${m.homeScore}</span>
@@ -1443,18 +1512,18 @@ function buildLiveMatchCard(m, index, options = {}) {
       </div>
     ` : `
       <div class="match-score-row">
-        <input type="number" id="sim-home-${m.id}" name="sim-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input">
+        <input type="number" id="${simFieldPrefix}-home-${m.id}" name="${simFieldPrefix}-home-${m.id}" placeholder="-" value="${hScore !== null ? hScore : ''}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)" class="score-sim-input${mode === 'tools' ? ' tools-sim-input' : ''}">
         <span class="score-divider">:</span>
-        <input type="number" id="sim-away-${m.id}" name="sim-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input">
+        <input type="number" id="${simFieldPrefix}-away-${m.id}" name="${simFieldPrefix}-away-${m.id}" placeholder="-" value="${aScore !== null ? aScore : ''}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)" class="score-sim-input${mode === 'tools' ? ' tools-sim-input' : ''}">
       </div>
     `;
   }
 
   const ptsRowHtml = hPts !== null ? `
     <div class="match-pts-row">
-      <span class="pts-label">${Number(hPts) > 0 ? '+' : ''}${hPts}</span>
+      <span class="pts-label">${formatMatchPtsLabel(hPts)}</span>
       <div style="width: 10px;"></div>
-      <span class="pts-label">${Number(aPts) > 0 ? '+' : ''}${aPts}</span>
+      <span class="pts-label">${formatMatchPtsLabel(aPts)}</span>
     </div>
   ` : '';
 
@@ -4516,8 +4585,8 @@ function updateCompareBenchHeaders(playerA, playerB) {
   const nameElB = document.getElementById('compare-name-b');
   const rankElA = document.getElementById('compare-rank-a');
   const rankElB = document.getElementById('compare-rank-b');
-  if (nameElA) nameElA.textContent = playerA ? playerA.name : 'เลือกผู้เล่นฝั่งซ้าย';
-  if (nameElB) nameElB.textContent = playerB ? playerB.name : 'เลือกผู้เล่นฝั่งขวา';
+  if (nameElA) nameElA.textContent = playerA ? playerA.name : 'เลือกนักชกมุมน้ำเงิน';
+  if (nameElB) nameElB.textContent = playerB ? playerB.name : 'เลือกนักชกมุมแดง';
   if (rankElA) rankElA.textContent = playerA ? `#${playerA.rank}` : '—';
   if (rankElB) rankElB.textContent = playerB ? `#${playerB.rank}` : '—';
 }
@@ -4540,6 +4609,12 @@ function getCompareZoneWinner(zoneA, zoneB) {
 function compareBenchCellClass(side, winner) {
   if (winner === 'tie') return '';
   return winner === side ? 'is-winner' : 'is-loser';
+}
+
+function compareBenchDiffClass(value) {
+  if (value > 0) return 'compare-bench-verdict-diff compare-bench-verdict-diff--pos';
+  if (value < 0) return 'compare-bench-verdict-diff compare-bench-verdict-diff--neg';
+  return 'compare-bench-verdict-diff compare-bench-verdict-diff--zero';
 }
 
 function renderCompareBenchRow(label, leftHtml, rightHtml, winner, highlight = false) {
@@ -4680,13 +4755,13 @@ function renderToolsCompareResult() {
       'แข่ง',
       `${matchesA} นัด`,
       `${matchesB} นัด`,
-      getCompareNumericWinner(matchesA, matchesB)
+      getCompareNumericWinner(matchesA, matchesB, false)
     ),
     renderCompareBenchRow(
       'ทีมที่เหลือ',
       `${remainingA} ทีม`,
       `${remainingB} ทีม`,
-      getCompareNumericWinner(remainingA, remainingB)
+      getCompareNumericWinner(remainingA, remainingB, true)
     ),
     renderCompareBenchRow(
       'ทายนัดชิง',
@@ -4697,21 +4772,23 @@ function renderToolsCompareResult() {
   ].join('');
 
   container.innerHTML = `
-    <div class="${verdictCls}">
-      <div class="compare-bench-bar">
+    <div class="${verdictCls} compare-bench-scorecard">
+      <div class="compare-bench-scorecard__head">Scorecard</div>
+      <div class="compare-bench-bar compare-bench-bar--clash">
         <div class="compare-bench-bar-seg compare-bench-bar-seg--left" style="width:${leftBarPct.toFixed(1)}%">
           <span>${playerA.totalScore.toFixed(1)}</span>
         </div>
         <div class="compare-bench-bar-seg compare-bench-bar-seg--right" style="width:${rightBarPct.toFixed(1)}%">
           <span>${playerB.totalScore.toFixed(1)}</span>
         </div>
+        <div class="compare-bench-bar-clash" aria-hidden="true"></div>
       </div>
-      <div class="compare-bench-verdict-meta">
-        <span class="compare-bench-verdict-diff">ต่างคะแนน ${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</span>
-        <span class="compare-bench-verdict-diff">ต่างอันดับ ${rankDiff > 0 ? '+' : ''}${rankDiff}</span>
+      <div class="compare-bench-verdict-meta compare-bench-verdict-meta--bout">
+        <span class="${compareBenchDiffClass(scoreDiff)}">ต่างคะแนน ${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)}</span>
+        <span class="${compareBenchDiffClass(rankDiff)}">ต่างอันดับ ${rankDiff > 0 ? '+' : ''}${rankDiff}</span>
       </div>
     </div>
-    <div class="compare-bench-table">${tableRows}</div>
+    <div class="compare-bench-table compare-bench-table--stats">${tableRows}</div>
     <div class="compare-bench-teams">
       <div class="compare-bench-teams-col compare-bench-teams-col--left">
         <div class="compare-bench-teams-title">เฉพาะ <span>${escapeHtml(playerA.name)}</span> (${onlyA.length})</div>
@@ -4743,10 +4820,55 @@ function updateToolsSimChrome(simCount) {
   }
 }
 
+function renderToolsSimDelta() {
+  const deltaWrap = document.getElementById('tools-sim-delta-wrap');
+  const deltaGrid = document.getElementById('tools-sim-delta-grid');
+  if (!deltaWrap || !deltaGrid) return;
+
+  const simCount = Object.keys(simulationScores).length;
+  if (simCount === 0) {
+    deltaWrap.style.display = 'none';
+    deltaGrid.innerHTML = '';
+    return;
+  }
+
+  deltaWrap.style.display = 'block';
+  const baseline = getProcessedPlayersWithoutSimulation();
+  const baselineRank = {};
+  baseline.forEach(p => { baselineRank[p.name] = p.rank; });
+
+  const movers = processedPlayers
+    .map(p => ({
+      name: p.name,
+      actual: baselineRank[p.name],
+      simulated: p.rank,
+      delta: baselineRank[p.name] - p.rank
+    }))
+    .filter(x => x.delta !== 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  if (movers.length === 0) {
+    deltaGrid.innerHTML = '<p class="tools-sim-delta-empty">อันดับไม่เปลี่ยน</p>';
+    return;
+  }
+
+  deltaGrid.innerHTML = movers.map(m => {
+    const deltaClass = m.delta > 0 ? 'tools-sim-delta-chip--up' : 'tools-sim-delta-chip--down';
+    const deltaLabel = m.delta > 0 ? `▲${m.delta}` : `▼${Math.abs(m.delta)}`;
+    return `
+      <div class="tools-sim-delta-chip ${deltaClass}">
+        <span class="tools-sim-delta-chip__name" title="${escapeHtml(m.name)}">${escapeHtml(m.name)}</span>
+        <span class="tools-sim-delta-chip__meta">
+          <span class="tools-sim-delta-chip__ranks">${m.actual}→${m.simulated}</span>
+          <span class="tools-sim-delta-chip__delta">${deltaLabel}</span>
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderToolsSimulator() {
   const matchesEl = document.getElementById('tools-sim-matches');
-  const deltaWrap = document.getElementById('tools-sim-delta-wrap');
-  const deltaTbody = document.getElementById('tools-sim-delta-tbody');
   const clearBtn = document.getElementById('tools-clear-sim-btn');
   if (!matchesEl) return;
 
@@ -4766,83 +4888,25 @@ function renderToolsSimulator() {
 
   matchesEl.innerHTML = '';
   if (pending.length === 0) {
+    matchesEl.className = 'tools-sim-matches';
     matchesEl.innerHTML = '<p class="tools-sim-empty">ไม่มีนัดที่รอแข่ง — จำลองผลไม่ได้ในขณะนี้</p>';
     updateToolsSimChrome(0);
-    if (deltaWrap) deltaWrap.style.display = 'none';
+    renderToolsSimDelta();
     return;
   }
 
-  pending.forEach(m => {
-    const sim = simulationScores[m.id];
-    const hVal = sim ? (sim.homeScore !== null ? sim.homeScore : '') : '';
-    const aVal = sim ? (sim.awayScore !== null ? sim.awayScore : '') : '';
-    const hZone = getTeamZoneByName(m.home);
-    const aZone = getTeamZoneByName(m.away);
-    const dateLabel = m.date ? formatThaiDate(m.date) : 'ไม่ระบุวัน';
-    const row = document.createElement('div');
-    row.className = 'tools-sim-match' + (sim ? ' tools-sim-match--active' : '');
-    row.innerHTML = `
-      <div class="tools-sim-match-meta">
-        <span>${dateLabel} · แมตช์ #${m.id}</span>
-        <span class="tools-sim-match-round">${getMatchRoundLabel(m)}</span>
-      </div>
-      <div class="tools-sim-match-body">
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.home, hZone, { compact: true })}</div>
-        <div class="tools-sim-scores">
-          <div class="tools-sim-score-row">
-            <input type="number" id="tools-sim-home-${m.id}" name="tools-sim-home-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${hVal}" oninput="handleSimulationScoreChange(${m.id}, true, this.value)">
-            <span class="score-divider">:</span>
-            <input type="number" id="tools-sim-away-${m.id}" name="tools-sim-away-${m.id}" class="score-sim-input tools-sim-input" min="0" placeholder="-" value="${aVal}" oninput="handleSimulationScoreChange(${m.id}, false, this.value)">
-          </div>
-        </div>
-        <div class="tools-sim-team">${buildTeamBadgeHtml(m.away, aZone, { compact: true })}</div>
-      </div>
-    `;
-    matchesEl.appendChild(row);
+  matchesEl.className = 'tools-sim-matches tools-sim-matches-grid';
+  const fragment = document.createDocumentFragment();
+  pending.forEach((m, index) => {
+    const card = buildLiveMatchCard(m, index, { mode: 'tools' });
+    if (simulationScores[m.id]) card.classList.add('tools-sim-card--active');
+    fragment.appendChild(card);
   });
+  matchesEl.appendChild(fragment);
 
   const simCount = Object.keys(simulationScores).length;
   updateToolsSimChrome(simCount);
-  const hasSim = simCount > 0;
-  if (!deltaWrap || !deltaTbody) return;
-  if (!hasSim) {
-    deltaWrap.style.display = 'none';
-    return;
-  }
-
-  deltaWrap.style.display = 'block';
-  const baseline = getProcessedPlayersWithoutSimulation();
-  const baselineRank = {};
-  baseline.forEach(p => { baselineRank[p.name] = p.rank; });
-
-  const movers = processedPlayers
-    .map(p => ({
-      name: p.name,
-      actual: baselineRank[p.name],
-      simulated: p.rank,
-      delta: baselineRank[p.name] - p.rank
-    }))
-    .filter(x => x.delta !== 0)
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-  deltaTbody.innerHTML = '';
-  if (movers.length === 0) {
-    deltaTbody.innerHTML = '<tr><td colspan="4" class="tools-empty-hint" style="text-align:center;padding:16px;">อันดับไม่เปลี่ยนแปลงจากจำลองปัจจุบัน</td></tr>';
-    return;
-  }
-
-  movers.forEach(m => {
-    const tr = document.createElement('tr');
-    const deltaClass = m.delta > 0 ? 'tools-sim-delta--up' : 'tools-sim-delta--down';
-    const deltaLabel = m.delta > 0 ? `▲ ${m.delta}` : `▼ ${Math.abs(m.delta)}`;
-    tr.innerHTML = `
-      <td data-label="ผู้เล่น">${escapeHtml(m.name)}</td>
-      <td data-label="อันดับจริง" style="text-align:center">${m.actual}</td>
-      <td data-label="อันดับจำลอง" style="text-align:center">${m.simulated}</td>
-      <td data-label="เปลี่ยนแปลง" class="${deltaClass}" style="text-align:center;font-weight:700">${deltaLabel}</td>
-    `;
-    deltaTbody.appendChild(tr);
-  });
+  renderToolsSimDelta();
 }
 
 function renderTeamsMatrix() {
@@ -5426,6 +5490,67 @@ function renderPlayerTeamGrid(grid, tbList, matchesByTeam, token, onDone) {
 
   grid.appendChild(fragment);
   if (typeof onDone === 'function') onDone();
+}
+
+function bindPlayerDrawerElimButtons(grid, playerName) {
+  if (!grid || !(typeof isAdmin !== 'undefined' && isAdmin)) return;
+  grid.querySelectorAll('.toggle-elim-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const team = btn.getAttribute('data-elim-team');
+      if (!team) return;
+      if (manualEliminatedTeams.has(team)) manualEliminatedTeams.delete(team);
+      else manualEliminatedTeams.add(team);
+      await saveEliminatedTeams();
+      recalculateAll();
+      openPlayerDetails(playerName);
+      renderDashboard();
+      if (document.getElementById('leaderboard')?.classList.contains('active')) {
+        renderLeaderboard({ forceRecalc: false });
+      }
+      if (document.getElementById('players')?.classList.contains('active')) {
+        renderPlayers();
+      }
+    });
+  });
+}
+
+function bindPlayerDrawerAdminButtons(player, playerName) {
+  const deleteBtn = document.getElementById('delete-player-btn');
+  const editBtn = document.getElementById('edit-player-selections-btn');
+  const actionsEl = document.querySelector('.player-details-drawer__actions');
+  const show = typeof isAdmin !== 'undefined' && isAdmin;
+
+  if (actionsEl) actionsEl.hidden = !show;
+  if (!show) {
+    if (deleteBtn) deleteBtn.onclick = null;
+    if (editBtn) editBtn.onclick = null;
+    return;
+  }
+
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      if (!isAdmin) return;
+      showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
+        players = players.filter(p => p.name !== playerName);
+        localStorage.setItem('worldcup_players', JSON.stringify(players));
+        if (isSyncEnabled) await saveToServer();
+        hidePlayerDetailsDrawer();
+        recalculateAll();
+        renderDashboard();
+        renderLeaderboard();
+        renderPlayers();
+      });
+    };
+  }
+
+  if (editBtn) {
+    editBtn.onclick = () => {
+      if (!isAdmin) return;
+      hidePlayerDetailsDrawer();
+      openPlayerForm(player);
+    };
+  }
 }
 
 // PLAYER DETAILS MODAL

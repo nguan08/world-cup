@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://flagcdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://flagcdn.com">
-  <link rel="stylesheet" href="style.css?v=20260620-opt-v1">
+  <link rel="stylesheet" href="style.css?v=20260620-boxing-v2">
   <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
   <script>
     (function () {
@@ -612,26 +612,32 @@
 
         <div class="tools-grid">
           <div class="card tools-section tools-section--compare" id="tools-compare-section">
-            <div class="compare-bench">
-              <div class="compare-bench-select-grid">
-                <div class="compare-bench-select-col compare-bench-select-col--left">
-                  <div class="compare-bench-select-col-head">
-                    <span class="compare-bench-kicker">Baseline</span>
-                    <span class="compare-bench-rank" id="compare-rank-a">—</span>
+            <div class="compare-bench compare-bench--boxing">
+              <div class="compare-bench-fight-banner" aria-hidden="true">
+                <span class="compare-bench-fight-banner__tag">Head-to-Head</span>
+                <span class="compare-bench-fight-banner__title">คู่ชกเปรียบเทียบ</span>
+              </div>
+              <div class="compare-bench-ring">
+                <div class="compare-bench-select-grid">
+                  <div class="compare-bench-select-col compare-bench-select-col--left compare-bench-corner-pad compare-bench-corner-pad--blue">
+                    <div class="compare-bench-select-col-head">
+                      <span class="compare-bench-kicker compare-bench-corner compare-bench-corner--blue">มุมน้ำเงิน</span>
+                      <span class="compare-bench-rank compare-bench-rank--corner" id="compare-rank-a">—</span>
+                    </div>
+                    <select id="compare-player-a" name="compare-player-a" class="compare-bench-select compare-bench-select--left" aria-label="ผู้เล่นมุมน้ำเงิน"></select>
+                    <div class="compare-bench-player-name compare-bench-fighter-name" id="compare-name-a">เลือกนักชกมุมน้ำเงิน</div>
                   </div>
-                  <select id="compare-player-a" name="compare-player-a" class="compare-bench-select compare-bench-select--left" aria-label="ผู้เล่น Baseline"></select>
-                  <div class="compare-bench-player-name" id="compare-name-a">เลือกผู้เล่นฝั่งซ้าย</div>
-                </div>
-                <div class="compare-bench-select-col compare-bench-select-col--right">
-                  <div class="compare-bench-select-col-head">
-                    <span class="compare-bench-rank" id="compare-rank-b">—</span>
-                    <span class="compare-bench-kicker">Alternative</span>
+                  <div class="compare-bench-select-col compare-bench-select-col--right compare-bench-corner-pad compare-bench-corner-pad--red">
+                    <div class="compare-bench-select-col-head">
+                      <span class="compare-bench-rank compare-bench-rank--corner" id="compare-rank-b">—</span>
+                      <span class="compare-bench-kicker compare-bench-corner compare-bench-corner--red">มุมแดง</span>
+                    </div>
+                    <select id="compare-player-b" name="compare-player-b" class="compare-bench-select compare-bench-select--right" aria-label="ผู้เล่นมุมแดง"></select>
+                    <div class="compare-bench-player-name compare-bench-fighter-name" id="compare-name-b">เลือกนักชกมุมแดง</div>
                   </div>
-                  <select id="compare-player-b" name="compare-player-b" class="compare-bench-select compare-bench-select--right" aria-label="ผู้เล่น Alternative"></select>
-                  <div class="compare-bench-player-name" id="compare-name-b">เลือกผู้เล่นฝั่งขวา</div>
-                </div>
-                <div class="compare-bench-select-split" aria-hidden="true">
-                  <span class="compare-bench-select-vs">VS</span>
+                  <div class="compare-bench-select-split" aria-hidden="true">
+                    <span class="compare-bench-select-vs" aria-hidden="true">VS</span>
+                  </div>
                 </div>
               </div>
               <div id="tools-compare-result" class="compare-bench-body"></div>
@@ -657,27 +663,15 @@
                 <span>ล้างจำลอง</span>
               </button>
             </div>
-            <div class="tools-sim-panel">
-              <div id="tools-sim-matches" class="tools-sim-matches"></div>
-            </div>
             <div id="tools-sim-delta-wrap" class="tools-sim-delta-wrap" style="display:none;">
               <div class="tools-sim-delta-head">
-                <span class="tools-sim-delta-kicker">Impact</span>
-                <div class="tools-sim-delta-title">ผลกระทบต่ออันดับ</div>
+                <span class="tools-sim-delta-title">ผลกระทบอันดับ</span>
+                <span class="tools-sim-delta-hint">จริง→จำลอง</span>
               </div>
-              <div class="table-container tools-sim-delta-table-wrap">
-                <table id="tools-sim-delta-table" class="data-table tools-compact-table tools-sim-delta-table">
-                  <thead>
-                    <tr>
-                      <th>ผู้เล่น</th>
-                      <th>จริง</th>
-                      <th>จำลอง</th>
-                      <th>Δ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tools-sim-delta-tbody"></tbody>
-                </table>
-              </div>
+              <div id="tools-sim-delta-grid" class="tools-sim-delta-grid"></div>
+            </div>
+            <div class="tools-sim-panel">
+              <div id="tools-sim-matches" class="tools-sim-matches"></div>
             </div>
           </div>
         </div>
@@ -814,7 +808,7 @@
 
           <div id="detail-team-stats-container" class="player-detail-stats-wrap player-detail-stats-wrap--bottom"></div>
 
-          <div class="player-details-drawer__actions">
+          <div class="player-details-drawer__actions" hidden>
             <button type="button" class="btn btn-secondary" id="edit-player-selections-btn">แก้ไขการเลือกทีม</button>
             <button type="button" class="btn btn-secondary player-details-drawer__delete-btn" id="delete-player-btn">ลบผู้เล่น</button>
           </div>
@@ -954,6 +948,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-opt-v1"></script>
+  <script type="module" src="js/main.js?v=20260620-tools-sim-v1"></script>
 </body>
 </html>
