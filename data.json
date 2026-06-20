@@ -313,9 +313,9 @@
     {
       "home": "บราซิล",
       "away": "เฮติ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-20",
       "id": 31
