@@ -5628,10 +5628,10 @@ function setupMatchCardListeners() {
         }
         
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-        const synced = await saveToServer();
+        const synced = await saveAdminScoreUpdate([match]);
         alert(synced
-          ? 'บันทึกสกอร์และซิงค์ GitHub เรียบร้อย!'
-          : 'บันทึกในเครื่องแล้ว แต่ซิงค์ GitHub ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง');
+          ? 'บันทึกสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
+          : 'บันทึกในเครื่องแล้ว แต่ซิงค์ GitHub / แจ้งเตือนไม่สำเร็จ — ลองอีกครั้ง');
         refreshMatchCardViews();
       }
     });
@@ -5664,10 +5664,10 @@ function setupMatchCardListeners() {
         }
         
         localStorage.setItem('worldcup_matches', JSON.stringify(matches));
-        const synced = await saveToServer();
+        const synced = await saveAdminScoreUpdate([match], { cleared: true });
         alert(synced
-          ? 'ล้างสกอร์และซิงค์ GitHub เรียบร้อย!'
-          : 'ล้างในเครื่องแล้ว แต่ซิงค์ GitHub ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง');
+          ? 'ล้างสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
+          : 'ล้างในเครื่องแล้ว แต่ซิงค์ GitHub / แจ้งเตือนไม่สำเร็จ — ลองอีกครั้ง');
         refreshMatchCardViews();
       }
     });

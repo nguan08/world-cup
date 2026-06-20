@@ -1,6 +1,6 @@
 import { app } from './state.js';
 import { getGitHubToken, isValidGitHubToken } from './admin.js';
-import { notifyDataUpdate } from './notifications.js';
+import { formatScoreUpdateMessage, notifyDataUpdate } from './notifications.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
 import {
   GITHUB_BRANCH,
@@ -130,6 +130,49 @@ function enqueueGitHubSave(task) {
 function notifyAdminSave(message, isError = false) {
   if (!app.isAdmin) return;
   notifyDataUpdate({ type: 'data', message: isError ? `⚠️ ${message}` : `✅ ${message}` });
+}
+
+function buildScoreUpdateBroadcast(matches, { cleared = false } = {}) {
+  const list = Array.isArray(matches) ? matches.filter(Boolean) : [];
+  if (!list.length) return;
+  const message = cleared
+    ? `🔄 ล้างผล: ${list.map((m) => `${m.home} vs ${m.away}`).join(', ')}`
+    : formatScoreUpdateMessage(list);
+  app.broadcast = {
+    id: Date.now(),
+    message,
+    sentAt: new Date().toISOString()
+  };
+}
+
+async function dispatchScoreNotificationAfterSave() {
+  if (!app.broadcast?.id) return;
+  localStorage.setItem('worldcup_shownBroadcastId', String(app.broadcast.id));
+  try {
+    await import('./push.js').then((m) => m.triggerPushWorkflow());
+  } catch {
+    // Push is best-effort; data.json update still triggers the workflow on GitHub.
+  }
+  import('./sync.js').then((m) => m.requestPollNow());
+}
+
+/** Save match score changes to GitHub and notify all users (toast + push). */
+export async function saveAdminScoreUpdate(matches, { cleared = false } = {}) {
+  if (!app.isAdmin) return false;
+  const list = Array.isArray(matches) ? matches.filter(Boolean) : [];
+  if (!list.length) return false;
+
+  buildScoreUpdateBroadcast(list, { cleared });
+  const ok = await saveToServer({ quiet: true });
+  if (ok) {
+    await dispatchScoreNotificationAfterSave();
+    notifyAdminSave(`แจ้งเตือนทุกคนแล้ว: ${app.broadcast.message}`);
+    return true;
+  }
+
+  app.broadcast = null;
+  notifyAdminSave('ซิงค์ GitHub ล้มเหลว — ไม่ได้ส่งแจ้งเตือน', true);
+  return false;
 }
 
 export async function sendBroadcastNotification(message) {

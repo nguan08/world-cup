@@ -381,8 +381,13 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
     }
   }
 
-  markBroadcastShown(bc.id);
-  return false;
+  const text = `📢 ${getBroadcastMessage(bc)}`;
+  displayBroadcastMessage(text, {
+    browserType: 'broadcast',
+    broadcastId: bc.id,
+    autoDismiss: true
+  });
+  return true;
 }
 
 function displayBroadcastMessage(text, {

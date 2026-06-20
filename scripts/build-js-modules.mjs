@@ -59,7 +59,7 @@ import {
   initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
-import { saveToServer, sendBroadcastNotification } from './persist.js';
+import { saveToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
