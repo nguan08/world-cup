@@ -5336,7 +5336,8 @@ async function exportMatchesImage() {
       if (!overlay || !overlay.classList.contains('active')) return;
 
       // Ignore the same click that just opened the drawer (main-content bubbles after chip handler)
-      if (Date.now() - (window._playerDetailsLastOpenAt || 0) < 120) return;
+      const openGuardMs = isIOS() ? 320 : 120;
+      if (Date.now() - (window._playerDetailsLastOpenAt || 0) < openGuardMs) return;
 
       // Do not close if the click originated from an opener control
       if (e.target.closest('.hoverable, .stats-final-guess-player, .stats-final-guess-bars, .team-players-list-item')) return;
