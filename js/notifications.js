@@ -18,10 +18,13 @@ import {
 let toastTimer = null;
 let currentBannerId = 0;
 let notifRefreshUi = null;
+let showingBroadcastToastId = 0;
 
 const SHOWN_BROADCAST_KEY = 'worldcup_shownBroadcastId';
 const PENDING_BROADCAST_KEY = 'worldcup_pendingBroadcast';
 const BROADCAST_STALE_MS = 24 * 60 * 60 * 1000;
+const BROADCAST_TOAST_MS = 6000;
+const DEFAULT_TOAST_MS = 8000;
 
 export function initNotifications() {
   if (!localStorage.getItem(SHOWN_BROADCAST_KEY) && localStorage.getItem('worldcup_lastBroadcastId')) {
@@ -118,8 +121,8 @@ export function flushPendingBroadcast() {
     }
     displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
       browserType: 'broadcast',
-      markShown: false,
-      broadcastId: bc.id
+      broadcastId: bc.id,
+      autoDismiss: true
     });
   } catch {
     localStorage.removeItem(PENDING_BROADCAST_KEY);
@@ -159,21 +162,51 @@ export function processBroadcast(serverData, { onInit = false } = {}) {
 
   displayBroadcastMessage(`📢 ${getBroadcastMessage(bc)}`, {
     browserType: 'broadcast',
-    markShown: false,
-    broadcastId: bc.id
+    broadcastId: bc.id,
+    autoDismiss: true
   });
   return true;
 }
 
-function displayBroadcastMessage(text, { browserType = 'data', markShown = false, broadcastId = null } = {}) {
-  showUpdateToast(text);
+function displayBroadcastMessage(text, {
+  browserType = 'data',
+  markShown = false,
+  broadcastId = null,
+  autoDismiss = false
+} = {}) {
+  if (broadcastId) {
+    const shownId = Number(localStorage.getItem(SHOWN_BROADCAST_KEY) || 0);
+    if (broadcastId <= shownId) return;
+    if (showingBroadcastToastId === broadcastId) return;
+    showingBroadcastToastId = broadcastId;
+  }
+
+  const isBroadcast = browserType === 'broadcast';
+  const durationMs = isBroadcast && autoDismiss ? BROADCAST_TOAST_MS : DEFAULT_TOAST_MS;
+
+  showUpdateToast(text, {
+    durationMs,
+    onDismiss: () => {
+      if (broadcastId && (autoDismiss || markShown)) {
+        markBroadcastShown(broadcastId);
+      }
+      if (broadcastId && showingBroadcastToastId === broadcastId) {
+        showingBroadcastToastId = 0;
+      }
+    }
+  });
+
   if (isMobileDevice() && navigator.vibrate) {
     try { navigator.vibrate([120, 60, 120]); } catch { /* ignore */ }
   }
-  showBrowserNotification(text, browserType);
+
+  if (document.hidden) {
+    showBrowserNotification(text, browserType);
+  }
 
   if (markShown && broadcastId) {
     markBroadcastShown(broadcastId);
+    showingBroadcastToastId = 0;
   }
 }
 
@@ -228,7 +261,7 @@ async function showBrowserNotification(text, type = 'data') {
   }
 }
 
-export function showUpdateToast(message) {
+export function showUpdateToast(message, { durationMs = DEFAULT_TOAST_MS, onDismiss } = {}) {
   const toast = ensureToastElement();
   const textEl = toast.querySelector('.update-toast__text');
   textEl.textContent = message;
@@ -236,7 +269,10 @@ export function showUpdateToast(message) {
   void toast.offsetWidth;
   toast.classList.add('update-toast--visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('update-toast--visible'), 12000);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('update-toast--visible');
+    onDismiss?.();
+  }, durationMs);
 }
 
 function ensureToastElement() {
@@ -252,7 +288,12 @@ function ensureToastElement() {
     <button type="button" class="update-toast__close" aria-label="ปิด">×</button>
   `;
   toast.querySelector('.update-toast__close').addEventListener('click', () => {
+    clearTimeout(toastTimer);
     toast.classList.remove('update-toast--visible');
+    if (showingBroadcastToastId) {
+      markBroadcastShown(showingBroadcastToastId);
+      showingBroadcastToastId = 0;
+    }
   });
   document.documentElement.appendChild(toast);
   return toast;
