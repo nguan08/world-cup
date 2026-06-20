@@ -323,8 +323,8 @@
     {
       "home": "ตุรกี",
       "away": "ปารากวัย",
-      "homeScore": 1,
-      "awayScore": 0,
+      "homeScore": 0,
+      "awayScore": 1,
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-20",
@@ -2106,8 +2106,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1781934210210,
-    "message": "⚽ อัปเดตสกอร์: ตุรกี 1-0 ปารากวัย",
-    "sentAt": "2026-06-20T05:43:30.210Z"
+    "id": 1781934546252,
+    "message": "⚽ อัปเดตสกอร์: ตุรกี 0-1 ปารากวัย",
+    "sentAt": "2026-06-20T05:49:06.252Z"
   }
 }
