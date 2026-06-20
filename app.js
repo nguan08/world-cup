@@ -780,6 +780,7 @@ let teamPoints = {};
 let processedPlayers = [];
 let manualEliminatedTeams = new Set();
 let lastHighlightPlayer = "";
+let lastChartRanks = {};
 let teamMatchesPlayedCounts = {};
 let elCache = {};
 function getCachedEl(id) {
@@ -2667,35 +2668,10 @@ function buildChartDaySteps(finishedMatches) {
   return steps;
 }
 
-function applyFinishedMatchToTeamScores(match, teamScores) {
-  const h = match.homeScore;
-  const a = match.awayScore;
-  let homeResPoints = 0;
-  let awayResPoints = 0;
-
-  if (h > a) {
-    homeResPoints = 3;
-    awayResPoints = 1;
-  } else if (h < a) {
-    homeResPoints = 1;
-    awayResPoints = 3;
-  } else if (match.isKnockout && match.penaltyWinner) {
-    if (match.penaltyWinner === 'home') {
-      homeResPoints = 3;
-      awayResPoints = 1;
-    } else {
-      homeResPoints = 1;
-      awayResPoints = 3;
-    }
-  } else {
-    homeResPoints = 2;
-    awayResPoints = 2;
-  }
-
-  const hTeam = TEAMS.find(t => t.name === match.home);
-  const aTeam = TEAMS.find(t => t.name === match.away);
-  if (hTeam) teamScores[match.home] += (homeResPoints + h) * hTeam.multiplier;
-  if (aTeam) teamScores[match.away] += (awayResPoints + a) * aTeam.multiplier;
+function getChartEligibleMatches() {
+  return matches
+    .filter(m => m.status === 'finished' || simulationScores[m.id])
+    .sort((a, b) => a.id - b.id);
 }
 
 function renderScoreChart() {
@@ -2705,66 +2681,42 @@ function renderScoreChart() {
   clearChartPulseLayer(svgEl);
   chartHoverPlayer = '';
 
-  // 1. Get finished matches sorted chronologically, then group by day
-  const finishedMatches = matches
-    .filter(m => m.status === 'finished')
-    .sort((a, b) => a.id - b.id);
-  const chartDaySteps = buildChartDaySteps(finishedMatches);
+  // 1. Matches that affect scoring (finished + tools-sim), grouped by day
+  const chartMatches = getChartEligibleMatches();
+  const chartDaySteps = buildChartDaySteps(chartMatches);
   const stepsCount = chartDaySteps.length;
 
-  // 2. Cache historical rank and score for all players
+  // 2. Historical rank/score via same pipeline as leaderboard
   const playerRankHistory = players.map(p => {
     const curr = processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
       name: p.name,
       zone: curr.zone,
-      ranks: [1], // start all players tied at rank 1 before any finished matches
-      scores: [0]
+      ranks: [],
+      scores: []
     };
   });
 
-  // Calculate scores step-by-step and derive ranks
-  const teamScores = {};
-  TEAMS.forEach(team => {
-    teamScores[team.name] = 0;
-  });
-
-  let processedMatchCount = 0;
-  for (let step = 1; step <= stepsCount; step++) {
-    chartDaySteps[step - 1].matches.forEach(match => {
-      applyFinishedMatchToTeamScores(match, teamScores);
-    });
-    processedMatchCount += chartDaySteps[step - 1].matches.length;
-
-    const scoreBoard = playerRankHistory.map(ph => {
-      const playerObj = players.find(p => p.name === ph.name);
-      let teamsScore = 0;
-      playerObj.teams.forEach(teamName => {
-        teamsScore += teamScores[teamName] || 0;
-      });
-      const finalMatch = finishedMatches.slice(0, processedMatchCount).find(m => m.isFinal);
-      const predictionScore = calculatePredictionPoints(playerObj, finalMatch);
-      return {
-        name: ph.name,
-        score: parseFloat((teamsScore + predictionScore).toFixed(2))
-      };
-    });
-
-    scoreBoard.sort((a, b) => b.score - a.score);
-    let currentRank = 1;
-    const rankMap = new Map();
-    scoreBoard.forEach((entry, idx) => {
-      if (idx > 0 && entry.score < scoreBoard[idx - 1].score) {
-        currentRank = idx + 1;
-      }
-      rankMap.set(entry.name, currentRank);
-    });
-
+  const matchesSoFar = [];
+  const pushRanksForMatches = () => {
+    const ranked = processPlayers(calculateTeamPoints(matchesSoFar));
+    const rankByName = new Map(ranked.map(p => [p.name, p]));
     playerRankHistory.forEach(ph => {
-      ph.ranks.push(rankMap.get(ph.name));
-      ph.scores.push(scoreBoard.find(entry => entry.name === ph.name).score);
+      const entry = rankByName.get(ph.name);
+      ph.ranks.push(entry ? entry.rank : 99);
+      ph.scores.push(entry ? entry.totalScore : 0);
     });
+  };
+
+  pushRanksForMatches(); // step 0 — before any chart matches
+  for (let step = 1; step <= stepsCount; step++) {
+    chartDaySteps[step - 1].matches.forEach(match => matchesSoFar.push(match));
+    pushRanksForMatches();
   }
+
+  lastChartRanks = Object.fromEntries(
+    playerRankHistory.map(ph => [ph.name, ph.ranks[ph.ranks.length - 1] ?? 99])
+  );
 
   // 3. Setup Layout Dimensions dynamically for responsive scaling
   const container = document.getElementById('chart-svg-container');
@@ -3063,11 +3015,14 @@ function renderScoreChart() {
     const currentVal = highlightSelect.value || lastHighlightPlayer;
     highlightSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
 
-    const sortedForSelect = [...processedPlayers].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const sortedForSelect = [...players].sort(
+      (a, b) => (lastChartRanks[a.name] || 999) - (lastChartRanks[b.name] || 999)
+    );
     sortedForSelect.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.name;
-      opt.textContent = `${p.name} (อันดับ ${p.rank})`;
+      const chartRank = lastChartRanks[p.name];
+      opt.textContent = `${p.name} (อันดับ ${chartRank ?? '—'})`;
       if (p.name === currentVal) opt.selected = true;
       highlightSelect.appendChild(opt);
     });
@@ -3377,10 +3332,9 @@ function highlightPlayerInChart(playerName) {
     });
     svgEl.querySelectorAll('.trend-end-label').forEach(label => {
       const pName = label.getAttribute('data-player');
-      const pObj = processedPlayers.find(p => p.name === pName);
       const isMobileLabel = label.getAttribute('text-anchor') === 'end';
-      const lastR = pObj ? pObj.rank : 99;
-      if (pObj && lastR <= 5 && !isMobileLabel) {
+      const lastR = lastChartRanks[pName] ?? 99;
+      if (lastR <= 5 && !isMobileLabel) {
         label.style.display = 'block';
         label.setAttribute('fill-opacity', '0.85');
         label.removeAttribute('font-weight');

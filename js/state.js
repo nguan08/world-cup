@@ -14,6 +14,7 @@ export const app = {
   manualEliminatedTeams: new Set(),
   broadcast: null,
   lastHighlightPlayer: '',
+  lastChartRanks: {},
   teamMatchesPlayedCounts: {},
   elCache: {},
   _playerDrawerSavedScrollY: 0,

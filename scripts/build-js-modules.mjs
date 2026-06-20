@@ -32,7 +32,7 @@ fs.writeFileSync(
 
 // ── bundle.js: UI, rendering, events ──
 // Exclude duplicated module code (utils/state/admin/scoring/sync/persist) still in app.js
-const EXCLUDE_RANGES = [[148, 994]];
+const EXCLUDE_RANGES = [[148, 995]];
 
 function isExcluded(lineNum) {
   return EXCLUDE_RANGES.some(([a, b]) => lineNum >= a && lineNum <= b);
@@ -73,7 +73,7 @@ let bundleBody = bundleLines.join('\n');
 const STATE_KEYS = [
   'ADMIN_PASSWORD', 'matches', 'players', 'isAdmin', 'isSyncEnabled', 'simulationScores',
   'lastDataRefreshTime', 'autoRefreshTimer', 'teamPoints', 'processedPlayers',
-  'manualEliminatedTeams', 'lastHighlightPlayer', 'teamMatchesPlayedCounts',
+  'manualEliminatedTeams', 'lastHighlightPlayer', 'lastChartRanks', 'teamMatchesPlayedCounts',
   '_playerDrawerSavedScrollY', '_playerDrawerScrollLocked',
   'chartHoverPlayer', 'chartPulseAnimPlayer',
   'statsSortState', 'statsSortHandlersReady', '_rankSpeechVoice', '_maxPopularityCache'
