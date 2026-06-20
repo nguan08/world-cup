@@ -31,7 +31,7 @@ fs.writeFileSync(
 );
 
 // ── bundle.js: UI, rendering, events ──
-const EXCLUDE_RANGES = [[2260, 3104]];
+const EXCLUDE_RANGES = [[2260, 3100]];
 
 function isExcluded(lineNum) {
   return EXCLUDE_RANGES.some(([a, b]) => lineNum >= a && lineNum <= b);
@@ -107,6 +107,8 @@ function migrateBundleState(code) {
       if (!prefix.endsWith('...') && !prefix.endsWith('..')) return token;
     }
     if (SKIP_WORDS.has(token)) return token;
+    const before = full.slice(Math.max(0, offset - 12), offset);
+    if (token.startsWith('_') && /\b(let|const|var)\s+$/.test(before)) return token;
     return `app.${token}`;
   });
 }
@@ -179,7 +181,15 @@ function fixUnderscoreStateAssignments(code) {
   for (const key of STATE_KEYS) {
     if (!key.startsWith('_')) continue;
     const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    code = code.replace(new RegExp(`(^|[^a-zA-Z0-9_.])${escaped}(?=\\s*[=;,)])`, 'gm'), `$1app.${key}`);
+    // let _foo = 0 → app._foo = 0  (invalid: let app._foo)
+    code = code.replace(
+      new RegExp(`\\b(let|const|var)\\s+${escaped}\\s*=`, 'g'),
+      `app.${key} =`
+    );
+    code = code.replace(
+      new RegExp(`(^|[^a-zA-Z0-9_.])${escaped}(?=\\s*[=;,)])`, 'gm'),
+      (match, prefix) => (prefix.endsWith('app.') ? match : `${prefix}app.${key}`)
+    );
   }
   return code;
 }
@@ -188,6 +198,12 @@ bundleBody = fixUnderscoreStateAssignments(bundleBody);
 bundleBody = fixBareStateCodeRefs(bundleBody);
 bundleBody = fixQuotedStateKeyCorruption(bundleBody);
 bundleBody = fixCorruptedClassNames(bundleBody);
+
+function fixInvalidLetAppAssignments(code) {
+  return code.replace(/\b(let|const|var)\s+(app\.\w+)\s*=/g, '$2 =');
+}
+
+bundleBody = fixInvalidLetAppAssignments(bundleBody);
 
 let bundleCode = bundleImports + bundleBody;
 

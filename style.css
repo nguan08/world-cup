@@ -1188,6 +1188,11 @@ h1 {
   cursor: pointer;
 }
 
+tr.hoverable,
+tr.hoverable td {
+  cursor: pointer;
+}
+
 /* Zone column centered + Rank column always centered (all devices) */
 #leaderboard td[data-label="โซน"],
 #top-leaders-table td[data-label="โซน"] {
@@ -3045,16 +3050,21 @@ tr.leader-second-row {
   margin-top: 8px;
 }
 
-/* Player details drawer — flex layout keeps bottom close button fully visible */
+/* Player details drawer — right-side panel; full screen on mobile */
 #player-details-drawer-overlay .player-details-drawer {
   display: flex;
   flex-direction: column;
   width: min(920px, 94vw);
+  max-width: 94vw;
   height: 100%;
   max-height: 100%;
   overflow: hidden;
   box-sizing: border-box;
   padding: 20px 20px 0;
+  margin: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
 }
 
 #player-details-drawer-overlay .player-details-drawer .drawer-header,
@@ -3152,16 +3162,70 @@ tr.leader-second-row {
 }
 
 .player-detail-stats-wrap {
+  margin-top: 16px;
   margin-bottom: 14px;
 }
 
+.player-detail-stats-wrap .team-stats-toggle {
+  margin-bottom: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player-detail-stats-table-wrap.is-collapsed {
+  display: none;
+}
+
 .player-detail-stats-table-wrap {
-  margin-top: 8px;
+  margin-top: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.35);
+}
+
+.player-stats-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.player-stats-table th,
+.player-stats-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+
+.player-stats-table th {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.player-stats-table__team {
+  text-align: left;
+}
+
+.player-stats-table__badge {
+  font-size: 11px;
+}
+
+.player-stats-table__num--win { color: #34d399; }
+.player-stats-table__num--draw { color: #94a3b8; }
+.player-stats-table__num--loss { color: #f87171; }
+.player-stats-table__num--pts { color: #f8fafc; }
+
+.player-stats-table__empty {
+  margin: 0;
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .player-teams-section-title {
@@ -3389,7 +3453,11 @@ body.player-drawer-open {
   overscroll-behavior: none;
 }
 
-/* GPU-friendly slide; lighter overlay on touch (iPad Safari) */
+#player-details-drawer-overlay.drawer-overlay.active {
+  z-index: 11000;
+}
+
+/* GPU-friendly right-side slide */
 #player-details-drawer-overlay.drawer-overlay .drawer {
   transform: translate3d(100%, 0, 0);
   backface-visibility: hidden;
@@ -3413,6 +3481,10 @@ body.player-drawer-open {
 }
 
 @media (hover: none) and (pointer: coarse) {
+  #player-details-drawer-overlay.drawer-overlay.active .player-details-drawer {
+    will-change: auto;
+  }
+
   #player-details-drawer-overlay.drawer-overlay {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -3463,16 +3535,6 @@ body.player-drawer-open {
 .player-detail-close-btn:active {
   background: rgba(244, 63, 94, 0.35);
   transform: scale(0.98);
-}
-
-@media (min-width: 641px) {
-  #player-details-drawer-overlay .player-details-drawer {
-    padding-top: 72px;
-  }
-
-  #player-details-drawer-overlay .player-details-drawer .drawer-header {
-    margin-top: 8px;
-  }
 }
 
 .drawer-overlay.active .drawer {
@@ -3572,23 +3634,6 @@ body.player-drawer-open {
 #player-details-drawer-overlay #close-detail-btn:active {
   background: rgba(244, 63, 94, 0.55) !important;
   transform: scale(0.9);
-}
-
-/* On mobile, make the close button even bigger and the header more compact */
-@media (max-width: 640px) {
-  #player-details-drawer-overlay .drawer-header {
-    min-height: 52px !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 6px !important;
-  }
-  #player-details-drawer-overlay .drawer-header .close-btn,
-  #player-details-drawer-overlay #close-detail-btn {
-    width: 52px !important;
-    height: 52px !important;
-    font-size: 40px !important;
-    background: rgba(244, 63, 94, 0.35) !important;
-    border-width: 3px !important;
-  }
 }
 
 /* Team Grid Rules reference */
@@ -4059,7 +4104,6 @@ html.is-admin .admin-broadcast-panel,
     padding: 0;
     overflow: visible;
     box-sizing: border-box;
-    vertical-align: top;
   }
 
   /* Dashboard stat cards — 2 columns on mobile */
@@ -4214,147 +4258,40 @@ html.is-admin .admin-broadcast-panel,
   /* Allow the very small font/padding from the 640px rule above to win.
      If any earlier rule forces nowrap on narrow screens, the 640px rule already reduced sizes.
      We keep the visual "fit without scroll" behavior here. */
-  #leaderboard th,
-  #leaderboard td,
-  #top-leaders-table th,
-  #top-leaders-table td {
-    /* white-space is controlled by the 640px rule + the very-specific nowrap rules above.
-       On phones we rely on the reduced padding/font-size so everything fits the screen width. */
-  }
 
   .search-input {
     padding: 12px 12px 12px 42px;
     font-size: 14px;
   }
 
-  /* Drawer full-width on mobile */
-  .drawer {
+  /* Drawer full-width on mobile (player stats drawer keeps unified bottom-sheet layout) */
+  .drawer:not(.player-details-drawer) {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 0 !important;
     padding: 24px 16px;
-    /* Note: player-details drawer now uses its own overlay top-offset, so general drawers keep normal padding.
-       Bottom-sheet drawers (match form etc.) are unaffected. */
   }
 
   .drawer-header h2 {
     font-size: 18px;
   }
 
-  /* Player detail drawer - prevent overlap with fixed mobile topbar */
+  /* Player details drawer — full screen on mobile */
   #player-details-drawer-overlay {
-    top: 68px !important;                    /* start below the fixed .mobile-header */
-    height: calc(100vh - 68px) !important;   /* fill remaining height */
+    top: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
   }
 
   #player-details-drawer-overlay .player-details-drawer {
     width: 100% !important;
     max-width: 100% !important;
     height: 100% !important;
-    padding: 14px 14px 0 !important;
-  }
-
-  .player-detail-scores {
-    gap: 6px;
-  }
-
-  .player-detail-score-card {
-    padding: 8px 10px;
-  }
-
-  .player-detail-score-value {
-    font-size: 17px;
-  }
-
-  .player-detail-score-value--total {
-    font-size: 19px;
-  }
-
-  .player-match-row {
-    grid-template-columns: 30px minmax(0, 1fr) 36px 48px;
-    gap: 6px;
-    font-size: 10px;
-  }
-
-  .player-team-item__badge {
-    max-width: 52%;
-  }
-
-  .player-details-drawer__footer {
-    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
-  }
-
-  .player-detail-close-btn {
-    padding: 18px 20px !important;
-    font-size: 17px !important;
-    min-height: 56px !important;
-  }
-
-  /* === CLEAN MOBILE PLAYER DRAWER CLOSE BUTTON (flex, inside .drawer-header) ===
-     Large red × always visible on the top-right of the player stats drawer.
-     No absolute positioning. Relies on .drawer-header {display:flex; justify-content:space-between} */
-  #player-details-drawer-overlay .drawer-header {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    min-height: 48px !important;
-    margin-bottom: 10px !important;
-    padding-bottom: 8px !important;
-    position: static !important;
-    overflow: visible !important;
-    padding-right: 0 !important;
-  }
-
-  #player-details-drawer-overlay .drawer-header h2 {
-    margin: 0 !important;
-    font-size: 17px !important;
-    line-height: 1.2 !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-  }
-
-  #player-details-drawer-overlay .drawer-header .close-btn,
-  #player-details-drawer-overlay #close-detail-btn {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex: 0 0 auto !important;
-    margin: 0 0 0 12px !important;
-    padding: 0 !important;
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
-    font-size: 36px !important;
-    line-height: 1 !important;
-    font-weight: 800 !important;
-    color: #f43f5e !important;
-    background: rgba(244, 63, 94, 0.28) !important;
-    border: 2px solid rgba(244, 63, 94, 0.75) !important;
-    border-radius: 10px !important;
-    cursor: pointer !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.55) !important;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  #player-details-drawer-overlay .drawer-header .close-btn:active,
-  #player-details-drawer-overlay #close-detail-btn:active {
-    background: rgba(244, 63, 94, 0.5) !important;
-    transform: scale(0.9);
-  }
-
-  /* Extra large on tiny phones */
-  @media (max-width: 480px) {
-    #player-details-drawer-overlay .drawer-header .close-btn,
-    #player-details-drawer-overlay #close-detail-btn {
-      width: 52px !important;
-      height: 52px !important;
-      font-size: 40px !important;
-      background: rgba(244, 63, 94, 0.32) !important;
-      border-color: rgba(244, 63, 94, 0.85) !important;
-    }
+    max-height: 100% !important;
+    padding: 16px 16px 0 !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Player form drawer */
@@ -6256,6 +6193,7 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Adjust score divider centering */
