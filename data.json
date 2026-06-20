@@ -303,9 +303,9 @@
     {
       "home": "สกอตแลนด์",
       "away": "โมร็อกโก",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-20",
       "id": 30
