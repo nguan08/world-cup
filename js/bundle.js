@@ -5242,7 +5242,7 @@ async function exportMatchesImage() {
       const password = document.getElementById('admin-password-input').value;
       const errorMsg = document.getElementById('login-error-msg');
       
-      if (password === ADMIN_PASSWORD) {
+      if (password === app.ADMIN_PASSWORD) {
         app.isAdmin = true;
         sessionStorage.setItem('worldcup_isAdmin', 'true');
         updateAdminUI();

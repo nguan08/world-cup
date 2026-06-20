@@ -138,6 +138,7 @@ function fixBareStateCodeRefs(code) {
     [/(?<![.\w$-])statsSortHandlersReady\b/g, 'app.statsSortHandlersReady'],
     [/(?<![.\w$-])lastDataRefreshTime\b/g, 'app.lastDataRefreshTime'],
     [/(?<![.\w$-])autoRefreshTimer\b/g, 'app.autoRefreshTimer'],
+    [/(?<![.\w$-])ADMIN_PASSWORD\b/g, 'app.ADMIN_PASSWORD'],
   ];
   for (const [re, repl] of rules) {
     code = code.replace(re, repl);
