@@ -36,16 +36,30 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export function initPWA() {
-  pwaUiReady = true;
+function syncCapturedInstallPrompt() {
   if (!deferredInstallPrompt && window.__wcDeferredInstallPrompt) {
     deferredInstallPrompt = window.__wcDeferredInstallPrompt;
   }
+}
+
+function onInstallPromptReady() {
+  syncCapturedInstallPrompt();
+  if (pwaUiReady) {
+    refreshInstallButton();
+    renderPwaModeStatus();
+  }
+}
+
+export function initPWA() {
+  pwaUiReady = true;
+  syncCapturedInstallPrompt();
   registerServiceWorker();
   ensureInstallModal();
   applyStandaloneClass();
   refreshInstallButton();
   renderPwaModeStatus();
+  window.addEventListener('wc-installprompt-ready', onInstallPromptReady);
+  window.addEventListener('wc-installprompt-cleared', onInstallPromptReady);
   window.addEventListener('resize', refreshInstallButton);
   window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
     applyStandaloneClass();
@@ -122,9 +136,11 @@ export function waitForServiceWorker(timeoutMs = 15000) {
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register(resolveAppPath('sw.js'), {
-      scope: getAppBasePath()
-    });
+    const scope = getAppBasePath();
+    let reg = await navigator.serviceWorker.getRegistration(scope);
+    if (!reg) {
+      reg = await navigator.serviceWorker.register(resolveAppPath('sw.js'), { scope });
+    }
     serviceWorkerReadyPromise = Promise.resolve(reg);
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
@@ -154,10 +170,37 @@ function bindInstallButton(btn) {
     if (now - lastInstallTap < 500) return;
     lastInstallTap = now;
 
-    void onInstallButtonClick();
+    onInstallButtonClick();
   };
 
   btn.addEventListener('click', handler);
+  btn.addEventListener('touchend', handler, { passive: false });
+}
+
+function getCapturedInstallPrompt() {
+  syncCapturedInstallPrompt();
+  return deferredInstallPrompt || window.__wcDeferredInstallPrompt || null;
+}
+
+function invokeInstallPrompt(prompt) {
+  if (!prompt || typeof prompt.prompt !== 'function') return false;
+  try {
+    const result = prompt.prompt();
+    Promise.resolve(result).then(() => prompt.userChoice).then((choice) => {
+      clearInstallPrompt();
+      refreshInstallButton();
+      if (choice?.outcome !== 'accepted') {
+        showManualInstallHelp();
+      }
+    }).catch((e) => {
+      console.warn('[PWA] Install prompt failed', e);
+      showManualInstallHelp();
+    });
+    return true;
+  } catch (e) {
+    console.warn('[PWA] Install prompt failed', e);
+    return false;
+  }
 }
 
 function closeMobileSidebar() {
@@ -168,8 +211,8 @@ function closeMobileSidebar() {
   document.body.style.overflow = '';
 }
 
-function waitForInstallPrompt(timeoutMs = 4000) {
-  const existing = deferredInstallPrompt || window.__wcDeferredInstallPrompt;
+function waitForInstallPrompt(timeoutMs = 2500) {
+  const existing = getCapturedInstallPrompt();
   if (existing) return Promise.resolve(existing);
   return new Promise((resolve) => {
     const onPrompt = (e) => {
@@ -177,7 +220,7 @@ function waitForInstallPrompt(timeoutMs = 4000) {
       captureInstallPrompt(e);
       done(deferredInstallPrompt);
     };
-    const timer = setTimeout(() => done(deferredInstallPrompt || window.__wcDeferredInstallPrompt), timeoutMs);
+    const timer = setTimeout(() => done(getCapturedInstallPrompt()), timeoutMs);
     const done = (value) => {
       clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', onPrompt);
@@ -187,69 +230,47 @@ function waitForInstallPrompt(timeoutMs = 4000) {
   });
 }
 
-async function onInstallButtonClick() {
-  closeMobileSidebar();
-
-  const btn = document.getElementById('pwa-install-btn');
-  const originalLabel = btn?.textContent || '';
-
+function onInstallButtonClick() {
   if (!canInstallAsRealPwa()) {
+    closeMobileSidebar();
     showManualInstallHelp({ preferRedirect: true });
     return;
   }
 
-  let prompt = deferredInstallPrompt || window.__wcDeferredInstallPrompt;
-
-  if (prompt) {
-    try {
-      await prompt.prompt();
-      const choice = await prompt.userChoice;
-      clearInstallPrompt();
-      refreshInstallButton();
-      if (choice?.outcome !== 'accepted') {
-        showManualInstallHelp();
-      }
-    } catch (e) {
-      console.warn('[PWA] Install prompt failed', e);
-      showManualInstallHelp();
-    }
+  const prompt = getCapturedInstallPrompt();
+  if (invokeInstallPrompt(prompt)) {
+    closeMobileSidebar();
     return;
   }
 
+  const btn = document.getElementById('pwa-install-btn');
+  const originalLabel = btn?.textContent || '';
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'กำลังเตรียมติดตั้ง…';
   }
+  closeMobileSidebar();
 
-  try {
-    await waitForServiceWorker().catch(() => {});
-    if (isAndroid()) {
-      prompt = await waitForInstallPrompt(4000);
-    }
-
-    if (!prompt) {
+  void (async () => {
+    try {
+      await waitForServiceWorker().catch(() => {});
+      if (isAndroid()) {
+        await waitForInstallPrompt(2500);
+        refreshInstallButton();
+        renderPwaModeStatus();
+      }
       showManualInstallHelp();
-      return;
-    }
-
-    await prompt.prompt();
-    const choice = await prompt.userChoice;
-    clearInstallPrompt();
-    refreshInstallButton();
-
-    if (choice?.outcome !== 'accepted') {
+    } catch (e) {
+      console.warn('[PWA] Install prompt failed', e);
       showManualInstallHelp();
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        refreshInstallButton();
+      }
     }
-  } catch (e) {
-    console.warn('[PWA] Install prompt failed', e);
-    showManualInstallHelp();
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalLabel;
-      refreshInstallButton();
-    }
-  }
+  })();
 }
 
 function getInstallSteps() {
@@ -280,11 +301,15 @@ function getInstallSteps() {
   }
 
   if (isAndroid() && !isIOS()) {
+    const hasPrompt = !!getCapturedInstallPrompt();
     parts.push({
       title: 'Android (Chrome) — ติดตั้งแอปจริง',
       steps: canInstallAsRealPwa()
         ? [
-            'กด ⋮ มุมขวาบน → เลือก <strong>"ติดตั้งแอป"</strong> (ไม่ใช่แค่ "เพิ่มไปยังหน้าจอหลัก")',
+            hasPrompt
+              ? 'กดปุ่ม <strong>"ติดตั้งแอป (PWA)"</strong> อีกครั้ง — ควรเห็น dialog ติดตั้งของ Chrome'
+              : 'รอ 5–10 วินาที แล้วรีเฟรชหน้า จากนั้นกดปุ่ม <strong>"ติดตั้งแอป"</strong> อีกครั้ง',
+            'หรือกด ⋮ มุมขวาบน → <strong>"ติดตั้งแอป"</strong> / <strong>"Add to Home screen"</strong>',
             'กด "ติดตั้ง" แล้วเปิดจากไอคอน WC 2026 บนหน้าจอหลัก',
             'ถ้าติดตั้งสำเร็จ: ไม่มีแถบ URL, สลับแอปเห็นเป็นแอปแยก (ไม่ใช่แท็บ Chrome)'
           ]

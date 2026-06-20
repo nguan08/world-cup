@@ -12,19 +12,41 @@
   <meta name="apple-mobile-web-app-title" content="WC 2026">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="favicon.svg">
-  <link rel="manifest" href="manifest.webmanifest?v=20260619-pwa-basepath">
+  <link rel="manifest" href="manifest.webmanifest?v=20260620-pwa-absolute">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css?v=20260620-no-purple-banner">
   <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
   <script>
-    window.__wcDeferredInstallPrompt = null;
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault();
-      window.__wcDeferredInstallPrompt = e;
-    });
-    window.addEventListener('appinstalled', function () {
+    (function () {
+      function wcAppBase() {
+        var path = location.pathname || '/';
+        if (path.indexOf('/world-cup') === 0) return '/world-cup/';
+        if (path.endsWith('/')) return path;
+        var slash = path.lastIndexOf('/');
+        var last = path.slice(slash + 1);
+        if (!last || last.indexOf('.') === -1) return path + '/';
+        return slash <= 0 ? '/' : path.slice(0, slash + 1);
+      }
+
       window.__wcDeferredInstallPrompt = null;
-    });
+      window.__wcAppBase = wcAppBase();
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__wcDeferredInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('wc-installprompt-ready'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__wcDeferredInstallPrompt = null;
+        window.dispatchEvent(new CustomEvent('wc-installprompt-cleared'));
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register(window.__wcAppBase + 'sw.js', {
+          scope: window.__wcAppBase
+        }).catch(function () {});
+      }
+    })();
   </script>
 </head>
 <body>
@@ -922,7 +944,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-android-install-v2"></script>
+  <script type="module" src="js/main.js?v=20260620-android-install-v3"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
