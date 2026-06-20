@@ -20,6 +20,7 @@ import { setRecalcHook } from './scoring.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications } from './notifications.js';
+import { isMobileDevice } from './device.js';
 
 
 
@@ -3756,14 +3757,18 @@ function initRankSoundVoices() {
   }
 }
 
-function createRankAudioContext() {
+let _rankAudioCtx = null;
+
+function getRankAudioContext() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
-  const ctx = new Ctx();
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
+  if (!_rankAudioCtx || _rankAudioCtx.state === 'closed') {
+    _rankAudioCtx = new Ctx();
   }
-  return ctx;
+  if (_rankAudioCtx.state === 'suspended') {
+    _rankAudioCtx.resume().catch(() => {});
+  }
+  return _rankAudioCtx;
 }
 
 function scheduleRankNoise(ctx, { start, duration, peak = 0.05, frequency = 320 }) {
@@ -3810,7 +3815,7 @@ function scheduleRankTone(ctx, { start, duration, freq, type = 'triangle', peak 
 
 function playWinnerFanfare() {
   try {
-    const ctx = createRankAudioContext();
+    const ctx = getRankAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
     const fanfare = [
@@ -3835,19 +3840,17 @@ function playWinnerFanfare() {
       type: 'square',
       peak: 0.045
     });
-    setTimeout(() => ctx.close(), 1300);
   } catch (_) {
     /* ignore audio errors */
   }
 }
 
-function playLoserFailSound() {
+function playLoserFailSound(light = false) {
   try {
-    const ctx = createRankAudioContext();
+    const ctx = getRankAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
 
-    // Game-show "wrong answer" double buzzer
     scheduleRankTone(ctx, {
       start: now,
       duration: 0.42,
@@ -3864,13 +3867,13 @@ function playLoserFailSound() {
       slideTo: 98
     });
 
-    // Short crowd boo
-    scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
-    scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
+    if (!light) {
+      scheduleRankNoise(ctx, { start: now + 0.35, duration: 0.55, peak: 0.055, frequency: 280 });
+      scheduleRankNoise(ctx, { start: now + 1.05, duration: 0.45, peak: 0.045, frequency: 240 });
+    }
 
-    // Classic sad trombone "wah wah"
     scheduleRankTone(ctx, {
-      start: now + 1.15,
+      start: now + (light ? 0.9 : 1.15),
       duration: 0.42,
       freq: 233,
       type: 'triangle',
@@ -3878,7 +3881,7 @@ function playLoserFailSound() {
       slideTo: 130
     });
     scheduleRankTone(ctx, {
-      start: now + 1.62,
+      start: now + (light ? 1.35 : 1.62),
       duration: 0.48,
       freq: 185,
       type: 'triangle',
@@ -3886,17 +3889,16 @@ function playLoserFailSound() {
       slideTo: 88
     });
 
-    // Deflating tail
-    scheduleRankTone(ctx, {
-      start: now + 2.15,
-      duration: 0.7,
-      freq: 320,
-      type: 'sawtooth',
-      peak: 0.06,
-      slideTo: 55
-    });
-
-    setTimeout(() => ctx.close(), 3200);
+    if (!light) {
+      scheduleRankTone(ctx, {
+        start: now + 2.15,
+        duration: 0.7,
+        freq: 320,
+        type: 'sawtooth',
+        peak: 0.06,
+        slideTo: 55
+      });
+    }
   } catch (_) {
     /* ignore audio errors */
   }
@@ -3945,19 +3947,37 @@ function speakRankPhrase(type, options = {}) {
   speakOnce();
 }
 
-function playRankSoundEffect(player) {
+function playRankSoundEffect(player, options = {}) {
   if (!player || typeof player.rank !== 'number') return;
+  const { skipSpeech = false, lightLoser = false } = options;
 
   if (player.rank === 1 || player.rank === 2) {
     playWinnerFanfare();
-    speakRankPhrase('winner');
+    if (!skipSpeech) speakRankPhrase('winner');
     return;
   }
 
   if (player.rank === 61 || player.rank === 62) {
-    playLoserFailSound();
-    setTimeout(() => speakRankPhrase('loser'), 900);
+    playLoserFailSound(lightLoser);
+    if (!skipSpeech) {
+      setTimeout(() => speakRankPhrase('loser'), lightLoser ? 500 : 900);
+    }
   }
+}
+
+function scheduleRankSoundEffect(player, token) {
+  if (!player || typeof player.rank !== 'number') return;
+  const isSpecialRank = player.rank === 1 || player.rank === 2
+    || player.rank === 61 || player.rank === 62;
+  if (!isSpecialRank) return;
+
+  const onMobile = isMobileDevice();
+  const delayMs = onMobile ? 500 : 220;
+
+  setTimeout(() => {
+    if (token !== _playerDetailsFillToken) return;
+    playRankSoundEffect(player, { skipSpeech: onMobile, lightLoser: onMobile });
+  }, delayMs);
 }
 
 // PLAYER DETAILS MODAL
@@ -4036,7 +4056,6 @@ function fillPlayerDetailsDrawer(name, token) {
     }
 
     if (token !== _playerDetailsFillToken) return;
-    playRankSoundEffect(player);
 
     // Populate header numbers (name goes only into the h2 in the drawer header)
     setText('detail-player-name', player.name);
@@ -4269,6 +4288,8 @@ function fillPlayerDetailsDrawer(name, token) {
     } catch (innerErr) {
       console.error('[openPlayerDetails] error while building details content (drawer is already visible):', innerErr);
     }
+
+    scheduleRankSoundEffect(player, token);
 
   } catch (err) {
     console.error('Error in openPlayerDetails:', err);
