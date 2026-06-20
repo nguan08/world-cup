@@ -1,13 +1,13 @@
 import { TEAMS } from './constants.js';
-import {
-  matches, players, simulationScores, isSyncEnabled,
-  manualEliminatedTeams, teamPoints, processedPlayers, teamMatchesPlayedCounts
-} from './state.js';
+import { app } from './state.js';
 import { saveToServer } from './persist.js';
 
 let _recalcHook = null;
 export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn : null; }
 
+export function calculateTeamPoints(targetMatches = app.matches) {
+  const teamScores = {};
+  
   // Initialize all teams with 0 points
   TEAMS.forEach(team => {
     teamScores[team.name] = {
@@ -23,7 +23,7 @@ export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn 
   
   // Compute match points
   targetMatches.forEach(match => {
-    const isSimulated = simulationScores[match.id];
+    const isSimulated = app.simulationScores[match.id];
     if (match.status !== 'finished' && !isSimulated) return;
     
     const h = isSimulated ? isSimulated.homeScore : match.homeScore;
@@ -100,8 +100,7 @@ export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn 
   return teamScores;
 }
 
-// Calculate final prediction score for a user
-function calculatePredictionPoints(user, finalMatch) {
+export function calculatePredictionPoints(user, finalMatch) {
   if (!finalMatch || finalMatch.status !== 'finished') return 0;
   
   const totalGoals = finalMatch.homeScore + finalMatch.awayScore;
@@ -131,11 +130,10 @@ function calculatePredictionPoints(user, finalMatch) {
   return parseFloat(score.toFixed(2));
 }
 
-// Calculate player total score & sort them
-function processPlayers(teamScores) {
-  const finalMatch = matches.find(m => m.isFinal);
+export function processPlayers(teamScores) {
+  const finalMatch = app.matches.find(m => m.isFinal);
   
-  const processed = players.map(player => {
+  const processed = app.players.map(player => {
     let teamsScore = 0;
     const teamBreakdown = [];
     
@@ -164,7 +162,7 @@ function processPlayers(teamScores) {
     };
   });
   
-  // Sort players by total score descending.
+  // Sort app.players by total score descending.
   // We need to implement the boundary tie-breaker:
   // "หมายเหตุ: หากคะแนนเท่ากัน ให้ปัดลงในโซนที่ ต่ำกว่า"
   // First, do a primary sort by score descending.
@@ -181,7 +179,7 @@ function processPlayers(teamScores) {
   
   // Partition into zones based on ranks/scores:
   // Blue: top 20%
-  // Green: 25 players
+  // Green: 25 app.players
   // Red: bottom (the rest)
   const total = processed.length;
   const blueCount = 12; 
@@ -231,14 +229,14 @@ function processPlayers(teamScores) {
   // Assign party payouts:
   // - Last place pays 1500
   // - Second to last pays 1200
-  // - Red Zone players pay 1000, except the TOP Red Zone player who is exempt.
-  // - Bottom 2 Green Zone players pay extra (let's display them as paying 300 Baht or highlight them).
+  // - Red Zone app.players pay 1000, except the TOP Red Zone player who is exempt.
+  // - Bottom 2 Green Zone app.players pay extra (let's display them as paying 300 Baht or highlight them).
   
   // Find bottom and second-to-last
   const lastIndex = total - 1;
   const secondLastIndex = total - 2;
   
-  // Find Red Zone players and calculate average score
+  // Find Red Zone app.players and calculate average score
   const redZonePlayers = processed.filter(p => p.zone === 'red');
   
   let closestToAvgPlayer = null;
@@ -260,7 +258,7 @@ function processPlayers(teamScores) {
     }
   }
   
-  // Find Green Zone players and calculate average score for the special charge rule
+  // Find Green Zone app.players and calculate average score for the special charge rule
   const greenPlayers = processed.filter(p => p.zone === 'green');
   let closestToAvgGreen = null;
   if (greenPlayers.length > 0) {
@@ -330,46 +328,46 @@ function processPlayers(teamScores) {
   return processed;
 }
 
-// Global calculated state
-let teamPoints = {};
-    teamMatchesPlayedCounts[m.away] = (teamMatchesPlayedCounts[m.away] || 0) + 1;
+export function updateTeamMatchesPlayedCounts() {
+  app.teamMatchesPlayedCounts = {};
+  app.matches.filter(m => m.status === 'finished').forEach(m => {
+    app.teamMatchesPlayedCounts[m.home] = (app.teamMatchesPlayedCounts[m.home] || 0) + 1;
+    app.teamMatchesPlayedCounts[m.away] = (app.teamMatchesPlayedCounts[m.away] || 0) + 1;
   });
 }
+
 export function getPlayerTotalMatchesPlayed(playerTeams) {
   if (!playerTeams) return 0;
-  return playerTeams.reduce((sum, teamName) => sum + (teamMatchesPlayedCounts[teamName] || 0), 0);
+  return playerTeams.reduce((sum, teamName) => sum + (app.teamMatchesPlayedCounts[teamName] || 0), 0);
 }
 
-// Load manual eliminated teams
 export function loadEliminatedTeams() {
-  if (isSyncEnabled) return; // Do not load from localstorage if sync is enabled
+  if (app.isSyncEnabled) return; // Do not load from localstorage if sync is enabled
   const stored = localStorage.getItem('worldcup_eliminated_teams');
   if (stored) {
     try {
-      manualEliminatedTeams = new Set(JSON.parse(stored));
+      app.manualEliminatedTeams = new Set(JSON.parse(stored));
     } catch(e) {
-      manualEliminatedTeams = new Set();
+      app.manualEliminatedTeams = new Set();
     }
   } else {
-    manualEliminatedTeams = new Set();
+    app.manualEliminatedTeams = new Set();
   }
 }
 
-// Save manual eliminated teams
 export async function saveEliminatedTeams() {
-  localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(manualEliminatedTeams)));
-  if (isSyncEnabled) {
+  localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+  if (app.isSyncEnabled) {
     await saveToServer();
   }
 }
 
-// Check if a team is eliminated (auto-calculated from knockout losses + manual overrides)
 export function isTeamEliminated(teamName) {
   // 1. Check manual override
-  if (manualEliminatedTeams.has(teamName)) return true;
+  if (app.manualEliminatedTeams.has(teamName)) return true;
 
   // 2. Check auto-detect from knockout losses
-  for (const match of matches) {
+  for (const match of app.matches) {
     if (match.status === 'finished' && match.isKnockout) {
       const h = match.homeScore;
       const a = match.awayScore;
@@ -387,10 +385,7 @@ export function isTeamEliminated(teamName) {
 
 export function recalculateAll() {
   if (_recalcHook) _recalcHook();
-  teamPoints = calculateTeamPoints();
-  processedPlayers = processPlayers(teamPoints);
+  app.teamPoints = calculateTeamPoints();
+  app.processedPlayers = processPlayers(app.teamPoints);
   updateTeamMatchesPlayedCounts();
-}
-
-export function refreshActivePage() {
-  const activePage = document.querySelector('.page.active');
+}

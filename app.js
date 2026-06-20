@@ -5095,8 +5095,7 @@ const CHART_ZONE_PULSE = {
   }
 };
 
-let chartHoverPlayer = '';
-let chartPulseAnimPlayer = '';
+// let chartHoverPlayer / chartPulseAnimPlayer are provided via state.js named exports in bundle
 
 function chartFindPlayerEl(svgEl, selector, playerName) {
   return [...svgEl.querySelectorAll(selector)].find(el => el.getAttribute('data-player') === playerName) || null;
@@ -5781,8 +5780,7 @@ function renderPlayers() {
   });
 }
 
-let statsSortState = { key: 'points', dir: 'desc' };
-let statsSortHandlersReady = false;
+// statsSort* provided via state.js named exports in bundle
 
 const STATS_ZONE_ORDER = { blue: 0, green: 1, yellow: 2, grey: 3, 'red-orange': 4 };
 const STATS_ZONE_META = [
@@ -6777,7 +6775,7 @@ function buildPlayerTeamItemHtml(tb, options = {}) {
 }
 
 // ── Rank sound effects (playful TTS + silly tones) ───────────────────────
-let _rankSpeechVoice = null;
+// _rankSpeechVoice provided via state.js named exports in bundle
 
 function initRankSoundVoices() {
   if (!('speechSynthesis' in window)) return;
@@ -7324,7 +7322,6 @@ function fillPlayerDetailsDrawer(name, token) {
   }
 }
 
-    // legacy removed
 // PLAYER ADD / EDIT FORM
 function openPlayerForm(player = null) {
   const overlay = document.getElementById('player-form-drawer-overlay');
@@ -8325,7 +8322,7 @@ function getTeamPopularity(teamName) {
   return count;
 }
 
-let _maxPopularityCache = null;
+// _maxPopularityCache provided via state.js named exports in bundle
 function getMaxPopularity() {
   if (_maxPopularityCache !== null) return _maxPopularityCache;
   let max = 1; // avoid div by zero

@@ -1,6 +1,8 @@
 /**
  * Splits monolithic app.js into ES modules under js/
  * Run: node scripts/build-js-modules.mjs
+ *
+ * Hand-maintained (not overwritten): state.js, admin.js, scoring.js, sync.js, utils.js, persist.js
  */
 import fs from 'fs';
 import path from 'path';
@@ -22,216 +24,14 @@ function exportify(code) {
 
 fs.mkdirSync(OUT, { recursive: true });
 
-// ── constants.js (lines 3–2259, through INITIAL_PLAYERS closing `];`) ──
+// ── constants.js (lines 3–2259) ──
 fs.writeFileSync(
   path.join(OUT, 'constants.js'),
   `// Team data, initial seed, formatting helpers\n${exportify(slice(3, 2259))}\n`
 );
 
-// ── state.js ──
-fs.writeFileSync(
-  path.join(OUT, 'state.js'),
-  `// Shared mutable application state
-export const ADMIN_PASSWORD = '123456';
-
-export let matches = [];
-export let players = [];
-export let isAdmin = false;
-export let isSyncEnabled = false;
-
-export let simulationScores = {};
-
-export let lastDataRefreshTime = null;
-export let autoRefreshTimer = null;
-export const AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
-
-export let teamPoints = {};
-export let processedPlayers = [];
-export let manualEliminatedTeams = new Set();
-export let lastHighlightPlayer = '';
-export let teamMatchesPlayedCounts = {};
-
-export let _playerDrawerSavedScrollY = 0;
-export let _playerDrawerScrollLocked = false;
-
-export let chartHoverPlayer = '';
-export let chartPulseAnimPlayer = '';
-
-export let statsSortState = { key: 'points', dir: 'desc' };
-export let statsSortHandlersReady = false;
-
-export let _rankSpeechVoice = null;
-export let _maxPopularityCache = null;
-`
-);
-
-// ── utils.js ──
-fs.writeFileSync(
-  path.join(OUT, 'utils.js'),
-  `import { elCache } from './state-internal.js';
-
-${exportify(slice(2261, 2269))}
-
-${exportify(slice(2271, 2274))}
-
-export function getCachedEl(id) {
-  if (!elCache[id]) elCache[id] = document.getElementById(id);
-  return elCache[id];
-}
-
-export function debounce(fn, delay = 120) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-`
-);
-
-// elCache is used by getCachedEl - put in state-internal or state.js
-// Fix: add elCache to state.js
-const stateContent = fs.readFileSync(path.join(OUT, 'state.js'), 'utf8');
-fs.writeFileSync(
-  path.join(OUT, 'state.js'),
-  stateContent.replace(
-    'export let teamMatchesPlayedCounts = {};\n',
-    'export let teamMatchesPlayedCounts = {};\nexport const elCache = {};\n'
-  )
-);
-
-fs.writeFileSync(
-  path.join(OUT, 'state-internal.js'),
-  `// Re-export elCache for utils without circular imports
-export { elCache } from './state.js';
-`
-);
-
-// Fix utils to import from state.js directly
-fs.writeFileSync(
-  path.join(OUT, 'utils.js'),
-  `import { elCache } from './state.js';
-
-${exportify(slice(2261, 2269))}
-
-${exportify(slice(2271, 2274))}
-
-export function getCachedEl(id) {
-  if (!elCache[id]) elCache[id] = document.getElementById(id);
-  return elCache[id];
-}
-
-export function debounce(fn, delay = 120) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-`
-);
-fs.unlinkSync(path.join(OUT, 'state-internal.js'));
-
-// ── scoring.js ──
-fs.writeFileSync(
-  path.join(OUT, 'scoring.js'),
-  `import { TEAMS, INITIAL_MATCHES } from './constants.js';
-import {
-  matches, players, manualEliminatedTeams, isSyncEnabled,
-  teamPoints, processedPlayers, teamMatchesPlayedCounts
-} from './state.js';
-
-${exportify(slice(2561, 2655))}
-
-${exportify(slice(2657, 2686))}
-
-${exportify(slice(2688, 2878))}
-
-${exportify(slice(2904, 2909))}
-
-${exportify(slice(2911, 2915))}
-
-${exportify(slice(2917, 2923))}
-
-${exportify(slice(2932, 2931))}
-
-${exportify(slice(2940, 2953))}
-
-${exportify(slice(2961, 2966))}
-`
-);
-
-// Append saveEliminatedTeams
-const scoringFix = fs.readFileSync(path.join(OUT, 'scoring.js'), 'utf8');
-fs.writeFileSync(
-  path.join(OUT, 'scoring.js'),
-  scoringFix.replace(
-    'export function recalculateAll',
-    `${exportify(slice(2932, 2938))}\n\nexport function recalculateAll`
-  )
-);
-
-// ── admin.js ──
-fs.writeFileSync(
-  path.join(OUT, 'admin.js'),
-  `import { isAdmin } from './state.js';
-import { getCachedEl } from './utils.js';
-
-${exportify(slice(2292, 2335))}
-`
-);
-
-// ── sync.js (will be patched with notifications after creation) ──
-const syncBody = `${exportify(slice(2338, 2347))}
-
-${exportify(slice(2349, 2522))}
-
-let _refreshPage = () => {};
-export function registerRefreshPage(fn) {
-  _refreshPage = typeof fn === 'function' ? fn : () => {};
-}
-
-${exportify(slice(2982, 2985))}
-
-${exportify(slice(2987, 3005))}
-
-${exportify(slice(3007, 3073))}
-`;
-
-fs.writeFileSync(
-  path.join(OUT, 'sync.js'),
-  `import {
-  matches, players, isSyncEnabled, manualEliminatedTeams,
-  lastDataRefreshTime, autoRefreshTimer, AUTO_REFRESH_INTERVAL_MS
-} from './state.js';
-import { INITIAL_MATCHES, INITIAL_PLAYERS } from './constants.js';
-import { recalculateAll } from './scoring.js';
-import { notifyDataUpdate } from './notifications.js';
-
-${syncBody}
-
-export function refreshActivePage() {
-  _refreshPage();
-}
-
-${slice(3075, 3092)
-  .replace('async function pollServerData', 'export async function pollServerData')
-  .replace('refreshActivePage();', '_refreshPage();')
-  .replace(
-    "updateDataSyncStatus('updated', 'มีข้อมูลใหม่');",
-    `updateDataSyncStatus('updated', 'มีข้อมูลใหม่');
-      notifyDataUpdate({ type: 'data' });`
-  )}
-
-${exportify(slice(3094, 3102))}
-`
-);
-
-// ── bundle.js: everything else ──
-// Keep in sync with module splits: utils/state/admin/sync/scoring/persist through drawer state vars.
-const EXCLUDE_RANGES = [
-  [2260, 3104],
-];
+// ── bundle.js: UI, rendering, events ──
+const EXCLUDE_RANGES = [[2260, 3104]];
 
 function isExcluded(lineNum) {
   return EXCLUDE_RANGES.some(([a, b]) => lineNum >= a && lineNum <= b);
@@ -244,43 +44,78 @@ for (let i = 2260; i <= lines.length; i++) {
 
 const bundleImports = `// UI, rendering, events, player drawer, team popup
 import {
-  TEAMS, INITIAL_MATCHES, INITIAL_PLAYERS,
+  TEAMS, TEAM_WC_GROUP_MEMBERS, INITIAL_MATCHES, INITIAL_PLAYERS,
   getTeamWcGroup, formatWcGroupLabel, formatZoneDisplayLabel,
   getZoneBadgeClass, getWcGroupBadgeHtml, getTeamFlagHtml
 } from './constants.js';
-import {
-  ADMIN_PASSWORD, matches, players, isAdmin, isSyncEnabled,
-  simulationScores, lastDataRefreshTime, teamPoints, processedPlayers,
-  manualEliminatedTeams, lastHighlightPlayer, teamMatchesPlayedCounts,
-  _playerDrawerSavedScrollY, _playerDrawerScrollLocked,
-  chartHoverPlayer, chartPulseAnimPlayer,
-  statsSortState, statsSortHandlersReady,
-  _rankSpeechVoice, _maxPopularityCache
-} from './state.js';
-import { escapeHtml, getCachedEl, debounce } from './utils.js';
+import { app } from './state.js';
+import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
   calculateTeamPoints, calculatePredictionPoints, processPlayers,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
-  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated
+  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, setRecalcHook
 } from './scoring.js';
 import {
-  initData, saveToServer, clearCachedData,
+  initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
+import { saveToServer, sendBroadcastNotification } from './persist.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
 
 `;
 
-let bundleCode = bundleImports + bundleLines.join('\n');
+let bundleBody = bundleLines.join('\n');
 
-// Export functions needed on window
+const STATE_KEYS = [
+  'ADMIN_PASSWORD', 'matches', 'players', 'isAdmin', 'isSyncEnabled', 'simulationScores',
+  'lastDataRefreshTime', 'autoRefreshTimer', 'teamPoints', 'processedPlayers',
+  'manualEliminatedTeams', 'lastHighlightPlayer', 'teamMatchesPlayedCounts',
+  '_playerDrawerSavedScrollY', '_playerDrawerScrollLocked',
+  'chartHoverPlayer', 'chartPulseAnimPlayer',
+  'statsSortState', 'statsSortHandlersReady', '_rankSpeechVoice', '_maxPopularityCache'
+];
+
+const SKIP_WORDS = new Set([
+  'renderMatches', 'getMatchRoundLabel', 'buildLiveMatchCard', 'renderRecentMatches',
+  'setupLiveMatchesCarousel', 'deleteMatch', 'getMatchGamePointsForTeam', 'getMatchResultForTeam',
+  'openMatchForm', 'closeMatchForm', 'handleMatchFormSubmit', 'exportMatchesImage',
+  'INITIAL_MATCHES', 'storedMatches', 'serverMatches', 'localMatches', 'deletedMatches',
+  'manuallyEditedMatches', 'newMatch', 'finalMatch', 'targetMatches', 'teamMatches',
+  'renderPlayers', 'exportPlayers', 'openPlayerDetails', 'renderPlayer', 'attachPlayer',
+  'players-tbody', 'players-page', 'players-table', 'matches-page', 'matches-container',
+  'recent-matches', 'live-matches', 'match-card', 'match-body', 'match-score', 'match-team',
+  'match-form', 'matchId', 'ptsMatch', 'data-tab'
+]);
+
+function migrateBundleState(code) {
+  return code.replace(/'[^'\\]*'|"[^"\\]*"|`[^`\\]*`|\/\/[^\n]*|\b[A-Za-z_$][\w$]*\b/g, (token, offset, full) => {
+    if (token.startsWith("'") || token.startsWith('"') || token.startsWith('`') || token.startsWith('//')) {
+      return token;
+    }
+    if (!STATE_KEYS.includes(token)) return token;
+    const rest = full.slice(offset + token.length);
+    if (/^\s*:/.test(rest)) return token;
+    const charBefore = offset > 0 ? full[offset - 1] : '';
+    if (charBefore === '.') {
+      const prefix = full.slice(Math.max(0, offset - 4), offset);
+      if (prefix.endsWith('app.')) return token;
+      if (!prefix.endsWith('...') && !prefix.endsWith('..')) return token;
+    }
+    if (SKIP_WORDS.has(token)) return token;
+    return `app.${token}`;
+  });
+}
+
+bundleBody = migrateBundleState(bundleBody);
+
+let bundleCode = bundleImports + bundleBody;
+
 bundleCode += `
 
 export {
   handleSimulationScoreChange,
-  refreshActivePage,
   renderDashboard,
   renderLeaderboard,
   renderMatches,
@@ -294,14 +129,6 @@ export {
 };
 `;
 
-// refreshActivePage is in sync.js - bundle defines the real one
-// Replace: bundle has refreshActivePage function, register it
-bundleCode = bundleCode.replace(
-  'export {\n  handleSimulationScoreChange,\n  refreshActivePage,',
-  'export {\n  handleSimulationScoreChange,'
-);
-
-// Add refreshActivePage implementation registration at end of bootstrap
 bundleCode = bundleCode.replace(
   'document.addEventListener(\'DOMContentLoaded\', async () => {',
   `export function refreshActivePage() {
@@ -321,16 +148,22 @@ bundleCode = bundleCode.replace(
 document.addEventListener('DOMContentLoaded', async () => {
   registerRefreshPage(refreshActivePage);
   initPWA();
-  initNotifications();`
+  initNotifications();
+  setRecalcHook(resetTeamPopularityCache);`
 );
 
-// Remove duplicate refreshActivePage if still in bundle from original
 bundleCode = bundleCode.replace(
   /export function refreshActivePage\(\) \{[\s\S]*?else if \(id === 'payout'\) renderPayout\(\);\n\}\n\nexport function refreshActivePage/,
   'export function refreshActivePage'
 );
 
+// Remove duplicate refreshActivePage from original app.js slice
+bundleCode = bundleCode.replace(
+  /\nfunction refreshActivePage\(\) \{[\s\S]*?else if \(id === 'payout'\) renderPayout\(\);\n\}/,
+  ''
+);
+
 fs.writeFileSync(path.join(OUT, 'bundle.js'), bundleCode);
 
 console.log('Built js/ modules from app.js');
-console.log('  constants.js, state.js, utils.js, scoring.js, admin.js, sync.js, bundle.js');
+console.log('  constants.js, bundle.js (state/admin/scoring/sync/utils preserved)');

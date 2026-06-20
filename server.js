@@ -87,7 +87,12 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  const requestPath = req.url.split('?')[0];
+  let requestPath = req.url.split('?')[0];
+  // Support subpath deployment e.g. /world-cup/
+  const APP_BASE = '/world-cup';
+  if (requestPath.startsWith(APP_BASE)) {
+    requestPath = requestPath.slice(APP_BASE.length) || '/';
+  }
   if (requestPath === '/favicon.ico') {
     const pngPath = path.join(PUBLIC_DIR, 'icons', 'icon-192.png');
     fs.access(pngPath, fs.constants.F_OK, (err) => {
