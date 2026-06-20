@@ -32,17 +32,15 @@ fs.writeFileSync(
 
 // ── bundle.js: UI, rendering, events ──
 // Exclude duplicated module code (utils/state/admin/scoring/sync/persist) still in app.js
-const EXCLUDE_RANGES = [[148, 995]];
-
-function isExcluded(lineNum) {
-  return EXCLUDE_RANGES.some(([a, b]) => lineNum >= a && lineNum <= b);
+const BUNDLE_SLICE_START = 148;
+const BUNDLE_SLICE_MARKER = '// Lock background scroll while player stats drawer is open';
+const bundleMarkerIdx = lines.findIndex(l => l.includes(BUNDLE_SLICE_MARKER));
+if (bundleMarkerIdx < 0) {
+  throw new Error(`build-js-modules: marker not found: ${BUNDLE_SLICE_MARKER}`);
 }
+const BUNDLE_SLICE_END = bundleMarkerIdx; // 1-based line before marker = bundleMarkerIdx (0-based index)
 
-const BUNDLE_START = 148;
-const bundleLines = [];
-for (let i = BUNDLE_START; i <= lines.length; i++) {
-  if (!isExcluded(i)) bundleLines.push(lines[i - 1]);
-}
+const bundleLines = lines.slice(BUNDLE_SLICE_END);
 
 const bundleImports = `// UI, rendering, events, player drawer, team popup
 import {
@@ -53,7 +51,7 @@ import {
 import { app } from './state.js';
 import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
-  calculateTeamPoints, calculatePredictionPoints, processPlayers,
+  calculateTeamPoints, calculatePredictionPoints, processPlayers, getTeamByName,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
   loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, setRecalcHook
 } from './scoring.js';
@@ -73,7 +71,8 @@ let bundleBody = bundleLines.join('\n');
 const STATE_KEYS = [
   'ADMIN_PASSWORD', 'matches', 'players', 'isAdmin', 'isSyncEnabled', 'simulationScores',
   'lastDataRefreshTime', 'autoRefreshTimer', 'teamPoints', 'processedPlayers',
-  'manualEliminatedTeams', 'lastHighlightPlayer', 'lastChartRanks', 'teamMatchesPlayedCounts',
+  'manualEliminatedTeams', 'lastHighlightPlayer', 'lastChartRanks', 'lastChartPlayerRankHistory',
+  '_chartRankHistoryCacheKey', '_chartRankHistoryCache', 'teamMatchesPlayedCounts',
   '_playerDrawerSavedScrollY', '_playerDrawerScrollLocked',
   'chartHoverPlayer', 'chartPulseAnimPlayer',
   'statsSortState', 'statsSortHandlersReady', '_rankSpeechVoice', '_maxPopularityCache'

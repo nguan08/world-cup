@@ -838,6 +838,20 @@ h1 {
   }
 }
 
+/* Mobile / iOS: lighter chart — fewer nodes, no SVG filters, no ECG overlay */
+#score-chart-svg.chart-lite .trend-line,
+#score-chart-svg.chart-lite .trend-dot {
+  transition: none !important;
+}
+
+#score-chart-svg.chart-lite .chart-pulse-lite .chart-ecg-core {
+  filter: none;
+}
+
+#score-chart-svg.chart-lite .chart-monitor-overlay {
+  display: none;
+}
+
 #score-chart-svg {
   display: block;
   width: 100%;

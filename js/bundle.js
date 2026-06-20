@@ -7,7 +7,7 @@ import {
 import { app } from './state.js';
 import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
-  calculateTeamPoints, calculatePredictionPoints, processPlayers,
+  calculateTeamPoints, calculatePredictionPoints, processPlayers, getTeamByName,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
   loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, setRecalcHook
 } from './scoring.js';
@@ -19,7 +19,6 @@ import { saveToServer, sendBroadcastNotification, saveAdminScoreUpdate } from '.
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
-
 
 // Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
 app._playerDrawerSavedScrollY = 0;
@@ -1137,6 +1136,7 @@ function scheduleScoreChartRender() {
       if (!svgEl) return;
       const cacheKey = getScoreChartCacheKey();
       if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
+      app._chartRankHistoryCacheKey = '';
       renderScoreChart();
       svgEl.dataset.chartCacheKey = cacheKey;
     });
@@ -1701,19 +1701,91 @@ function getChartEligibleMatches() {
     .sort((a, b) => a.id - b.id);
 }
 
-function renderScoreChart() {
-  const svgEl = getCachedEl('score-chart-svg');
-  if (!svgEl || !app.processedPlayers.length) return;
+function isChartLiteMode() {
+  if (window.innerWidth <= 768) return true;
+  const ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+}
 
-  clearChartPulseLayer(svgEl);
-  app.chartHoverPlayer = '';
+function applyChartMatchToTeamScores(match, teamScores) {
+  const isSimulated = app.simulationScores[match.id];
+  if (match.status !== 'finished' && !isSimulated) return;
 
-  // 1. Matches that affect scoring (finished + tools-sim), grouped by day
-  const chartMatches = getChartEligibleMatches();
-  const chartDaySteps = buildChartDaySteps(chartMatches);
-  const stepsCount = chartDaySteps.length;
+  const h = isSimulated ? isSimulated.homeScore : match.homeScore;
+  const a = isSimulated ? isSimulated.awayScore : match.awayScore;
+  if (h === null || a === null) return;
 
-  // 2. Historical rank/score via same pipeline as leaderboard
+  let homeResPoints = 0;
+  let awayResPoints = 0;
+
+  if (h > a) {
+    homeResPoints = 3;
+    awayResPoints = 1;
+  } else if (h < a) {
+    homeResPoints = 1;
+    awayResPoints = 3;
+  } else if (match.isKnockout && match.penaltyWinner) {
+    if (match.penaltyWinner === 'home') {
+      homeResPoints = 3;
+      awayResPoints = 1;
+    } else {
+      homeResPoints = 1;
+      awayResPoints = 3;
+    }
+  } else {
+    homeResPoints = 2;
+    awayResPoints = 2;
+  }
+
+  const hTeam = getTeamByName(match.home);
+  const aTeam = getTeamByName(match.away);
+  if (hTeam && teamScores[match.home] !== undefined) {
+    teamScores[match.home] = parseFloat(
+      (teamScores[match.home] + (homeResPoints + h) * hTeam.multiplier).toFixed(2)
+    );
+  }
+  if (aTeam && teamScores[match.away] !== undefined) {
+    teamScores[match.away] = parseFloat(
+      (teamScores[match.away] + (awayResPoints + a) * aTeam.multiplier).toFixed(2)
+    );
+  }
+}
+
+function computeChartRanksFromTeamScores(teamScores, matchesSoFar) {
+  const finalMatch = matchesSoFar.find(m => m.isFinal);
+  const scoreBoard = app.players.map(player => {
+    let teamsScore = 0;
+    player.teams.forEach(teamName => {
+      teamsScore += teamScores[teamName] || 0;
+    });
+    const predictionScore = calculatePredictionPoints(player, finalMatch);
+    return {
+      name: player.name,
+      totalScore: parseFloat((teamsScore + predictionScore).toFixed(2))
+    };
+  });
+
+  scoreBoard.sort((a, b) => b.totalScore - a.totalScore);
+  let currentRank = 1;
+  const rankMap = new Map();
+  const scoreMap = new Map();
+  scoreBoard.forEach((entry, idx) => {
+    if (idx > 0 && entry.totalScore < scoreBoard[idx - 1].totalScore) {
+      currentRank = idx + 1;
+    }
+    rankMap.set(entry.name, currentRank);
+    scoreMap.set(entry.name, entry.totalScore);
+  });
+  return { rankMap, scoreMap };
+}
+
+function buildChartPlayerRankHistory(chartDaySteps) {
+  const cacheKey = `${getScoreChartCacheKey()}:${chartDaySteps.length}`;
+  if (app._chartRankHistoryCacheKey === cacheKey && app._chartRankHistoryCache) {
+    return app._chartRankHistoryCache;
+  }
+
   const playerRankHistory = app.players.map(p => {
     const curr = app.processedPlayers.find(pl => pl.name === p.name) || { zone: 'red', rank: 99 };
     return {
@@ -1724,26 +1796,70 @@ function renderScoreChart() {
     };
   });
 
+  const teamScores = {};
+  TEAMS.forEach(team => {
+    teamScores[team.name] = 0;
+  });
+
   const matchesSoFar = [];
-  const pushRanksForMatches = () => {
-    const ranked = processPlayers(calculateTeamPoints(matchesSoFar));
-    const rankByName = new Map(ranked.map(p => [p.name, p]));
+  const pushStep = () => {
+    const { rankMap, scoreMap } = computeChartRanksFromTeamScores(teamScores, matchesSoFar);
     playerRankHistory.forEach(ph => {
-      const entry = rankByName.get(ph.name);
-      ph.ranks.push(entry ? entry.rank : 99);
-      ph.scores.push(entry ? entry.totalScore : 0);
+      ph.ranks.push(rankMap.get(ph.name) ?? 99);
+      ph.scores.push(scoreMap.get(ph.name) ?? 0);
     });
   };
 
-  pushRanksForMatches(); // step 0 — before any chart app.matches
-  for (let step = 1; step <= stepsCount; step++) {
-    chartDaySteps[step - 1].matches.forEach(match => matchesSoFar.push(match));
-    pushRanksForMatches();
-  }
+  pushStep();
+  chartDaySteps.forEach(step => {
+    step.matches.forEach(match => {
+      applyChartMatchToTeamScores(match, teamScores);
+      matchesSoFar.push(match);
+    });
+    pushStep();
+  });
 
-  app.lastChartRanks = Object.fromEntries(
-    playerRankHistory.map(ph => [ph.name, ph.ranks[ph.ranks.length - 1] ?? 99])
-  );
+  const result = {
+    playerRankHistory,
+    lastChartRanks: Object.fromEntries(
+      playerRankHistory.map(ph => [ph.name, ph.ranks[ph.ranks.length - 1] ?? 99])
+    ),
+    historyMap: new Map(playerRankHistory.map(ph => [ph.name, { ranks: ph.ranks, scores: ph.scores }]))
+  };
+
+  app._chartRankHistoryCacheKey = cacheKey;
+  app._chartRankHistoryCache = result;
+  return result;
+}
+
+function parseChartPathPoints(pathD) {
+  if (!pathD) return [];
+  return pathD.replace(/^M\s*/, '').split(/\s+L\s+/).map(seg => {
+    const [x, y] = seg.split(',').map(Number);
+    return { x, y };
+  }).filter(pt => Number.isFinite(pt.x) && Number.isFinite(pt.y));
+}
+
+function renderScoreChart() {
+  const svgEl = getCachedEl('score-chart-svg');
+  if (!svgEl || !app.processedPlayers.length) return;
+
+  clearChartPulseLayer(svgEl);
+  app.chartHoverPlayer = '';
+
+  const chartLite = isChartLiteMode();
+  svgEl.classList.toggle('chart-lite', chartLite);
+
+  // 1. Matches that affect scoring (finished + tools-sim), grouped by day
+  const chartMatches = getChartEligibleMatches();
+  const chartDaySteps = buildChartDaySteps(chartMatches);
+  const stepsCount = chartDaySteps.length;
+
+  // 2. Historical rank/score — incremental + cached (same scores as leaderboard)
+  const chartHistory = buildChartPlayerRankHistory(chartDaySteps);
+  const playerRankHistory = chartHistory.playerRankHistory;
+  app.lastChartRanks = chartHistory.lastChartRanks;
+  app.lastChartPlayerRankHistory = chartHistory.historyMap;
 
   // 3. Setup Layout Dimensions dynamically for responsive scaling
   const container = document.getElementById('chart-svg-container');
@@ -1755,7 +1871,7 @@ function renderScoreChart() {
     return innerW > 0 ? innerW : container.clientWidth || 0;
   })();
 
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = chartLite;
   if (isMobile && container && containerW === 0) {
     requestAnimationFrame(() => renderScoreChart());
     return;
@@ -1890,16 +2006,20 @@ function renderScoreChart() {
     const color = getPlayerColor(ph.zone);
     const dotR = '3.2';
 
-    // Rank line path
-    linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" data-zone="${ph.zone}" style="cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;"/>`;
+    const lineStyle = chartLite
+      ? 'cursor:pointer;'
+      : 'cursor:pointer; transition: stroke-width 0.2s, stroke-opacity 0.2s;';
+    linesGroup += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.22" class="trend-line" data-player="${ph.name}" data-zone="${ph.zone}" style="${lineStyle}"/>`;
 
-    hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="8" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
+    const helperWidth = chartLite ? '12' : '8';
+    hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="${helperWidth}" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
-    // Trend dots
-    for (let i = 0; i <= stepsCount; i++) {
-      const x = xOf(i);
-      const y = yOf(ph.ranks[i]);
-      dotsGroup += `<circle cx="${x}" cy="${y}" r="${dotR}" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
+    if (!chartLite) {
+      for (let i = 0; i <= stepsCount; i++) {
+        const x = xOf(i);
+        const y = yOf(ph.ranks[i]);
+        dotsGroup += `<circle cx="${x}" cy="${y}" r="${dotR}" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
+      }
     }
 
     // Label at the end of the line
@@ -1976,24 +2096,27 @@ function renderScoreChart() {
     : '';
 
   const gridCell = isMobile ? 12 : 16;
+  const neonDefs = chartLite ? '' : getChartNeonFilterDefs();
+  const monitorOverlay = chartLite ? '' : `
+    <g class="chart-monitor-overlay" clip-path="url(#chart-plot-clip)">
+      <rect class="chart-monitor-tint" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4"/>
+      <rect class="chart-monitor-grid" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4" fill="url(#chart-ecg-grid)"/>
+      <rect class="chart-monitor-scan" x="${padL}" y="${padT}" width="2" height="${chartH}" rx="1" fill="rgba(255,45,85,0.5)"/>
+      <rect class="chart-monitor-scan-glow" x="${padL - 8}" y="${padT}" width="18" height="${chartH}" rx="3" fill="rgba(255,45,85,0.18)"/>
+    </g>`;
 
   svgEl.innerHTML = `
     <defs>
       <clipPath id="chart-plot-clip">
         <rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"/>
       </clipPath>
-      <pattern id="chart-ecg-grid" width="${gridCell}" height="${gridCell}" patternUnits="userSpaceOnUse" x="${padL}" y="${padT}">
+      ${chartLite ? '' : `<pattern id="chart-ecg-grid" width="${gridCell}" height="${gridCell}" patternUnits="userSpaceOnUse" x="${padL}" y="${padT}">
         <path d="M ${gridCell} 0 L 0 0 0 ${gridCell}" fill="none" stroke="rgba(0,255,102,0.12)" stroke-width="0.55"/>
-      </pattern>
-      ${getChartNeonFilterDefs()}
+      </pattern>`}
+      ${neonDefs}
     </defs>
     ${plotBg || `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`}
-    <g class="chart-monitor-overlay" clip-path="url(#chart-plot-clip)">
-      <rect class="chart-monitor-tint" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4"/>
-      <rect class="chart-monitor-grid" x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" rx="4" fill="url(#chart-ecg-grid)"/>
-      <rect class="chart-monitor-scan" x="${padL}" y="${padT}" width="2" height="${chartH}" rx="1" fill="rgba(255,45,85,0.5)"/>
-      <rect class="chart-monitor-scan-glow" x="${padL - 8}" y="${padT}" width="18" height="${chartH}" rx="3" fill="rgba(255,45,85,0.18)"/>
-    </g>
+    ${monitorOverlay}
     ${yGridLines}
     <line x1="${axisLineX}" x2="${axisLineX}" y1="${padT}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
     <line x1="${axisLineX}" x2="${W - padR}" y1="${padT + chartH}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
@@ -2161,6 +2284,35 @@ function buildChartPulseLayer(svgEl, playerName, pathD, zone) {
   const zoneStyle = getChartZonePulseStyle(zone);
   clearChartPulseLayer(svgEl);
   const pulsePathD = extendChartPulsePathToPlotEnd(pathD, svgEl);
+
+  if (svgEl.classList.contains('chart-lite')) {
+    const layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    layer.setAttribute('class', 'chart-pulse-layer chart-pulse-lite');
+    layer.setAttribute('data-zone', zone);
+    layer.setAttribute('data-player', playerName);
+    layer.setAttribute('clip-path', 'url(#chart-plot-clip)');
+
+    const core = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    core.setAttribute('class', 'chart-ecg-core');
+    core.setAttribute('d', pulsePathD);
+    core.setAttribute('fill', 'none');
+    core.setAttribute('stroke', zoneStyle.phosphor);
+    core.setAttribute('stroke-width', '3.5');
+    core.setAttribute('stroke-linecap', 'round');
+    core.setAttribute('stroke-linejoin', 'round');
+    core.setAttribute('opacity', '0.95');
+    layer.appendChild(core);
+    svgEl.appendChild(layer);
+
+    const sourceLine = chartFindPlayerEl(svgEl, '.trend-line', playerName);
+    if (sourceLine) {
+      sourceLine.setAttribute('stroke-width', '1');
+      sourceLine.setAttribute('stroke-opacity', '0.06');
+    }
+    app.chartPulseAnimPlayer = playerName;
+    return;
+  }
+
   const neonFilter = `url(#chart-neon-${zone})`;
 
   const layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -2239,6 +2391,16 @@ function resolveChartHoverTarget(node, stopAt) {
 
 function setChartMonitorOverlay(svgEl, zone) {
   if (!svgEl) return;
+  if (svgEl.classList.contains('chart-lite')) {
+    if (!zone) {
+      svgEl.classList.remove('chart-ecg-active');
+      svgEl.removeAttribute('data-ecg-zone');
+      return;
+    }
+    svgEl.classList.remove('chart-ecg-active');
+    svgEl.setAttribute('data-ecg-zone', zone);
+    return;
+  }
   const tint = svgEl.querySelector('.chart-monitor-tint');
   const scan = svgEl.querySelector('.chart-monitor-scan');
   const scanGlow = svgEl.querySelector('.chart-monitor-scan-glow');
@@ -2293,22 +2455,26 @@ function bindChartHoverInteractions() {
     highlightPlayerInChart(hlSelect ? hlSelect.value : '');
   });
 
+  let touchRaf = 0;
   const handleChartTouch = (e) => {
-    const svgEl = document.getElementById('score-chart-svg');
-    if (!svgEl) return;
-    const touch = e.touches && e.touches[0];
-    if (!touch) return;
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const chartTarget = resolveChartHoverTarget(target, container);
-    if (!chartTarget) return;
-    const playerName = chartTarget.getAttribute('data-player');
-    if (!playerName || playerName === app.chartHoverPlayer) return;
-    app.chartHoverPlayer = playerName;
-    highlightPlayerInChart(playerName);
+    if (touchRaf) return;
+    touchRaf = requestAnimationFrame(() => {
+      touchRaf = 0;
+      const svgEl = document.getElementById('score-chart-svg');
+      if (!svgEl) return;
+      const touch = e.touches && e.touches[0];
+      if (!touch) return;
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const chartTarget = resolveChartHoverTarget(target, container);
+      if (!chartTarget) return;
+      const playerName = chartTarget.getAttribute('data-player');
+      if (!playerName || playerName === app.chartHoverPlayer) return;
+      app.chartHoverPlayer = playerName;
+      highlightPlayerInChart(playerName);
+    });
   };
 
   container.addEventListener('touchstart', handleChartTouch, { passive: true });
-  container.addEventListener('touchmove', handleChartTouch, { passive: true });
 }
 
 function setChartLinePulse(playerName) {
@@ -2426,26 +2592,33 @@ function highlightPlayerInChart(playerName) {
   // Clean old dot value labels
   svgEl.querySelectorAll('.temp-dot-label').forEach(el => el.remove());
 
-  // Add temp dot labels for the highlighted player
-  const dotsOfPlayer = svgEl.querySelectorAll(`.trend-dot[data-player="${playerName}"]`);
-  dotsOfPlayer.forEach(dot => {
-    const cx = parseFloat(dot.getAttribute('cx'));
-    const cy = parseFloat(dot.getAttribute('cy'));
-    const rank = parseInt(dot.getAttribute('data-rank'));
+  const phData = app.lastChartPlayerRankHistory.get(playerName);
+  const lineEl = chartFindPlayerEl(svgEl, '.trend-line', playerName);
+  if (phData && lineEl) {
+    const points = parseChartPathPoints(lineEl.getAttribute('d'));
+    const labelParent = lineEl.parentElement;
+    const frag = document.createDocumentFragment();
+    points.forEach((pt, i) => {
+      const rank = phData.ranks[i];
+      if (!Number.isFinite(rank)) return;
 
-    const textLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textLabel.setAttribute('x', cx);
-    textLabel.setAttribute('y', cy - 10);
-    textLabel.setAttribute('text-anchor', 'middle');
-    textLabel.setAttribute('font-size', '9.5');
-    textLabel.setAttribute('font-weight', '600');
-    textLabel.setAttribute('fill', '#fff');
-    textLabel.setAttribute('class', 'temp-dot-label');
-    textLabel.setAttribute('style', 'pointer-events: none; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.85)); font-family: Inter,sans-serif;');
-    textLabel.textContent = rank;
-
-    dot.parentElement.appendChild(textLabel);
-  });
+      const textLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      textLabel.setAttribute('x', pt.x);
+      textLabel.setAttribute('y', pt.y - 10);
+      textLabel.setAttribute('text-anchor', 'middle');
+      textLabel.setAttribute('font-size', '9.5');
+      textLabel.setAttribute('font-weight', '600');
+      textLabel.setAttribute('fill', '#fff');
+      textLabel.setAttribute('class', 'temp-dot-label');
+      const labelStyle = svgEl.classList.contains('chart-lite')
+        ? 'pointer-events: none; font-family: Inter,sans-serif;'
+        : 'pointer-events: none; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.85)); font-family: Inter,sans-serif;';
+      textLabel.setAttribute('style', labelStyle);
+      textLabel.textContent = rank;
+      frag.appendChild(textLabel);
+    });
+    if (labelParent) labelParent.appendChild(frag);
+  }
 
   setChartLinePulse(playerName);
 }
@@ -5780,9 +5953,10 @@ const debouncedResize = debounce(() => {
   if (dashboardPage && dashboardPage.classList.contains('active')) {
     const svgEl = getCachedEl('score-chart-svg');
     if (svgEl) delete svgEl.dataset.chartCacheKey;
+    app._chartRankHistoryCacheKey = '';
     scheduleScoreChartRender();
   }
-}, 160);
+}, 280);
 window.addEventListener('resize', debouncedResize);
 
 
