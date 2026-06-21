@@ -363,9 +363,9 @@
     {
       "home": "ตูนิเซีย",
       "away": "ญี่ปุ่น",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 4,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 36
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782007214383,
-    "message": "⚽ อัปเดตสกอร์: เอกวาดอร์ 0-0 คูราเซา",
-    "sentAt": "2026-06-21T02:00:14.383Z"
+    "id": 1782021865503,
+    "message": "⚽ อัปเดตสกอร์: ตูนิเซีย 0-4 ญี่ปุ่น",
+    "sentAt": "2026-06-21T06:04:25.503Z"
   }
 }
