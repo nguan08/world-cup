@@ -343,9 +343,9 @@
     {
       "home": "เยอรมนี",
       "away": "ไอเวอรีโคสต์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 34
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782001213893,
-    "message": "⚽ อัปเดตสกอร์: เนเธอร์แลนด์ 5-1 สวีเดน",
-    "sentAt": "2026-06-21T00:20:13.893Z"
+    "id": 1782001233340,
+    "message": "⚽ อัปเดตสกอร์: เยอรมนี 2-1 ไอเวอรีโคสต์",
+    "sentAt": "2026-06-21T00:20:33.340Z"
   }
 }
