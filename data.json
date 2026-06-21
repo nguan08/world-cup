@@ -373,9 +373,9 @@
     {
       "home": "สเปน",
       "away": "ซาอุดีอาระเบีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 37
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782071353214,
-    "message": "⚽ อัปเดตสกอร์: สเปน 4-0 เคปเวิร์ด",
-    "sentAt": "2026-06-21T19:49:13.214Z"
+    "id": 1782080270705,
+    "message": "⚽ อัปเดตสกอร์: สเปน 4-0 ซาอุดีอาระเบีย",
+    "sentAt": "2026-06-21T22:17:50.705Z"
   }
 }
