@@ -383,9 +383,9 @@
     {
       "home": "เบลเยียม",
       "away": "อิหร่าน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-22",
       "id": 38
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782096772508,
-    "message": "⚽ อัปเดตสกอร์: อุรุกวัย 2-2 เคปเวิร์ด",
-    "sentAt": "2026-06-22T02:52:52.508Z"
+    "id": 1782096912166,
+    "message": "⚽ อัปเดตสกอร์: เบลเยียม 0-0 อิหร่าน",
+    "sentAt": "2026-06-22T02:55:12.166Z"
   }
 }
