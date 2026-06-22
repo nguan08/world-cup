@@ -363,9 +363,9 @@
     {
       "home": "ตูนิเซีย",
       "away": "ญี่ปุ่น",
-      "homeScore": 0,
-      "awayScore": 4,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 36
@@ -373,9 +373,9 @@
     {
       "home": "สเปน",
       "away": "ซาอุดีอาระเบีย",
-      "homeScore": 4,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 37
@@ -393,9 +393,9 @@
     {
       "home": "อุรุกวัย",
       "away": "เคปเวิร์ด",
-      "homeScore": 2,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-22",
       "id": 39
@@ -403,9 +403,9 @@
     {
       "home": "นิวซีแลนด์",
       "away": "อียิปต์",
-      "homeScore": 1,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-22",
       "id": 40
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782101008311,
-    "message": "⚽ อัปเดตสกอร์: สเปน 0-0 เคปเวิร์ด",
-    "sentAt": "2026-06-22T04:03:28.311Z"
+    "id": 1782101478891,
+    "message": "⚽ อัปเดตสกอร์: เบลเยียม 0-0 อิหร่าน",
+    "sentAt": "2026-06-22T04:11:18.891Z"
   }
 }
