@@ -373,9 +373,9 @@
     {
       "home": "สเปน",
       "away": "ซาอุดีอาระเบีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-21",
       "id": 37
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782101519410,
-    "message": "⚽ อัปเดตสกอร์: นิวซีแลนด์ 1-3 อียิปต์",
-    "sentAt": "2026-06-22T04:11:59.410Z"
+    "id": 1782101548225,
+    "message": "⚽ อัปเดตสกอร์: สเปน 4-0 ซาอุดีอาระเบีย",
+    "sentAt": "2026-06-22T04:12:28.225Z"
   }
 }
