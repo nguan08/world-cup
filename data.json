@@ -403,9 +403,9 @@
     {
       "home": "นิวซีแลนด์",
       "away": "อียิปต์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-22",
       "id": 40
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782096912166,
-    "message": "⚽ อัปเดตสกอร์: เบลเยียม 0-0 อิหร่าน",
-    "sentAt": "2026-06-22T02:55:12.166Z"
+    "id": 1782097194555,
+    "message": "⚽ อัปเดตสกอร์: นิวซีแลนด์ 1-3 อียิปต์",
+    "sentAt": "2026-06-22T02:59:54.555Z"
   }
 }
