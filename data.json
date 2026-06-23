@@ -443,9 +443,9 @@
     {
       "home": "จอร์แดน",
       "away": "แอลจีเรีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 44
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782180248025,
-    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 3-2 เซเนกัล",
-    "sentAt": "2026-06-23T02:04:08.025Z"
+    "id": 1782193019213,
+    "message": "⚽ อัปเดตสกอร์: จอร์แดน 1-2 แอลจีเรีย",
+    "sentAt": "2026-06-23T05:36:59.213Z"
   }
 }
