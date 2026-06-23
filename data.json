@@ -433,9 +433,9 @@
     {
       "home": "นอร์เวย์",
       "away": "เซเนกัล",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 43
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782176615230,
-    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 3-0 อิรัก",
-    "sentAt": "2026-06-23T01:03:35.230Z"
+    "id": 1782180248025,
+    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 3-2 เซเนกัล",
+    "sentAt": "2026-06-23T02:04:08.025Z"
   }
 }
