@@ -453,9 +453,9 @@
     {
       "home": "โปรตุเกส",
       "away": "อุซเบกิสถาน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 45
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782193019213,
-    "message": "⚽ อัปเดตสกอร์: จอร์แดน 1-2 แอลจีเรีย",
-    "sentAt": "2026-06-23T05:36:59.213Z"
+    "id": 1782254885974,
+    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 5-0 อุซเบกิสถาน",
+    "sentAt": "2026-06-23T22:48:05.974Z"
   }
 }
