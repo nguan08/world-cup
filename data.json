@@ -423,7 +423,7 @@
     {
       "home": "ฝรั่งเศส",
       "away": "อิรัก",
-      "homeScore": 1,
+      "homeScore": 3,
       "awayScore": 0,
       "status": "finished",
       "isKnockout": false,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782171139313,
-    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 1-0 อิรัก",
-    "sentAt": "2026-06-22T23:32:19.313Z"
+    "id": 1782176615230,
+    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 3-0 อิรัก",
+    "sentAt": "2026-06-23T01:03:35.230Z"
   }
 }
