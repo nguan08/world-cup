@@ -453,9 +453,9 @@
     {
       "home": "โปรตุเกส",
       "away": "อุซเบกิสถาน",
-      "homeScore": 5,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 45
@@ -463,9 +463,9 @@
     {
       "home": "อังกฤษ",
       "away": "กานา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 46
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782254885974,
-    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 5-0 อุซเบกิสถาน",
-    "sentAt": "2026-06-23T22:48:05.974Z"
+    "id": 1782254903537,
+    "message": "⚽ อัปเดตสกอร์: อังกฤษ 0-0 กานา",
+    "sentAt": "2026-06-23T22:48:23.537Z"
   }
 }
