@@ -493,9 +493,9 @@
     {
       "home": "สวิตเซอร์แลนด์",
       "away": "แคนาดา",
-      "homeScore": 2,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 49
@@ -503,9 +503,9 @@
     {
       "home": "บอสเนีย",
       "away": "กาตาร์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 50
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782342803788,
-    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 2-1 แคนาดา",
-    "sentAt": "2026-06-24T23:13:23.788Z"
+    "id": 1782342830706,
+    "message": "⚽ อัปเดตสกอร์: บอสเนีย 3-1 กาตาร์",
+    "sentAt": "2026-06-24T23:13:50.706Z"
   }
 }
