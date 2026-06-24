@@ -473,9 +473,9 @@
     {
       "home": "ปานามา",
       "away": "โครเอเชีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 47
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782255023248,
-    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 5-0 อุซเบกิสถาน",
-    "sentAt": "2026-06-23T22:50:23.248Z"
+    "id": 1782262787464,
+    "message": "⚽ อัปเดตสกอร์: ปานามา 0-1 โครเอเชีย",
+    "sentAt": "2026-06-24T00:59:47.464Z"
   }
 }
