@@ -555,9 +555,9 @@
     {
       "home": "คูราเซา",
       "away": "ไอเวอรีโคสต์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 55,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782359004057,
-    "message": "⚽ อัปเดตสกอร์: แอฟริกาใต้ 1-0 เกาหลีใต้",
-    "sentAt": "2026-06-25T03:43:24.057Z"
+    "id": 1782431380266,
+    "message": "⚽ อัปเดตสกอร์: คูราเซา 0-2 ไอเวอรีโคสต์",
+    "sentAt": "2026-06-25T23:49:40.266Z"
   }
 }
