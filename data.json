@@ -533,9 +533,9 @@
     {
       "home": "แอฟริกาใต้",
       "away": "เกาหลีใต้",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 53,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782345968004,
-    "message": "⚽ อัปเดตสกอร์: สกอตแลนด์ 0-3 บราซิล",
-    "sentAt": "2026-06-25T00:06:08.004Z"
+    "id": 1782358869377,
+    "message": "⚽ อัปเดตสกอร์: แอฟริกาใต้ 0-1 เกาหลีใต้",
+    "sentAt": "2026-06-25T03:41:09.377Z"
   }
 }
