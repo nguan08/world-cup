@@ -513,9 +513,9 @@
     {
       "home": "โมร็อกโก",
       "away": "เฮติ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 51
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782342939832,
-    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 2-1 แคนาดา",
-    "sentAt": "2026-06-24T23:15:39.832Z"
+    "id": 1782345860894,
+    "message": "⚽ อัปเดตสกอร์: โมร็อกโก 4-2 เฮติ",
+    "sentAt": "2026-06-25T00:04:20.894Z"
   }
 }
