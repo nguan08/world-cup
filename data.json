@@ -533,9 +533,9 @@
     {
       "home": "แอฟริกาใต้",
       "away": "เกาหลีใต้",
-      "homeScore": 0,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 53,
@@ -544,9 +544,9 @@
     {
       "home": "สาธารณรัฐเช็ก",
       "away": "เม็กซิโก",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 54,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782358871772,
-    "message": "⚽ อัปเดตสกอร์: แอฟริกาใต้ 0-1 เกาหลีใต้",
-    "sentAt": "2026-06-25T03:41:11.772Z"
+    "id": 1782358889857,
+    "message": "⚽ อัปเดตสกอร์: สาธารณรัฐเช็ก 0-3 เม็กซิโก",
+    "sentAt": "2026-06-25T03:41:29.857Z"
   }
 }
