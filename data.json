@@ -566,9 +566,9 @@
     {
       "home": "เอกวาดอร์",
       "away": "เยอรมนี",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 56,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782431381506,
-    "message": "⚽ อัปเดตสกอร์: คูราเซา 0-2 ไอเวอรีโคสต์",
-    "sentAt": "2026-06-25T23:49:41.506Z"
+    "id": 1782431445136,
+    "message": "⚽ อัปเดตสกอร์: เอกวาดอร์ 2-1 เยอรมนี",
+    "sentAt": "2026-06-25T23:50:45.136Z"
   }
 }
