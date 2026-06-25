@@ -523,9 +523,9 @@
     {
       "home": "สกอตแลนด์",
       "away": "บราซิล",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 52
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782345860894,
-    "message": "⚽ อัปเดตสกอร์: โมร็อกโก 4-2 เฮติ",
-    "sentAt": "2026-06-25T00:04:20.894Z"
+    "id": 1782345968004,
+    "message": "⚽ อัปเดตสกอร์: สกอตแลนด์ 0-3 บราซิล",
+    "sentAt": "2026-06-25T00:06:08.004Z"
   }
 }
