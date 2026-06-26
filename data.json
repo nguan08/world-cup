@@ -413,9 +413,9 @@
     {
       "home": "อาร์เจนตินา",
       "away": "ออสเตรีย",
-      "homeScore": 2,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 41
@@ -423,9 +423,9 @@
     {
       "home": "ฝรั่งเศส",
       "away": "อิรัก",
-      "homeScore": 3,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 42
@@ -433,9 +433,9 @@
     {
       "home": "นอร์เวย์",
       "away": "เซเนกัล",
-      "homeScore": 3,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 43
@@ -443,9 +443,9 @@
     {
       "home": "จอร์แดน",
       "away": "แอลจีเรีย",
-      "homeScore": 1,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-23",
       "id": 44
@@ -453,9 +453,9 @@
     {
       "home": "โปรตุเกส",
       "away": "อุซเบกิสถาน",
-      "homeScore": 5,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 45
@@ -463,9 +463,9 @@
     {
       "home": "อังกฤษ",
       "away": "กานา",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 46
@@ -473,9 +473,9 @@
     {
       "home": "ปานามา",
       "away": "โครเอเชีย",
-      "homeScore": 0,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 47
@@ -483,9 +483,9 @@
     {
       "home": "โคลอมเบีย",
       "away": "คองโก",
-      "homeScore": 1,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-24",
       "id": 48
@@ -493,9 +493,9 @@
     {
       "home": "สวิตเซอร์แลนด์",
       "away": "แคนาดา",
-      "homeScore": 2,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 49
@@ -503,9 +503,9 @@
     {
       "home": "บอสเนีย",
       "away": "กาตาร์",
-      "homeScore": 3,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 50
@@ -513,9 +513,9 @@
     {
       "home": "โมร็อกโก",
       "away": "เฮติ",
-      "homeScore": 4,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 51
@@ -523,9 +523,9 @@
     {
       "home": "สกอตแลนด์",
       "away": "บราซิล",
-      "homeScore": 0,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 52
@@ -533,9 +533,9 @@
     {
       "home": "แอฟริกาใต้",
       "away": "เกาหลีใต้",
-      "homeScore": 1,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 53,
@@ -544,9 +544,9 @@
     {
       "home": "สาธารณรัฐเช็ก",
       "away": "เม็กซิโก",
-      "homeScore": 0,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-25",
       "id": 54,
@@ -555,9 +555,9 @@
     {
       "home": "คูราเซา",
       "away": "ไอเวอรีโคสต์",
-      "homeScore": 0,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 55,
@@ -566,9 +566,9 @@
     {
       "home": "เอกวาดอร์",
       "away": "เยอรมนี",
-      "homeScore": 2,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 56,
@@ -577,9 +577,9 @@
     {
       "home": "ตูนิเซีย",
       "away": "เนเธอร์แลนด์",
-      "homeScore": 1,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 57,
@@ -588,9 +588,9 @@
     {
       "home": "ญี่ปุ่น",
       "away": "สวีเดน",
-      "homeScore": 1,
-      "awayScore": 1,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 58,
@@ -599,9 +599,9 @@
     {
       "home": "ตุรกี",
       "away": "สหรัฐอเมริกา",
-      "homeScore": 3,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 59
@@ -609,9 +609,9 @@
     {
       "home": "ปารากวัย",
       "away": "ออสเตรเลีย",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 60
@@ -2043,12 +2043,11 @@
     }
   ],
   "eliminatedTeams": [
-    "ตูนิเซีย",
-    "กาตาร์"
+    "เฮติ"
   ],
   "broadcast": {
-    "id": 1782446636290,
-    "message": "⚽ อัปเดตสกอร์: ตุรกี 3-2 สหรัฐอเมริกา",
-    "sentAt": "2026-06-26T04:03:56.290Z"
+    "id": 1782101556362,
+    "message": "⚽ อัปเดตสกอร์: ตูนิเซีย 0-4 ญี่ปุ่น",
+    "sentAt": "2026-06-22T04:12:36.362Z"
   }
 }
