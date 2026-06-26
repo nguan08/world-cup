@@ -577,9 +577,9 @@
     {
       "home": "ตูนิเซีย",
       "away": "เนเธอร์แลนด์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 57,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782431445136,
-    "message": "⚽ อัปเดตสกอร์: เอกวาดอร์ 2-1 เยอรมนี",
-    "sentAt": "2026-06-25T23:50:45.136Z"
+    "id": 1782435326889,
+    "message": "⚽ อัปเดตสกอร์: ตูนิเซีย 1-3 เนเธอร์แลนด์",
+    "sentAt": "2026-06-26T00:55:26.889Z"
   }
 }
