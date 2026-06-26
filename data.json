@@ -599,7 +599,7 @@
     {
       "home": "ตุรกี",
       "away": "สหรัฐอเมริกา",
-      "homeScore": 2,
+      "homeScore": 3,
       "awayScore": 2,
       "status": "finished",
       "isKnockout": false,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782446328561,
-    "message": "⚽ อัปเดตสกอร์: ตุรกี 2-2 สหรัฐอเมริกา",
-    "sentAt": "2026-06-26T03:58:48.561Z"
+    "id": 1782446636290,
+    "message": "⚽ อัปเดตสกอร์: ตุรกี 3-2 สหรัฐอเมริกา",
+    "sentAt": "2026-06-26T04:03:56.290Z"
   }
 }
