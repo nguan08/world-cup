@@ -5,9 +5,11 @@
   "main": "js/main.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node server.js",
     "build:js": "node scripts/build-js-modules.mjs && node scripts/fix-scoring.mjs",
     "build:icons": "node scripts/generate-pwa-icons.mjs",
     "scrape": "node update-scores.js",
+    "pull:matches": "node scripts/pull-matches-from-git.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

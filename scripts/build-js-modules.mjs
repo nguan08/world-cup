@@ -53,13 +53,13 @@ import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
   calculateTeamPoints, calculatePredictionPoints, processPlayers, getTeamByName,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
-  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, setRecalcHook
+  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, getPlayerRemainingTeamCount, setRecalcHook
 } from './scoring.js';
 import {
   initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
-import { saveToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
+import { saveToServer, saveEliminatedTeamsToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
@@ -163,6 +163,15 @@ function fixCorruptedClassNames(code) {
     .replace(/player-team-app\.matches/g, 'player-team-matches')
     .replace(/app\.matches-export/g, 'matches-export')
     .replace(/team-app\.players/g, 'team-players');
+}
+
+// Drop scoring helpers that are imported from scoring.js (avoid duplicate declarations in bundle)
+const SCORING_EXPORTS_STRIPPED = ['getPlayerRemainingTeamCount'];
+for (const fn of SCORING_EXPORTS_STRIPPED) {
+  bundleBody = bundleBody.replace(
+    new RegExp(`^function ${fn}\\([^)]*\\)\\s*\\{[^}]*\\}\\s*\\n`, 'm'),
+    ''
+  );
 }
 
 bundleBody = migrateBundleState(bundleBody);

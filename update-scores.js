@@ -1,324 +1,213 @@
-const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const url = 'https://www.google.com/search?q=%E0%B8%9C%E0%B8%A5%E0%B8%9B%E0%B8%AD%E0%B8%A5&newwindow=1&hl=th#sie=lg;/m/0r4xs1m;2;/m/030q7;mt;fp;1;;;;-1';
-
+const ESPN_SCOREBOARD_API = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 const dataPath = path.join(__dirname, 'data.json');
 
-const ALIASES = {
-  'ไอเวอรีโคสต์': ['โกตดิวัวร์'],
-  'คูราเซา': ['กือราเซา'],
-  'บอสเนีย': ['บอสเนียและเฮอร์เซโกวีนา', 'บอสเนียฯ'],
-  'สาธารณรัฐเช็ก': ['เช็ก', 'เช็กเกีย'],
-  'สหรัฐอเมริกา': ['สหรัฐฯ', 'สหรัฐ'],
-  'ซาอุดีอาระเบีย': ['ซาอุดีฯ', 'ซาอุ']
+/** ESPN 3-letter codes → Thai team names in data.json */
+const ESPN_TO_THAI = {
+  MEX: 'เม็กซิโก',
+  RSA: 'แอฟริกาใต้',
+  KOR: 'เกาหลีใต้',
+  CZE: 'สาธารณรัฐเช็ก',
+  CAN: 'แคนาดา',
+  BIH: 'บอสเนีย',
+  USA: 'สหรัฐอเมริกา',
+  PAR: 'ปารากวัย',
+  QAT: 'กาตาร์',
+  SUI: 'สวิตเซอร์แลนด์',
+  BRA: 'บราซิล',
+  MAR: 'โมร็อกโก',
+  HAI: 'เฮติ',
+  SCO: 'สกอตแลนด์',
+  AUS: 'ออสเตรเลีย',
+  TUR: 'ตุรกี',
+  GER: 'เยอรมนี',
+  CUW: 'คูราเซา',
+  NED: 'เนเธอร์แลนด์',
+  JPN: 'ญี่ปุ่น',
+  CIV: 'ไอเวอรีโคสต์',
+  ECU: 'เอกวาดอร์',
+  SWE: 'สวีเดน',
+  TUN: 'ตูนิเซีย',
+  ESP: 'สเปน',
+  CPV: 'เคปเวิร์ด',
+  BEL: 'เบลเยียม',
+  EGY: 'อียิปต์',
+  KSA: 'ซาอุดีอาระเบีย',
+  URU: 'อุรุกวัย',
+  IRN: 'อิหร่าน',
+  NZL: 'นิวซีแลนด์',
+  FRA: 'ฝรั่งเศส',
+  SEN: 'เซเนกัล',
+  IRQ: 'อิรัก',
+  NOR: 'นอร์เวย์',
+  ARG: 'อาร์เจนตินา',
+  ALG: 'แอลจีเรีย',
+  AUT: 'ออสเตรีย',
+  JOR: 'จอร์แดน',
+  POR: 'โปรตุเกส',
+  COD: 'คองโก',
+  ENG: 'อังกฤษ',
+  CRO: 'โครเอเชีย',
+  GHA: 'กานา',
+  PAN: 'ปานามา',
+  UZB: 'อุซเบกิสถาน',
+  COL: 'โคลอมเบีย'
 };
 
-function getTeamNamesWithAliases(teamName) {
-  const names = [teamName];
-  if (ALIASES[teamName]) {
-    names.push(...ALIASES[teamName]);
-  }
-  return names;
+function toEspnDate(isoDate) {
+  return String(isoDate || '').replace(/-/g, '');
 }
 
-function findFirstNumberNearby(lines, idx) {
-  // Search forward up to 3 elements
-  for (let i = idx + 1; i < Math.min(lines.length, idx + 4); i++) {
-    const val = parseInt(lines[i]);
-    if (!isNaN(val)) return val;
-  }
-  
-  // Search backward up to 3 elements
-  for (let i = idx - 1; i >= Math.max(0, idx - 3); i--) {
-    const val = parseInt(lines[i]);
-    if (!isNaN(val)) return val;
-  }
-  
-  return null;
+function matchKey(home, away) {
+  return `${home}|${away}`;
 }
 
-function parseScoreFromText(text, teamName) {
-  const normalizedText = text.replace(/\s+/g, ' ');
-  const names = getTeamNamesWithAliases(teamName);
-  
-  for (const name of names) {
-    const escapedName = name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    
-    // Pattern 1: Team Name followed by Score, e.g. "สเปน 2" or "สเปน ... 2"
-    const patternAfter = new RegExp(escapedName + '\\s*\\D{0,50}\\s*(\\d+)', 'i');
-    const matchAfter = normalizedText.match(patternAfter);
-    if (matchAfter) {
-      return parseInt(matchAfter[1]);
-    }
-    
-    // Pattern 2: Score followed by Team Name, e.g. "2 สเปน" or "2 ... สเปน"
-    const patternBefore = new RegExp('(\\d+)\\s*\\D{0,50}\\s*' + escapedName, 'i');
-    const matchBefore = normalizedText.match(patternBefore);
-    if (matchBefore) {
-      return parseInt(matchBefore[1]);
-    }
-  }
-  
-  return null;
+function parseCompetitorScore(competitor) {
+  const raw = competitor?.score;
+  if (raw == null || raw === '') return null;
+  const val = Number.parseInt(String(raw), 10);
+  return Number.isFinite(val) ? val : null;
 }
 
-function isMatchFinished(text) {
-  const t = text.toLowerCase();
-  return (
-    t.includes('จบเกม') || 
-    t.includes('จบการแข่งขัน') || 
-    t.includes('จบ') || 
-    t.includes('ft') || 
-    t.includes('full time') || 
-    t.includes('full-time')
-  );
+function extractFinishedMatches(event) {
+  const competition = event?.competitions?.[0];
+  if (!competition?.status?.type?.completed) return null;
+
+  const competitors = competition.competitors || [];
+  const home = competitors.find((c) => c.homeAway === 'home');
+  const away = competitors.find((c) => c.homeAway === 'away');
+  if (!home || !away) return null;
+
+  const homeCode = home.team?.abbreviation;
+  const awayCode = away.team?.abbreviation;
+  const homeThai = ESPN_TO_THAI[homeCode];
+  const awayThai = ESPN_TO_THAI[awayCode];
+  const homeScore = parseCompetitorScore(home);
+  const awayScore = parseCompetitorScore(away);
+
+  if (!homeThai || !awayThai || homeScore == null || awayScore == null) {
+    return {
+      skipped: true,
+      homeCode,
+      awayCode,
+      reason: 'unmapped team or missing score'
+    };
+  }
+
+  let penaltyWinner = null;
+  const detail = competition.status?.type?.detail || '';
+  const shortDetail = competition.status?.type?.shortDetail || '';
+  const penText = `${detail} ${shortDetail}`.toLowerCase();
+  if (penText.includes('penalt')) {
+    if (home.winner) penaltyWinner = 'home';
+    else if (away.winner) penaltyWinner = 'away';
+  }
+
+  return {
+    home: homeThai,
+    away: awayThai,
+    homeScore,
+    awayScore,
+    penaltyWinner,
+    date: event.date ? event.date.slice(0, 10) : null
+  };
+}
+
+async function fetchEspnScoresForDate(dateYmd) {
+  const url = `${ESPN_SCOREBOARD_API}?dates=${dateYmd}`;
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'world-cup-score-updater/1.0' }
+  });
+  if (!res.ok) {
+    throw new Error(`ESPN API ${res.status} for ${dateYmd}`);
+  }
+  const json = await res.json();
+  return (json.events || []).map(extractFinishedMatches).filter(Boolean);
 }
 
 async function scrape() {
-  console.log(`[${new Date().toISOString()}] Starting score update script...`);
-  
+  console.log(`[${new Date().toISOString()}] Starting score update (ESPN API)...`);
+
   if (!fs.existsSync(dataPath)) {
     console.error(`Error: data.json not found at ${dataPath}`);
     process.exit(1);
   }
-  
+
   const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
   console.log(`Loaded data.json. Total matches: ${data.matches.length}`);
-  
-  // Resolve browser path to local Chrome if on Windows (to bypass bot protection)
-  let executablePath = undefined;
-  let headless = true;
-  
-  if (process.platform === 'win32') {
-    const chromePaths = [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe')
-    ];
-    
-    for (const p of chromePaths) {
-      if (fs.existsSync(p)) {
-        executablePath = p;
-        headless = false; // Run headfully on Windows local GUI session to avoid blocks
-        break;
-      }
-    }
-  }
-  
-  console.log('Using browser executable path:', executablePath || 'Playwright Default');
-  console.log('Headless mode:', headless);
-  
-  const browser = await chromium.launch({
-    executablePath,
-    headless
-  });
-  
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    viewport: { width: 1280, height: 1000 }
-  });
-  
-  const page = await context.newPage();
-  console.log(`Navigating to Google Search Sports Widget...`);
-  await page.goto(url, { waitUntil: 'networkidle' });
-  
-  console.log('Waiting 6 seconds for dynamic content to render...');
-  await page.waitForTimeout(6000);
-  
-  // Expand the matches list by clicking "ดูเพิ่มเติม" if it exists
-  console.log('Checking for "ดูเพิ่มเติม" (View More) button to expand matches...');
-  try {
-    const viewMoreLocator = page.locator('text="ดูเพิ่มเติม"');
-    // Wait up to 5 seconds for the button to load/render
-    await viewMoreLocator.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    
-    let clicks = 0;
-    while (await viewMoreLocator.isVisible() && clicks < 5) {
-      console.log(`Clicking "ดูเพิ่มเติม" (click #${clicks + 1})...`);
-      await viewMoreLocator.click();
-      await page.waitForTimeout(2000); // Wait for content to expand
-      clicks++;
-    }
-  } catch (e) {
-    console.log('No "ดูเพิ่มเติม" button found or failed to click it:', e.message);
-  }
-  
-  // Evaluate a script in the browser to extract texts of all containers that match team pairs
-  const scrapeResult = await page.evaluate(({ matchesToUpdate, aliasesDef }) => {
-    // Helper to resolve aliases inside the browser sandbox
-    function getAliases(teamName) {
-      const names = [teamName];
-      if (aliasesDef[teamName]) {
-        names.push(...aliasesDef[teamName]);
-      }
-      return names;
-    }
-    
-    // Get unique list of all team names
-    const allTeamNames = [];
-    matchesToUpdate.forEach(m => {
-      if (!allTeamNames.includes(m.home)) allTeamNames.push(m.home);
-      if (!allTeamNames.includes(m.away)) allTeamNames.push(m.away);
-    });
-    
-    // Select all divs and tables
-    const divs = Array.from(document.querySelectorAll('div'));
-    const tables = Array.from(document.querySelectorAll('table'));
-    const allElements = [...tables, ...divs];
-    
-    const updates = [];
-    
-    matchesToUpdate.forEach(m => {
-      // Find containers containing both team names or their aliases
-      let bestContainer = null;
-      let minLength = Infinity;
-      
-      const homeNames = getAliases(m.home);
-      const awayNames = getAliases(m.away);
-      
-      const otherTeams = allTeamNames.filter(name => !homeNames.includes(name) && !awayNames.includes(name));
-      
-      allElements.forEach(el => {
-        const text = el.innerText || '';
-        
-        const matchesHome = homeNames.some(name => text.includes(name));
-        const matchesAway = awayNames.some(name => text.includes(name));
-        
-        if (matchesHome && matchesAway) {
-          // Verify it does not contain other teams or their aliases
-          const hasOtherTeams = otherTeams.some(otherTeam => {
-            const otherAliases = getAliases(otherTeam);
-            return otherAliases.some(alias => text.includes(alias));
-          });
-          
-          if (!hasOtherTeams) {
-            if (text.length < minLength && text.length < 800) { // filter out overly large outer containers
-              minLength = text.length;
-              bestContainer = el;
-            }
-          }
+
+  const dates = [...new Set((data.matches || []).map((m) => toEspnDate(m.date)).filter(Boolean))].sort();
+  const espnResults = new Map();
+
+  for (const dateYmd of dates) {
+    try {
+      const dayMatches = await fetchEspnScoresForDate(dateYmd);
+      let added = 0;
+      dayMatches.forEach((item) => {
+        if (item.skipped) {
+          console.warn(`⚠️ Skip unmapped ESPN match on ${dateYmd}: ${item.homeCode} vs ${item.awayCode}`);
+          return;
         }
+        const key = matchKey(item.home, item.away);
+        espnResults.set(key, item);
+        added += 1;
       });
-      
-      if (bestContainer) {
-        updates.push({
-          id: m.id,
-          home: m.home,
-          away: m.away,
-          text: bestContainer.innerText
-        });
-      } else {
-        updates.push({
-          id: m.id,
-          home: m.home,
-          away: m.away,
-          notFound: true
-        });
+      if (added > 0) {
+        console.log(`📅 ${dateYmd}: ${added} finished match(es) from ESPN`);
       }
-    });
-    
-    return updates;
-  }, { matchesToUpdate: data.matches, aliasesDef: ALIASES });
-  
+    } catch (err) {
+      console.warn(`⚠️ Failed to fetch ESPN for ${dateYmd}: ${err.message}`);
+    }
+  }
+
+  console.log(`\nESPN returned ${espnResults.size} unique finished matches.`);
+
   let changesCount = 0;
-  
-  scrapeResult.forEach(res => {
-    if (res.notFound) {
-      console.log(`⚠️ Match ${res.id} (${res.home} vs ${res.away}) was not found on the Google page.`);
+  let matchedCount = 0;
+  let notFoundCount = 0;
+
+  data.matches.forEach((dbMatch) => {
+    const key = matchKey(dbMatch.home, dbMatch.away);
+    const espn = espnResults.get(key);
+    if (!espn) {
+      notFoundCount += 1;
       return;
     }
-    
-    const dbMatch = data.matches.find(m => m.id == res.id);
-    if (!dbMatch) return;
-    
-    const text = res.text;
-    const finished = isMatchFinished(text);
-    
-    console.log(`\nAnalyzing Match ${res.id}: ${res.home} vs ${res.away}`);
-    console.log(`Found text:\n--- START ---\n${text.trim()}\n--- END ---`);
-    
-    if (finished) {
-      const homeScore = parseScoreFromText(text, res.home);
-      const awayScore = parseScoreFromText(text, res.away);
-      
-      if (homeScore !== null && awayScore !== null) {
-        // Check if values actually changed
-        const scoreChanged = dbMatch.homeScore !== homeScore || dbMatch.awayScore !== awayScore;
-        const statusChanged = dbMatch.status !== 'finished';
-        
-        dbMatch.homeScore = homeScore;
-        dbMatch.awayScore = awayScore;
-        dbMatch.status = 'finished';
-        
-        // Handle penalty shootouts for knockout matches
-        if (dbMatch.isKnockout && homeScore === awayScore) {
-          let penaltyWinner = null;
-          const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
-          const penWinIdx = lines.findIndex(l => l.includes('ชนะจุดโทษ') || l.includes('ชนะด้วยจุดโทษ') || l.includes('won on penalties'));
-          
-          if (penWinIdx !== -1) {
-            const penLine = lines[penWinIdx];
-            const homeNames = getTeamNamesWithAliases(res.home);
-            const awayNames = getTeamNamesWithAliases(res.away);
-            
-            const homeWonText = homeNames.some(name => penLine.includes(name));
-            const awayWonText = awayNames.some(name => penLine.includes(name));
-            
-            if (homeWonText) {
-              penaltyWinner = 'home';
-            } else if (awayWonText) {
-              penaltyWinner = 'away';
-            } else {
-              // Check adjacent lines
-              const prevLine = lines[penWinIdx - 1] || '';
-              const nextLine = lines[penWinIdx + 1] || '';
-              const homeWonAdjacent = homeNames.some(name => prevLine.includes(name) || nextLine.includes(name));
-              const awayWonAdjacent = awayNames.some(name => prevLine.includes(name) || nextLine.includes(name));
-              
-              if (homeWonAdjacent) {
-                penaltyWinner = 'home';
-              } else if (awayWonAdjacent) {
-                penaltyWinner = 'away';
-              }
-            }
-          }
-          
-          if (penaltyWinner && dbMatch.penaltyWinner !== penaltyWinner) {
-            dbMatch.penaltyWinner = penaltyWinner;
-            console.log(`👉 Penalty shootout winner identified: ${penaltyWinner === 'home' ? res.home : res.away}`);
-            changesCount++;
-          }
-        } else {
-          dbMatch.penaltyWinner = null;
-        }
-        
-        if (scoreChanged || statusChanged) {
-          console.log(`✅ Updated: ${res.home} ${homeScore} - ${awayScore} ${res.away} (status: finished)`);
-          changesCount++;
-        } else {
-          console.log(`ℹ️ Match already finished and scores are up-to-date.`);
-        }
-      } else {
-        console.log(`⚠️ Match is finished, but could not parse scores. Home parsed: ${homeScore}, Away parsed: ${awayScore}`);
-      }
-    } else {
-      console.log(`ℹ️ Match is not finished (still pending or live). Status on Google: not finished.`);
+
+    matchedCount += 1;
+    const scoreChanged = dbMatch.homeScore !== espn.homeScore || dbMatch.awayScore !== espn.awayScore;
+    const statusChanged = dbMatch.status !== 'finished';
+
+    if (!scoreChanged && !statusChanged && dbMatch.penaltyWinner === espn.penaltyWinner) {
+      return;
     }
+
+    dbMatch.homeScore = espn.homeScore;
+    dbMatch.awayScore = espn.awayScore;
+    dbMatch.status = 'finished';
+    if (dbMatch.isKnockout && espn.homeScore === espn.awayScore) {
+      dbMatch.penaltyWinner = espn.penaltyWinner || null;
+    } else if (!dbMatch.isKnockout) {
+      dbMatch.penaltyWinner = null;
+    }
+
+    console.log(`✅ Updated #${dbMatch.id}: ${dbMatch.home} ${espn.homeScore}-${espn.awayScore} ${dbMatch.away}`);
+    changesCount += 1;
   });
-  
+
+  console.log(`\nMatched ${matchedCount}/${data.matches.length} local fixtures with ESPN (${notFoundCount} not on ESPN yet).`);
+
   if (changesCount > 0) {
-    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), 'utf8');
-    console.log(`\n[${new Date().toISOString()}] Successfully updated data.json with ${changesCount} changes!`);
+    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+    console.log(`[${new Date().toISOString()}] Successfully updated data.json with ${changesCount} change(s)!`);
   } else {
-    console.log(`\n[${new Date().toISOString()}] No changes to write. data.json is up to date.`);
+    console.log(`[${new Date().toISOString()}] No changes to write. data.json is up to date.`);
   }
-  
-  await browser.close();
 }
 
-scrape().catch(err => {
+scrape().catch((err) => {
   console.error('Scraping error:', err);
   process.exit(1);
 });

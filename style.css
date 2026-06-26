@@ -1088,6 +1088,16 @@ h1 {
 
 #leaderboard th:nth-child(4), #top-leaders-table th:nth-child(4),
 #leaderboard td:nth-child(4), #top-leaders-table td:nth-child(4) {
+  width: 7% !important;
+  min-width: 0 !important;
+  max-width: 2.75rem !important;
+  text-align: center !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+#leaderboard th:nth-child(5), #top-leaders-table th:nth-child(5),
+#leaderboard td:nth-child(5), #top-leaders-table td:nth-child(5) {
   width: 5% !important;
   min-width: 0 !important;
   max-width: 1.5rem !important;
@@ -1096,8 +1106,8 @@ h1 {
   padding-right: 2px !important;
 }
 
-#leaderboard th:nth-child(5), #top-leaders-table th:nth-child(5),
-#leaderboard td:nth-child(5), #top-leaders-table td:nth-child(5) {
+#leaderboard th:nth-child(6), #top-leaders-table th:nth-child(6),
+#leaderboard td:nth-child(6), #top-leaders-table td:nth-child(6) {
   width: 14% !important;
   min-width: 0 !important;
   max-width: 5.5rem !important;
@@ -1106,15 +1116,15 @@ h1 {
   padding-right: 4px !important;
 }
 
-#leaderboard th:nth-child(6), #top-leaders-table th:nth-child(6),
-#leaderboard td:nth-child(6), #top-leaders-table td:nth-child(6) {
+#leaderboard th:nth-child(7), #top-leaders-table th:nth-child(7),
+#leaderboard td:nth-child(7), #top-leaders-table td:nth-child(7) {
   width: 27% !important;
   min-width: 0 !important;
   text-align: center !important;
 }
 
-#leaderboard th:nth-child(7), #top-leaders-table th:nth-child(7),
-#leaderboard td:nth-child(7), #top-leaders-table td:nth-child(7) {
+#leaderboard th:nth-child(8), #top-leaders-table th:nth-child(8),
+#leaderboard td:nth-child(8), #top-leaders-table td:nth-child(8) {
   width: 11% !important;
   min-width: 0 !important;
   max-width: none !important;
@@ -1145,7 +1155,8 @@ h1 {
 }
 
 .table-matches-cell,
-.table-guess-cell {
+.table-guess-cell,
+.table-remaining-cell {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
   text-align: center !important;
@@ -1157,6 +1168,29 @@ h1 {
   font-weight: 600 !important;
 }
 
+.table-remaining-cell {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.table-remaining-cell .remaining-count {
+  color: #34d399;
+}
+
+.table-remaining-cell .remaining-total {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.table-remaining-cell--mid .remaining-count {
+  color: #fbbf24;
+}
+
+.table-remaining-cell--low .remaining-count {
+  color: #f87171;
+}
+
 .table-guess-cell {
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -1166,7 +1200,9 @@ h1 {
 #leaderboard th:nth-child(3),
 #top-leaders-table th:nth-child(3),
 #leaderboard th:nth-child(4),
-#top-leaders-table th:nth-child(4) {
+#top-leaders-table th:nth-child(4),
+#leaderboard th:nth-child(5),
+#top-leaders-table th:nth-child(5) {
   font-size: 9px !important;
   letter-spacing: 0.2px !important;
   padding-left: 2px !important;
@@ -1952,10 +1988,51 @@ tr.hoverable td {
   .table-score-cell,
   .table-payout-cell,
   .table-matches-cell,
-  .table-guess-cell {
+  .table-guess-cell,
+  .table-remaining-cell {
     font-size: 9px !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
+  }
+
+  /* ทีมที่เหลือ: แสดงแค่ตัวเลขบนมือถือ */
+  .table-remaining-cell .remaining-total {
+    display: none !important;
+  }
+
+  .table-remaining-cell .remaining-count {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+  }
+
+  /* ลดชื่อผู้เล่น/โซน/จ่าย อย่างละ 1% → ขยายช่องทีมที่เหลือ */
+  #leaderboard th:nth-child(2),
+  #leaderboard td:nth-child(2),
+  #top-leaders-table th:nth-child(2),
+  #top-leaders-table td:nth-child(2) {
+    width: 24% !important;
+  }
+
+  #leaderboard th:nth-child(4),
+  #leaderboard td:nth-child(4),
+  #top-leaders-table th:nth-child(4),
+  #top-leaders-table td:nth-child(4) {
+    width: 10% !important;
+    max-width: none !important;
+  }
+
+  #leaderboard th:nth-child(7),
+  #leaderboard td:nth-child(7),
+  #top-leaders-table th:nth-child(7),
+  #top-leaders-table td:nth-child(7) {
+    width: 26% !important;
+  }
+
+  #leaderboard th:nth-child(8),
+  #leaderboard td:nth-child(8),
+  #top-leaders-table th:nth-child(8),
+  #top-leaders-table td:nth-child(8) {
+    width: 10% !important;
   }
 
   /* Keep rank and zone centered */
@@ -2350,7 +2427,8 @@ table {
 }
 
 #players-table .players-col-name { width: 13%; }
-#players-table .players-col-teams { width: 74%; }
+#players-table .players-col-teams { width: 66%; }
+#players-table .players-col-remaining { width: 8%; }
 #players-table .players-col-score { width: 13%; }
 
 #players-table thead th {
@@ -2369,6 +2447,11 @@ table {
 
 #players-table .players-teams-th {
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#players-table .players-remaining-th {
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
 }
 
 #players-table .players-score-th,
@@ -2503,9 +2586,10 @@ table {
 }
 
 @media (max-width: 768px) {
-  #players-table .players-col-name { width: 18%; }
-  #players-table .players-col-teams { width: 64%; }
-  #players-table .players-col-score { width: 18%; }
+  #players-table .players-col-name { width: 17%; }
+  #players-table .players-col-teams { width: 63%; }
+  #players-table .players-col-remaining { width: 10%; }
+  #players-table .players-col-score { width: 10%; }
 
   #players-table .players-name-cell {
     font-size: 9px;
@@ -3447,6 +3531,32 @@ tr.leader-second-row {
   min-height: 0 !important;
   height: auto !important;
   line-height: 1.2 !important;
+}
+
+.team-card-small__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.team-card-small--out {
+  opacity: 0.72;
+}
+
+.players-team-badge--eliminated {
+  opacity: 0.45;
+  text-decoration: line-through;
+  filter: grayscale(0.35);
+}
+
+.players-remaining-cell {
+  vertical-align: middle;
+}
+
+#players-table .players-remaining-cell {
+  text-align: center;
 }
 
 .player-team-matches {

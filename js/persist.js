@@ -221,6 +221,58 @@ async function saveToLocalDevMirror(payload) {
   return false;
 }
 
+async function postLocalEliminatedTeams(eliminatedTeams) {
+  if (!isLocalDevHost() || !app.isAdmin) return false;
+  try {
+    const response = await fetch(resolveAppPath('api/eliminated-teams'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        adminPassword: app.ADMIN_PASSWORD,
+        eliminatedTeams
+      })
+    });
+    if (response.ok) {
+      console.log('[Persist] Saved eliminated teams to local data.json');
+      return true;
+    }
+    console.warn('[Persist] Local /api/eliminated-teams failed:', response.status, response.statusText);
+  } catch {
+    console.log('[Persist] Local /api/eliminated-teams unavailable');
+  }
+  return false;
+}
+
+export async function saveEliminatedTeamsToServer({ quiet = false } = {}) {
+  if (!app.isAdmin) return false;
+
+  const eliminatedTeams = Array.from(app.manualEliminatedTeams);
+  const localOk = await postLocalEliminatedTeams(eliminatedTeams);
+
+  const token = getGitHubToken();
+  if (isValidGitHubToken(token)) {
+    const githubOk = await saveToServer({ quiet: true });
+    if (githubOk) {
+      if (!quiet) notifyAdminSave('บันทึกทีมที่ตกรอบแล้ว');
+      return true;
+    }
+    if (localOk) {
+      if (!quiet) notifyAdminSave('บันทึกทีมที่ตกรอบในเครื่องแล้ว (ซิงค์ GitHub ล้มเหลว)', true);
+      return true;
+    }
+    if (!quiet) notifyAdminSave('ซิงค์ทีมที่ตกรอบล้มเหลว', true);
+    return false;
+  }
+
+  if (localOk) {
+    if (!quiet) notifyAdminSave('บันทึกทีมที่ตกรอบแล้ว');
+    return true;
+  }
+
+  if (!quiet) notifyAdminSave('บันทึกทีมที่ตกรอบล้มเหลว', true);
+  return false;
+}
+
 export async function saveToServer({ quiet = false } = {}) {
   const payload = buildPayload();
 

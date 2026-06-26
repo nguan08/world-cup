@@ -9,13 +9,13 @@ import { escapeHtml, getCachedEl, debounce, toFieldSlug } from './utils.js';
 import {
   calculateTeamPoints, calculatePredictionPoints, processPlayers, getTeamByName,
   recalculateAll, updateTeamMatchesPlayedCounts, getPlayerTotalMatchesPlayed,
-  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, setRecalcHook
+  loadEliminatedTeams, saveEliminatedTeams, isTeamEliminated, getPlayerRemainingTeamCount, setRecalcHook
 } from './scoring.js';
 import {
   initData, clearCachedData,
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
-import { saveToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
+import { saveToServer, saveEliminatedTeamsToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
@@ -1236,6 +1236,8 @@ function renderDashboardTopLeaders() {
       teamsTd.className = 'table-matches-cell';
       teamsTd.textContent = totalMatchesPlayed;
 
+      const remainingTd = buildRemainingTeamsCell(p.teams);
+
       const guessTd = document.createElement('td');
       guessTd.setAttribute('data-label', 'ทายชิง (xx)');
       guessTd.className = 'table-guess-cell';
@@ -1269,6 +1271,7 @@ function renderDashboardTopLeaders() {
       tr.appendChild(rankTd);
       tr.appendChild(nameTd);
       tr.appendChild(teamsTd);
+      tr.appendChild(remainingTd);
       tr.appendChild(guessTd);
       tr.appendChild(scoreTd);
       tr.appendChild(zoneTd);
@@ -1596,6 +1599,8 @@ function renderLeaderboard(options = {}) {
     teamsTd.className = 'table-matches-cell';
     teamsTd.textContent = totalMatchesPlayed;
 
+    const remainingTd = buildRemainingTeamsCell(p.teams);
+
     // Guess
     const guessTd = document.createElement('td');
     guessTd.setAttribute('data-label', 'ทายชิง (xx)');
@@ -1631,6 +1636,7 @@ function renderLeaderboard(options = {}) {
     rankTd.style.whiteSpace = 'nowrap';
     nameTd.style.whiteSpace = 'nowrap';
     teamsTd.style.whiteSpace = 'nowrap';
+    remainingTd.style.whiteSpace = 'nowrap';
     guessTd.style.whiteSpace = 'nowrap';
     scoreTd.style.whiteSpace = 'nowrap';
     zoneTd.style.whiteSpace = 'nowrap';
@@ -1639,6 +1645,7 @@ function renderLeaderboard(options = {}) {
     tr.appendChild(rankTd);
     tr.appendChild(nameTd);
     tr.appendChild(teamsTd);
+    tr.appendChild(remainingTd);
     tr.appendChild(guessTd);
     tr.appendChild(scoreTd);
     tr.appendChild(zoneTd);
@@ -2991,9 +2998,10 @@ function renderPlayers() {
     p.teamBreakdown.forEach(tb => {
       const badge = document.createElement('span');
       const isFilterMatch = selectedTeamsSet.has(tb.name);
-      badge.className = `team-badge team-${tb.zone} players-team-badge${isFilterMatch ? ' players-team-badge--filter-match' : ''}`;
+      const eliminated = isTeamEliminated(tb.name);
+      badge.className = `team-badge team-${tb.zone} players-team-badge${isFilterMatch ? ' players-team-badge--filter-match' : ''}${eliminated ? ' players-team-badge--eliminated' : ''}`;
       badge.dataset.team = tb.name;
-      badge.title = `${tb.name} · ${formatWcGroupLabel(getTeamWcGroup(tb.name))} · x${tb.multiplier || 1} · ${tb.points.toFixed(1)} คะแนน`;
+      badge.title = `${tb.name} · ${formatWcGroupLabel(getTeamWcGroup(tb.name))} · x${tb.multiplier || 1} · ${tb.points.toFixed(1)} คะแนน${eliminated ? ' · ตกรอบ' : ''}`;
       applyTeamPopularity(badge, tb.name);
 
       const nameSpan = document.createElement('span');
@@ -3010,12 +3018,16 @@ function renderPlayers() {
     });
     teamsTd.appendChild(badgesWrapper);
 
+    const remainingTd = buildRemainingTeamsCell(p.teams);
+    remainingTd.classList.add('players-remaining-cell');
+
     const scoreTd = document.createElement('td');
     scoreTd.className = 'players-score-cell table-score-cell';
     scoreTd.textContent = p.totalScore.toFixed(1);
 
     tr.appendChild(nameTd);
     tr.appendChild(teamsTd);
+    tr.appendChild(remainingTd);
     tr.appendChild(scoreTd);
 
     tbody.appendChild(tr);
@@ -3793,9 +3805,18 @@ function renderToolsCompare() {
   renderToolsCompareResult();
 }
 
-function getPlayerRemainingTeamCount(teams) {
-  if (!teams?.length) return 0;
-  return teams.filter(t => !isTeamEliminated(t)).length;
+function buildRemainingTeamsCell(teams) {
+  const remaining = getPlayerRemainingTeamCount(teams);
+  const total = teams?.length || 15;
+  const td = document.createElement('td');
+  td.setAttribute('data-label', 'ทีมที่เหลือ');
+  td.className = 'table-remaining-cell';
+  td.style.textAlign = 'center';
+  td.style.whiteSpace = 'nowrap';
+  td.innerHTML = `<span class="remaining-count">${remaining}</span><span class="remaining-total">/${total}</span>`;
+  if (remaining <= 5) td.classList.add('table-remaining-cell--low');
+  else if (remaining <= 8) td.classList.add('table-remaining-cell--mid');
+  return td;
 }
 
 function escapeTeamAttr(teamName) {
@@ -4166,11 +4187,19 @@ function renderTeamsMatrix() {
 
     zoneTeams.forEach(t => {
       const stats = teamScores[t.name] || { points: 0, played: 0 };
+      const eliminated = isTeamEliminated(t.name);
+      const statusBadge = eliminated
+        ? '<span class="player-team-status player-team-status--out">ตกรอบ</span>'
+        : '<span class="player-team-status player-team-status--in">อยู่</span>';
+      const elimToggleBtn = app.isAdmin
+        ? `<button type="button" class="btn btn-secondary player-team-elim-btn toggle-elim-btn" data-elim-team="${escapeHtml(t.name)}">${eliminated ? '↩' : '✕'}</button>`
+        : '';
       matrixHTML += `
-        <div class="team-card-small" style="background-color:rgba(15, 23, 42, 0.3); border:1px solid rgba(255,255,255,0.03); border-left:3px solid var(--zone-${zone.key})">
+        <div class="team-card-small team-card-small--${eliminated ? 'out' : 'in'}" style="background-color:rgba(15, 23, 42, 0.3); border:1px solid rgba(255,255,255,0.03); border-left:3px solid var(--zone-${zone.key})">
           <div>
             ${buildTeamBadgeHtml(t.name, t.zone, { tag: 'span', extraStyle: 'font-size:12px;' })}
             <div style="font-size:10px; color:var(--text-secondary);">${formatWcGroupLabel(t.wcGroup)} · ตัวคูณ: ${t.multiplier}</div>
+            <div class="team-card-small__status">${statusBadge}${elimToggleBtn}</div>
           </div>
           <div style="text-align:right;">
             <strong style="color:var(--primary);">${stats.points.toFixed(1)}</strong>
@@ -4184,6 +4213,28 @@ function renderTeamsMatrix() {
     card.innerHTML = matrixHTML;
     container.appendChild(card);
   });
+
+  if (app.isAdmin) {
+    container.querySelectorAll('.toggle-elim-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const team = btn.getAttribute('data-elim-team');
+        if (!team) return;
+        if (app.manualEliminatedTeams.has(team)) app.manualEliminatedTeams.delete(team);
+        else app.manualEliminatedTeams.add(team);
+        await saveEliminatedTeams();
+        recalculateAll();
+        renderTeamsMatrix();
+        renderDashboard();
+        if (document.getElementById('leaderboard')?.classList.contains('active')) {
+          renderLeaderboard({ forceRecalc: false });
+        }
+        if (document.getElementById('players')?.classList.contains('active')) {
+          renderPlayers();
+        }
+      });
+    });
+  }
 }
 
 function getPlayerMatchResultMeta(match, teamName) {
@@ -4742,6 +4793,9 @@ function bindPlayerDrawerElimButtons(grid, playerName) {
       }
       if (document.getElementById('players')?.classList.contains('active')) {
         renderPlayers();
+      }
+      if (document.getElementById('teams')?.classList.contains('active')) {
+        renderTeamsMatrix();
       }
     });
   });

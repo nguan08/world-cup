@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://flagcdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://flagcdn.com">
-  <link rel="stylesheet" href="style.css?v=20260620-chart-ios-perf">
+  <link rel="stylesheet" href="style.css?v=20260626-mobile-remaining">
   <style>#admin-broadcast-panel:not(.admin-broadcast-panel--visible){display:none!important}</style>
   <script>
     (function () {
@@ -52,10 +52,22 @@
         window.dispatchEvent(new CustomEvent('wc-installprompt-cleared'));
       });
 
+      var isLocalDevHost = location.hostname === 'localhost'
+        || location.hostname === '127.0.0.1'
+        || /^192\.168\./.test(location.hostname)
+        || /^10\./.test(location.hostname)
+        || /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname);
+
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(window.__wcAppBase + 'sw.js', {
-          scope: window.__wcAppBase
-        }).catch(function () {});
+        if (isLocalDevHost) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) { reg.unregister(); });
+          }).catch(function () {});
+        } else {
+          navigator.serviceWorker.register(window.__wcAppBase + 'sw.js', {
+            scope: window.__wcAppBase
+          }).catch(function () {});
+        }
       }
 
       if (location.protocol === 'file:') {
@@ -285,6 +297,7 @@
                        <th>อันดับ</th>
                        <th>ผู้เล่น</th>
                        <th style="text-align: center;" title="นัดที่เตะรวม">นัด</th>
+                       <th style="text-align: center;" title="ทีมที่ยังไม่ตกรอบ">เหลือ</th>
                        <th style="text-align: center;" title="ทายผลประตูชิง">ทาย</th>
                        <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
@@ -367,6 +380,7 @@
                       <th>อันดับ</th>
                       <th>ผู้เล่น</th>
                       <th style="text-align: center;" title="นัดที่เตะรวม">นัด</th>
+                      <th style="text-align: center;" title="ทีมที่ยังไม่ตกรอบ">เหลือ</th>
                       <th style="text-align: center;" title="ทายผลประตูชิง">ทาย</th>
                       <th style="text-align: center;">คะแนน</th>
                        <th style="text-align: center;">โซน</th>
@@ -549,12 +563,14 @@
               <colgroup>
                 <col class="players-col-name">
                 <col class="players-col-teams">
+                <col class="players-col-remaining">
                 <col class="players-col-score">
               </colgroup>
               <thead>
                 <tr>
                   <th class="players-name-th">ผู้เล่น</th>
                   <th class="players-teams-th">ทีม (15)</th>
+                  <th class="players-remaining-th" title="ทีมที่ยังไม่ตกรอบ">เหลือ</th>
                   <th class="players-score-th">คะแนน</th>
                 </tr>
               </thead>
@@ -957,6 +973,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260620-chart-anim-platform"></script>
+  <script type="module" src="js/main.js?v=20260626-remaining-teams-fix"></script>
 </body>
 </html>

@@ -365,9 +365,8 @@ export function loadEliminatedTeams() {
 
 export async function saveEliminatedTeams() {
   localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
-  if (app.isSyncEnabled) {
-    await saveToServer();
-  }
+  const { saveEliminatedTeamsToServer } = await import('./persist.js');
+  await saveEliminatedTeamsToServer({ quiet: true });
 }
 
 export function isTeamEliminated(teamName) {
@@ -389,6 +388,11 @@ export function isTeamEliminated(teamName) {
   }
 
   return false;
+}
+
+export function getPlayerRemainingTeamCount(teams) {
+  if (!teams?.length) return 0;
+  return teams.filter((t) => !isTeamEliminated(t)).length;
 }
 
 export function recalculateAll() {

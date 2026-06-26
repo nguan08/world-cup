@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v60-fallback-git';
+const CACHE_NAME = 'wc2026-v61-fetch-fallback';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
@@ -89,24 +89,39 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (url.pathname.includes('/js/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        })
-        .catch(() => caches.match(event.request))
-    );
+    event.respondWith(respondWithCacheThenNetwork(event.request, { updateCache: true }));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  event.respondWith(respondWithCacheThenNetwork(event.request));
 });
+
+async function respondWithCacheThenNetwork(request, { updateCache = false } = {}) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (updateCache && response.ok) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
+    return response;
+  } catch (err) {
+    console.warn('[SW] network failed, no cache:', request.url, err);
+    const fallback = await caches.match(request);
+    if (fallback) return fallback;
+    if (request.mode === 'navigate') {
+      const shell = await caches.match('./') || await caches.match('index.html');
+      if (shell) return shell;
+    }
+    return new Response('Offline', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+}
 
 async function networkFirstData(request) {
   try {
