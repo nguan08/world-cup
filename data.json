@@ -599,9 +599,9 @@
     {
       "home": "ตุรกี",
       "away": "สหรัฐอเมริกา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 59
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782446263528,
-    "message": "⚽ อัปเดตสกอร์: ปารากวัย 0-0 ออสเตรเลีย",
-    "sentAt": "2026-06-26T03:57:43.528Z"
+    "id": 1782446328561,
+    "message": "⚽ อัปเดตสกอร์: ตุรกี 2-2 สหรัฐอเมริกา",
+    "sentAt": "2026-06-26T03:58:48.561Z"
   }
 }
