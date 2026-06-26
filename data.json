@@ -588,9 +588,9 @@
     {
       "home": "ญี่ปุ่น",
       "away": "สวีเดน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-26",
       "id": 58,
@@ -2044,8 +2044,8 @@
   ],
   "eliminatedTeams": [],
   "broadcast": {
-    "id": 1782435326889,
-    "message": "⚽ อัปเดตสกอร์: ตูนิเซีย 1-3 เนเธอร์แลนด์",
-    "sentAt": "2026-06-26T00:55:26.889Z"
+    "id": 1782435562596,
+    "message": "⚽ อัปเดตสกอร์: ญี่ปุ่น 1-1 สวีเดน",
+    "sentAt": "2026-06-26T00:59:22.596Z"
   }
 }
