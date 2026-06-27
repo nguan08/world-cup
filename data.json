@@ -683,9 +683,9 @@
     {
       "home": "เคปเวิร์ด",
       "away": "ซาอุดีอาระเบีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 63
@@ -2095,8 +2095,8 @@
     "ปานามา"
   ],
   "broadcast": {
-    "id": 1782101556362,
-    "message": "⚽ อัปเดตสกอร์: ตูนิเซีย 0-4 ญี่ปุ่น",
-    "sentAt": "2026-06-22T04:12:36.362Z"
+    "id": 1782525356330,
+    "message": "⚽ อัปเดตสกอร์: เคปเวิร์ด 0-0 ซาอุดีอาระเบีย",
+    "sentAt": "2026-06-27T01:55:56.330Z"
   }
 }
