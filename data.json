@@ -708,7 +708,7 @@
       "home": "นิวซีแลนด์",
       "away": "เบลเยียม",
       "homeScore": 1,
-      "awayScore": 5,
+      "awayScore": 4,
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
@@ -718,7 +718,7 @@
       "home": "อียิปต์",
       "away": "อิหร่าน",
       "homeScore": 1,
-      "awayScore": 1,
+      "awayScore": 2,
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
@@ -2102,8 +2102,8 @@
     "สกอตแลนด์"
   ],
   "broadcast": {
-    "id": 1782536229371,
-    "message": "⚽ อัปเดตสกอร์: นิวซีแลนด์ 1-5 เบลเยียม",
-    "sentAt": "2026-06-27T04:57:09.371Z"
+    "id": 1782536262511,
+    "message": "⚽ อัปเดตสกอร์: อียิปต์ 1-2 อิหร่าน",
+    "sentAt": "2026-06-27T04:57:42.511Z"
   }
 }
