@@ -673,9 +673,9 @@
     {
       "home": "เซเนกัล",
       "away": "อิรัก",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 5,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 62
@@ -2095,8 +2095,8 @@
     "ปานามา"
   ],
   "broadcast": {
-    "id": 1782525436527,
-    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 1-4 ฝรั่งเศส",
-    "sentAt": "2026-06-27T01:57:16.527Z"
+    "id": 1782525518314,
+    "message": "⚽ อัปเดตสกอร์: เซเนกัล 5-0 อิรัก",
+    "sentAt": "2026-06-27T01:58:38.314Z"
   }
 }
