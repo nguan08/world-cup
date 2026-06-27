@@ -668,7 +668,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 61
+      "id": 61,
+      "penaltyWinner": null
     },
     {
       "home": "เซเนกัล",
@@ -678,7 +679,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 62
+      "id": 62,
+      "penaltyWinner": null
     },
     {
       "home": "เคปเวิร์ด",
@@ -688,7 +690,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 63
+      "id": 63,
+      "penaltyWinner": null
     },
     {
       "home": "อุรุกวัย",
@@ -698,7 +701,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 64
+      "id": 64,
+      "penaltyWinner": null
     },
     {
       "home": "นิวซีแลนด์",
