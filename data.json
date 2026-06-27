@@ -717,9 +717,9 @@
     {
       "home": "อียิปต์",
       "away": "อิหร่าน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 66
@@ -2102,8 +2102,8 @@
     "สกอตแลนด์"
   ],
   "broadcast": {
-    "id": 1782535957397,
-    "message": "⚽ อัปเดตสกอร์: นิวซีแลนด์ 1-4 เบลเยียม",
-    "sentAt": "2026-06-27T04:52:37.397Z"
+    "id": 1782536035596,
+    "message": "⚽ อัปเดตสกอร์: อียิปต์ 1-1 อิหร่าน",
+    "sentAt": "2026-06-27T04:53:55.596Z"
   }
 }
