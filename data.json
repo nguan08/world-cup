@@ -729,9 +729,9 @@
     {
       "home": "ปานามา",
       "away": "อังกฤษ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 67
@@ -2104,8 +2104,8 @@
     "สกอตแลนด์"
   ],
   "broadcast": {
-    "id": 1782600959741,
-    "message": "⚽ อัปเดตสกอร์: โครเอเชีย 2-1 กานา",
-    "sentAt": "2026-06-27T22:55:59.741Z"
+    "id": 1782601030101,
+    "message": "⚽ อัปเดตสกอร์: ปานามา 0-2 อังกฤษ",
+    "sentAt": "2026-06-27T22:57:10.101Z"
   }
 }
