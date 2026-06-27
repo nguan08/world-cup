@@ -707,9 +707,9 @@
     {
       "home": "นิวซีแลนด์",
       "away": "เบลเยียม",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 4,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 65
@@ -2102,8 +2102,8 @@
     "สกอตแลนด์"
   ],
   "broadcast": {
-    "id": 1782525597600,
-    "message": "⚽ อัปเดตสกอร์: อุรุกวัย 0-1 สเปน",
-    "sentAt": "2026-06-27T01:59:57.600Z"
+    "id": 1782535957397,
+    "message": "⚽ อัปเดตสกอร์: นิวซีแลนด์ 1-4 เบลเยียม",
+    "sentAt": "2026-06-27T04:52:37.397Z"
   }
 }
