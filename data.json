@@ -663,9 +663,9 @@
     {
       "home": "นอร์เวย์",
       "away": "ฝรั่งเศส",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 4,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 61
@@ -2095,8 +2095,8 @@
     "ปานามา"
   ],
   "broadcast": {
-    "id": 1782525356330,
-    "message": "⚽ อัปเดตสกอร์: เคปเวิร์ด 0-0 ซาอุดีอาระเบีย",
-    "sentAt": "2026-06-27T01:55:56.330Z"
+    "id": 1782525436527,
+    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 1-4 ฝรั่งเศส",
+    "sentAt": "2026-06-27T01:57:16.527Z"
   }
 }
