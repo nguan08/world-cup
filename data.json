@@ -712,7 +712,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 65
+      "id": 65,
+      "penaltyWinner": null
     },
     {
       "home": "อียิปต์",
@@ -722,7 +723,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
-      "id": 66
+      "id": 66,
+      "penaltyWinner": null
     },
     {
       "home": "ปานามา",
