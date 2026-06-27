@@ -693,9 +693,9 @@
     {
       "home": "อุรุกวัย",
       "away": "สเปน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-27",
       "id": 64
@@ -2095,8 +2095,8 @@
     "ปานามา"
   ],
   "broadcast": {
-    "id": 1782525518314,
-    "message": "⚽ อัปเดตสกอร์: เซเนกัล 5-0 อิรัก",
-    "sentAt": "2026-06-27T01:58:38.314Z"
+    "id": 1782525597600,
+    "message": "⚽ อัปเดตสกอร์: อุรุกวัย 0-1 สเปน",
+    "sentAt": "2026-06-27T01:59:57.600Z"
   }
 }
