@@ -739,9 +739,9 @@
     {
       "home": "โครเอเชีย",
       "away": "กานา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 68
@@ -2104,8 +2104,8 @@
     "สกอตแลนด์"
   ],
   "broadcast": {
-    "id": 1782536999891,
-    "message": "⚽ อัปเดตสกอร์: อียิปต์ 1-1 อิหร่าน",
-    "sentAt": "2026-06-27T05:09:59.891Z"
+    "id": 1782600959741,
+    "message": "⚽ อัปเดตสกอร์: โครเอเชีย 2-1 กานา",
+    "sentAt": "2026-06-27T22:55:59.741Z"
   }
 }
