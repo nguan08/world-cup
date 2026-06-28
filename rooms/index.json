@@ -2,9 +2,15 @@
   "rooms": [
     {
       "id": "default",
-      "name": "ห้องหลัก",
+      "name": "à¸«à¹à¸­à¸à¸«à¸¥à¸±à¸",
       "createdAt": "2026-06-28T17:34:08.500Z",
       "playerCount": 62
+    },
+    {
+      "id": "group9",
+      "name": "group9",
+      "createdAt": "2026-06-28T17:39:18.372Z",
+      "playerCount": 0
     }
   ]
 }
