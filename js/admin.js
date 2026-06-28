@@ -1,6 +1,6 @@
 import { app } from './state.js';
 import { escapeHtml, getCachedEl } from './utils.js';
-import { fetchRoomsIndex } from './room-store.js';
+import { populateRoomSelect } from './room-store.js';
 import { DEFAULT_ROOM_ID, getRoomUrl } from './room.js';
 import { updateRoomBadge } from './room-ui.js';
 

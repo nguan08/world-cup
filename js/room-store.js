@@ -1,6 +1,7 @@
 import { app } from './state.js';
 import { getGitHubWriteToken } from './admin.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
+import { escapeHtml } from './utils.js';
 import {
   GITHUB_BRANCH,
   GITHUB_REPO_FULL,

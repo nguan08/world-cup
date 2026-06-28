@@ -1,7 +1,7 @@
 import { app } from './state.js';
 import { syncAdminRoomSettingsUI } from './admin.js';
 import { recalculateAll } from './scoring.js';
-import { createRoom, saveRoomToServer } from './room-store.js';
+import { createRoom, populateRoomSelect, saveRoomToServer } from './room-store.js';
 import { roomStorageKey } from './room.js';
 import {
   DEFAULT_ROOM_ID,
@@ -11,10 +11,14 @@ import {
   normalizeRoomSlug
 } from './room.js';
 
+let _roomSwitchBusy = false;
+
 export function updateRoomBadge() {
   const nameEl = document.getElementById('room-current-name');
   const metaEl = document.getElementById('room-current-meta');
   const actionsEl = document.querySelector('.room-panel__actions');
+  const switchSelect = document.getElementById('room-switch-select');
+  const panelLabel = document.getElementById('room-panel-label');
   const panel = document.getElementById('room-panel');
   if (!nameEl) return;
 
@@ -22,11 +26,15 @@ export function updateRoomBadge() {
   if (panel) {
     panel.classList.toggle('room-panel--missing', missing);
     panel.classList.toggle('room-panel--guest', !app.isAdmin);
+    panel.classList.toggle('room-panel--admin', Boolean(app.isAdmin));
   }
 
   nameEl.textContent = missing ? `ไม่พบห้อง "${app.roomId}"` : (app.roomName || app.roomId || 'ห้องหลัก');
 
   if (!app.isAdmin) {
+    if (nameEl) nameEl.hidden = false;
+    if (switchSelect) switchSelect.hidden = true;
+    if (panelLabel) panelLabel.textContent = 'ห้องปัจจุบัน';
     if (metaEl) {
       metaEl.textContent = '';
       metaEl.hidden = true;
@@ -35,7 +43,13 @@ export function updateRoomBadge() {
     return;
   }
 
+  if (nameEl) nameEl.hidden = true;
+  if (switchSelect) switchSelect.hidden = false;
+  if (panelLabel) panelLabel.textContent = 'เลือกห้อง';
   if (actionsEl) actionsEl.hidden = false;
+
+  void populateRoomSwitchSelect();
+
   if (metaEl) {
     metaEl.hidden = false;
     const count = Array.isArray(app.players) ? app.players.length : 0;
@@ -44,6 +58,20 @@ export function updateRoomBadge() {
       ? 'สร้างห้องใหม่หรือตรวจสอบลิงก์'
       : `${count} ผู้เล่น · ${slugLabel}`;
   }
+}
+
+async function populateRoomSwitchSelect() {
+  if (!app.isAdmin || _roomSwitchBusy) return;
+  const select = document.getElementById('room-switch-select');
+  if (!select) return;
+  await populateRoomSelect(select, app.roomId);
+}
+
+function handleRoomSwitch(event) {
+  const selected = event.target.value;
+  if (!selected || selected === app.roomId || _roomSwitchBusy) return;
+  _roomSwitchBusy = true;
+  location.href = getRoomUrl(selected);
 }
 
 function setCreateRoomError(message = '') {
@@ -115,6 +143,8 @@ async function handleCreateRoomSubmit() {
     closeCreateRoomModal();
     if (confirm(`สร้างห้อง "${room.name}" สำเร็จ!\n\nเปิดห้องใหม่เลยไหม?`)) {
       location.href = url;
+    } else {
+      void populateRoomSwitchSelect();
     }
   } catch (e) {
     setCreateRoomError(e.message || 'สร้างห้องไม่สำเร็จ');
@@ -173,6 +203,7 @@ export function initRoomUI() {
   updateRoomBadge();
   syncAdminRoomSettingsUI();
 
+  document.getElementById('room-switch-select')?.addEventListener('change', handleRoomSwitch);
   document.getElementById('open-create-room-btn')?.addEventListener('click', openCreateRoomModal);
   document.getElementById('close-create-room-btn')?.addEventListener('click', closeCreateRoomModal);
   document.getElementById('create-room-cancel-btn')?.addEventListener('click', closeCreateRoomModal);
