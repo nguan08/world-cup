@@ -192,7 +192,19 @@ export function syncRoomSettingsSaveUI() {
   const status = document.getElementById('room-settings-save-status');
   if (!checkbox || !btn) return;
 
-  const dirty = Boolean(checkbox.checked) !== savedAveragePayoutEnabled();
+  const checkboxDirty = Boolean(checkbox.checked) !== savedAveragePayoutEnabled();
+  const blueInput = document.getElementById('room-setting-blue-pct');
+  const greenInput = document.getElementById('room-setting-green-pct');
+  
+  const blueVal = blueInput ? (parseInt(blueInput.value, 10) || 0) : 24;
+  const greenVal = greenInput ? (parseInt(greenInput.value, 10) || 0) : 50;
+  
+  const savedBlue = app.roomSettings?.blueZonePercent !== undefined ? app.roomSettings.blueZonePercent : 24;
+  const savedGreen = app.roomSettings?.greenZonePercent !== undefined ? app.roomSettings.greenZonePercent : 50;
+  
+  const percentDirty = blueVal !== savedBlue || greenVal !== savedGreen;
+  const dirty = checkboxDirty || percentDirty;
+
   btn.disabled = !dirty || btn.dataset.busy === '1';
   btn.textContent = btn.dataset.busy === '1' ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า';
 
@@ -210,6 +222,35 @@ function handleAveragePayoutChange(event) {
     event.target.checked = savedAveragePayoutEnabled();
     return;
   }
+  syncRoomSettingsSaveUI();
+}
+
+export function updateRedZonePercent() {
+  const blueInput = document.getElementById('room-setting-blue-pct');
+  const greenInput = document.getElementById('room-setting-green-pct');
+  const redInput = document.getElementById('room-setting-red-pct');
+  if (!blueInput || !greenInput || !redInput) return;
+
+  let blueVal = parseInt(blueInput.value, 10) || 0;
+  if (blueVal < 0) blueVal = 0;
+  if (blueVal > 100) blueVal = 100;
+
+  let greenVal = parseInt(greenInput.value, 10) || 0;
+  if (greenVal < 0) greenVal = 0;
+  if (blueVal + greenVal > 100) {
+    greenVal = 100 - blueVal;
+  }
+
+  if (blueInput.value !== '' && parseInt(blueInput.value, 10) !== blueVal) {
+    blueInput.value = blueVal;
+  }
+  if (greenInput.value !== '' && parseInt(greenInput.value, 10) !== greenVal) {
+    greenInput.value = greenVal;
+  }
+
+  const redVal = 100 - blueVal - greenVal;
+  redInput.value = redVal;
+
   syncRoomSettingsSaveUI();
 }
 
@@ -243,7 +284,18 @@ async function handleSaveRoomSettings() {
   if (!checkbox || !btn || btn.disabled) return;
 
   const enabled = Boolean(checkbox.checked);
-  app.roomSettings = { ...app.roomSettings, averagePayoutRules: enabled };
+  
+  const blueInput = document.getElementById('room-setting-blue-pct');
+  const greenInput = document.getElementById('room-setting-green-pct');
+  const bluePct = blueInput ? (parseInt(blueInput.value, 10) || 0) : 24;
+  const greenPct = greenInput ? (parseInt(greenInput.value, 10) || 0) : 50;
+
+  app.roomSettings = { 
+    ...app.roomSettings, 
+    averagePayoutRules: enabled,
+    blueZonePercent: bluePct,
+    greenZonePercent: greenPct
+  };
   app.roomSettingsDirtyUntil = Date.now() + 120_000;
   localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
 
@@ -292,4 +344,15 @@ export function initRoomUI() {
 
   document.getElementById('room-setting-average-payout')?.addEventListener('change', handleAveragePayoutChange);
   document.getElementById('room-settings-save-btn')?.addEventListener('click', handleSaveRoomSettings);
+
+  const blueInput = document.getElementById('room-setting-blue-pct');
+  const greenInput = document.getElementById('room-setting-green-pct');
+  if (blueInput) {
+    blueInput.addEventListener('input', updateRedZonePercent);
+    blueInput.addEventListener('change', updateRedZonePercent);
+  }
+  if (greenInput) {
+    greenInput.addEventListener('input', updateRedZonePercent);
+    greenInput.addEventListener('change', updateRedZonePercent);
+  }
 }

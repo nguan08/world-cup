@@ -117,7 +117,9 @@ function sendJson(res, status, payload) {
 function normalizeRoomSettings(raw) {
   const settings = raw && typeof raw === 'object' ? raw : {};
   return {
-    averagePayoutRules: settings.averagePayoutRules !== false
+    averagePayoutRules: settings.averagePayoutRules !== false,
+    blueZonePercent: typeof settings.blueZonePercent === 'number' ? settings.blueZonePercent : undefined,
+    greenZonePercent: typeof settings.greenZonePercent === 'number' ? settings.greenZonePercent : undefined
   };
 }
 

@@ -155,6 +155,18 @@ export function syncAdminRoomSettingsUI() {
   const checkbox = document.getElementById('room-setting-average-payout');
   if (!checkbox) return;
   checkbox.checked = app.roomSettings?.averagePayoutRules !== false;
+
+  const blueInput = document.getElementById('room-setting-blue-pct');
+  const greenInput = document.getElementById('room-setting-green-pct');
+  const redInput = document.getElementById('room-setting-red-pct');
+  if (blueInput && greenInput && redInput) {
+    const bluePct = app.roomSettings?.blueZonePercent !== undefined ? app.roomSettings.blueZonePercent : 24;
+    const greenPct = app.roomSettings?.greenZonePercent !== undefined ? app.roomSettings.greenZonePercent : 50;
+    blueInput.value = bluePct;
+    greenInput.value = greenPct;
+    redInput.value = 100 - bluePct - greenPct;
+  }
+
   syncRoomSettingsSaveUI();
 }
 

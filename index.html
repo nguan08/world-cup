@@ -195,6 +195,26 @@
                 <span>เปิดกฎค่าเฉลี่ยต้องจ่ายเงิน</span>
               </label>
               <p class="admin-room-settings-hint">ปิด = ไม่คิดยกเว้น Red / ชาร์จ Green / ชาร์จค่าเฉลี่ยรวม</p>
+              
+              <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; margin-bottom: 12px;">
+                <div class="admin-room-settings-panel__label">สัดส่วนโซน (%)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                  <div>
+                    <label for="room-setting-blue-pct" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Blue (%)</label>
+                    <input type="number" id="room-setting-blue-pct" min="0" max="100" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label for="room-setting-green-pct" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Green (%)</label>
+                    <input type="number" id="room-setting-green-pct" min="0" max="100" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label for="room-setting-red-pct" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Red (%)</label>
+                    <input type="number" id="room-setting-red-pct" readonly disabled style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02); color:var(--text-muted); font-size:12px; box-sizing:border-box;">
+                  </div>
+                </div>
+                <p class="admin-room-settings-hint" style="margin-top: 6px; font-size: 10px;">Red Zone คำนวณอัตโนมัติจากส่วนที่เหลือ (100% - Blue - Green) โดย Red Zone จะเป็นกลุ่มที่ต้องจ่ายเงิน</p>
+              </div>
+
               <div class="admin-room-settings-actions">
                 <button type="button" class="btn btn-secondary admin-room-settings-save-btn" id="room-settings-save-btn" disabled>บันทึกการตั้งค่า</button>
                 <span class="admin-room-settings-save-status" id="room-settings-save-status" aria-live="polite"></span>

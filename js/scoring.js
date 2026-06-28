@@ -186,12 +186,23 @@ export function processPlayers(teamScores) {
   }
 
   // Partition into zones based on ranks/scores:
-  // Blue: top 20%
-  // Green: 25 app.players
-  // Red: bottom (the rest)
   const total = processed.length;
-  const blueCount = 12;
-  const greenCount = 25;
+  let blueCount = 12;
+  let greenCount = 25;
+
+  const bluePct = app.roomSettings?.blueZonePercent;
+  const greenPct = app.roomSettings?.greenZonePercent;
+
+  if (typeof bluePct === 'number' && typeof greenPct === 'number') {
+    blueCount = Math.max(0, Math.round(total * (bluePct / 100)));
+    greenCount = Math.max(0, Math.round(total * (greenPct / 100)));
+    if (blueCount > total) {
+      blueCount = total;
+      greenCount = 0;
+    } else if (blueCount + greenCount > total) {
+      greenCount = total - blueCount;
+    }
+  }
 
   // Rough indexes for boundaries
   const blueBoundaryIndex = blueCount - 1;

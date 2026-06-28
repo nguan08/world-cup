@@ -194,6 +194,8 @@
     }
   ],
   "settings": {
-    "averagePayoutRules": false
+    "averagePayoutRules": false,
+    "blueZonePercent": 25,
+    "greenZonePercent": 35
   }
 }
