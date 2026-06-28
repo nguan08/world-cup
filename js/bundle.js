@@ -19,6 +19,8 @@ import { saveToServer, saveEliminatedTeamsToServer, sendBroadcastNotification, s
 import { initAdminState, updateAdminUI } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
+import { initRoomUI, updateRoomBadge } from './room-ui.js';
+import { roomStorageKey } from './room.js';
 
 // Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
 app._playerDrawerSavedScrollY = 0;
@@ -2682,7 +2684,7 @@ function deleteMatch(matchId) {
     // Track deleted matches to persist on page loads with safety try-catch
     let deletedMatches = [];
     try {
-      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+      deletedMatches = JSON.parse(localStorage.getItem(roomStorageKey('deleted_matches')) || localStorage.getItem('worldcup_deleted_matches') || '[]');
       if (!Array.isArray(deletedMatches)) deletedMatches = [];
     } catch (e) {
       console.error(e);
@@ -2690,10 +2692,10 @@ function deleteMatch(matchId) {
 
     if (!deletedMatches.some(id => id == matchId)) {
       deletedMatches.push(matchId);
-      localStorage.setItem('worldcup_deleted_matches', JSON.stringify(deletedMatches));
+      localStorage.setItem(roomStorageKey('deleted_matches'), JSON.stringify(deletedMatches));
     }
 
-    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+    localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
     await saveToServer();
     recalculateAll();
     renderMatches();
@@ -2861,7 +2863,7 @@ function setupMatchCardListeners() {
         // Track manual scores edits with safety try-catch
         let manuallyEditedMatches = [];
         try {
-          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          manuallyEditedMatches = JSON.parse(localStorage.getItem(roomStorageKey('manually_edited_matches')) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
           if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
         } catch (e) {
           console.error(e);
@@ -2869,10 +2871,10 @@ function setupMatchCardListeners() {
 
         if (!manuallyEditedMatches.some(id => id == matchId)) {
           manuallyEditedMatches.push(matchId);
-          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
+          localStorage.setItem(roomStorageKey('manually_edited_matches'), JSON.stringify(manuallyEditedMatches));
         }
 
-        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+        localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
         const synced = await saveAdminScoreUpdate([match]);
         alert(synced
           ? 'บันทึกสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
@@ -2897,7 +2899,7 @@ function setupMatchCardListeners() {
         // Track manual score clear with safety try-catch
         let manuallyEditedMatches = [];
         try {
-          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          manuallyEditedMatches = JSON.parse(localStorage.getItem(roomStorageKey('manually_edited_matches')) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
           if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
         } catch (e) {
           console.error(e);
@@ -2905,10 +2907,10 @@ function setupMatchCardListeners() {
 
         if (!manuallyEditedMatches.some(id => id == matchId)) {
           manuallyEditedMatches.push(matchId);
-          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
+          localStorage.setItem(roomStorageKey('manually_edited_matches'), JSON.stringify(manuallyEditedMatches));
         }
 
-        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+        localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
         const synced = await saveAdminScoreUpdate([match], { cleared: true });
         alert(synced
           ? 'ล้างสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
@@ -4819,7 +4821,7 @@ function bindPlayerDrawerAdminButtons(player, playerName) {
       if (!app.isAdmin) return;
       showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
         app.players= app.players.filter(p => p.name !== playerName);
-        localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+        localStorage.setItem(roomStorageKey('players'), JSON.stringify(app.players));
         if (app.isSyncEnabled) await saveToServer();
         hidePlayerDetailsDrawer();
         recalculateAll();
@@ -5187,7 +5189,7 @@ async function handleMatchFormSubmit() {
   };
 
   app.matches.push(newMatch);
-  localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+  localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
   await saveToServer();
 
   closeMatchForm();
@@ -5219,6 +5221,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNotifications();
   setRecalcHook(resetTeamPopularityCache);
   await initData();
+  initRoomUI();
+  updateRoomBadge();
   updateDataSyncStatus();
   setupAutoRefresh();
   initRankSoundVoices();
@@ -5986,7 +5990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    localStorage.setItem(roomStorageKey('players'), JSON.stringify(app.players));
     if (app.isSyncEnabled) {
       await saveToServer();
     }

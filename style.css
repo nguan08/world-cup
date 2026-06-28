@@ -3925,6 +3925,110 @@ html.is-admin .player-details-drawer__actions {
 
 /* player-team-item styles live in player-details-drawer section */
 
+/* Room panel */
+.room-panel {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.room-panel__label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.room-panel__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.room-panel__meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.room-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.room-panel__btn {
+  width: 100%;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
+.room-panel--missing {
+  background: rgba(225, 29, 72, 0.12);
+  border-color: rgba(225, 29, 72, 0.35);
+}
+
+.room-create-drawer {
+  width: min(440px, 92vw);
+  height: auto;
+  max-height: 90vh;
+  margin: auto;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.room-create-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.room-create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.room-create-field input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--text-primary);
+}
+
+.room-create-slug-row {
+  display: flex;
+  gap: 8px;
+}
+
+.room-create-slug-row input {
+  flex: 1;
+}
+
+.room-create-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.room-create-error {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.room-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* Sidebar footer & admin panel */
 .sidebar-footer {
   flex-shrink: 0;

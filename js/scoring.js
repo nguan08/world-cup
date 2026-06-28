@@ -1,6 +1,7 @@
 import { TEAMS } from './constants.js';
 import { app } from './state.js';
 import { saveToServer } from './persist.js';
+import { roomStorageKey } from './room.js';
 
 let _recalcHook = null;
 export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn : null; }
@@ -351,7 +352,8 @@ export function getPlayerTotalMatchesPlayed(playerTeams) {
 
 export function loadEliminatedTeams() {
   if (app.isSyncEnabled) return; // Do not load from localstorage if sync is enabled
-  const stored = localStorage.getItem('worldcup_eliminated_teams');
+  const stored = localStorage.getItem(roomStorageKey('eliminated_teams'))
+    || localStorage.getItem('worldcup_eliminated_teams');
   if (stored) {
     try {
       app.manualEliminatedTeams = new Set(JSON.parse(stored));
@@ -364,7 +366,7 @@ export function loadEliminatedTeams() {
 }
 
 export async function saveEliminatedTeams() {
-  localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+  localStorage.setItem(roomStorageKey('eliminated_teams'), JSON.stringify(Array.from(app.manualEliminatedTeams)));
   const { saveEliminatedTeamsToServer } = await import('./persist.js');
   await saveEliminatedTeamsToServer({ quiet: true });
 }

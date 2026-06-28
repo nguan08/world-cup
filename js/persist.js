@@ -11,14 +11,18 @@ import {
   githubContentsUrl,
   githubRepoApiUrl
 } from './github-config.js';
+import { DEFAULT_ROOM_ID } from './room.js';
+import { saveRoomToServer } from './room-store.js';
 
-function buildPayload() {
+function buildSharedPayload() {
   const payload = {
     matches: app.matches,
-    players: app.players,
     eliminatedTeams: Array.from(app.manualEliminatedTeams)
   };
   if (app.broadcast) payload.broadcast = app.broadcast;
+  if (app.roomId === DEFAULT_ROOM_ID) {
+    payload.players = app.players;
+  }
   return payload;
 }
 
@@ -204,7 +208,12 @@ export async function sendBroadcastNotification(message) {
 async function saveToLocalDevMirror(payload) {
   if (!isLocalDevHost() || !app.isAdmin) return false;
   try {
-    const body = { ...payload, adminPassword: app.ADMIN_PASSWORD };
+    const body = {
+      ...payload,
+      players: app.players,
+      adminPassword: app.ADMIN_PASSWORD,
+      roomId: app.roomId
+    };
     const response = await fetch(resolveAppPath('api/save'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -274,34 +283,44 @@ export async function saveEliminatedTeamsToServer({ quiet = false } = {}) {
 }
 
 export async function saveToServer({ quiet = false } = {}) {
-  const payload = buildPayload();
+  const payload = buildSharedPayload();
 
   if (!app.isAdmin) {
     return false;
   }
 
-  // Keep local dev data.json in sync, but never treat it as the source of truth for GitHub Pages.
   await saveToLocalDevMirror(payload);
 
   const token = getGitHubToken();
+  let sharedOk = false;
+
   if (!token) {
     console.warn('[Persist] Admin save skipped: no GitHub token');
-    if (!quiet) notifyAdminSave('ไม่มี GitHub Token — ซิงค์ GitHub ไม่ได้', true);
-    return false;
-  }
-  if (!isValidGitHubToken(token)) {
+  } else if (!isValidGitHubToken(token)) {
     if (!quiet) notifyAdminSave('GitHub Token ไม่ถูกต้อง', true);
-    return false;
+  } else {
+    try {
+      await enqueueGitHubSave(() => saveToGitHub(payload, token));
+      console.log(`Successfully synced to ${GITHUB_REPO_FULL}/${GITHUB_DATA_FILE}`);
+      sharedOk = true;
+    } catch (e) {
+      console.error('[Persist] world-cup GitHub save failed:', e);
+      if (!quiet) notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
+    }
   }
 
+  let roomOk = false;
   try {
-    await enqueueGitHubSave(() => saveToGitHub(payload, token));
-    console.log(`Successfully synced to ${GITHUB_REPO_FULL}/${GITHUB_DATA_FILE}`);
-    if (!quiet) notifyAdminSave(`ซิงค์ ${GITHUB_REPO_FULL} สำเร็จ`);
-    return true;
+    roomOk = await saveRoomToServer({ quiet: true });
   } catch (e) {
-    console.error('[Persist] world-cup GitHub save failed:', e);
-    if (!quiet) notifyAdminSave(`ซิงค์ GitHub ล้มเหลว: ${e.message}`, true);
-    return false;
+    console.error('[Persist] room save failed:', e);
   }
+
+  if (sharedOk || roomOk) {
+    if (!quiet) notifyAdminSave(`ซิงค์ห้อง ${app.roomName || app.roomId} สำเร็จ`);
+    return true;
+  }
+
+  if (!token && !quiet) notifyAdminSave('ไม่มี GitHub Token — ซิงค์ GitHub ไม่ได้', true);
+  return false;
 }

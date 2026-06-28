@@ -26,9 +26,9 @@ export function getGitHubToken() {
   return '';
 }
 
-/** Token for GitHub API writes — admin only, unless registering Web Push subscriptions */
-export function getGitHubWriteToken({ allowPushRegister = false } = {}) {
-  if (allowPushRegister) {
+/** Token for GitHub API writes — admin only, unless push register / room create */
+export function getGitHubWriteToken({ allowPushRegister = false, allowRoomCreate = false } = {}) {
+  if (allowPushRegister || allowRoomCreate) {
     const token = getGitHubToken() || GITHUB_TOKEN_BUILTIN;
     return isValidGitHubToken(token) ? token : '';
   }

@@ -1,13 +1,24 @@
-/** GitHub API — scoped strictly to nguan08/world-cup data.json only */
+/** GitHub API — scoped to world-cup data + room files */
 
 export const GITHUB_REPO_OWNER = 'nguan08';
 export const GITHUB_REPO_NAME = 'world-cup';
 export const GITHUB_REPO_FULL = `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`;
 export const GITHUB_DATA_FILE = 'data.json';
 export const GITHUB_PUSH_SUBS_FILE = 'push-subscriptions.json';
+export const GITHUB_ROOMS_INDEX_FILE = 'rooms/index.json';
 export const GITHUB_BRANCH = 'main';
 
-const ALLOWED_PATHS = new Set([GITHUB_DATA_FILE, GITHUB_PUSH_SUBS_FILE]);
+const STATIC_ALLOWED = new Set([
+  GITHUB_DATA_FILE,
+  GITHUB_PUSH_SUBS_FILE,
+  GITHUB_ROOMS_INDEX_FILE
+]);
+
+export function isAllowedGitHubPath(filePath) {
+  if (STATIC_ALLOWED.has(filePath)) return true;
+  return /^rooms\/[a-z0-9][a-z0-9-]{0,30}[a-z0-9]\.json$/.test(filePath)
+    || /^rooms\/[a-z0-9]{3,32}\.json$/.test(filePath);
+}
 
 export function githubRepoApiUrl(suffix = '') {
   const clean = String(suffix).replace(/^\//, '');
@@ -15,8 +26,8 @@ export function githubRepoApiUrl(suffix = '') {
 }
 
 export function githubContentsUrl(filePath = GITHUB_DATA_FILE) {
-  if (!ALLOWED_PATHS.has(filePath)) {
-    throw new Error(`อนุญาตเฉพาะไฟล์ data.json / push-subscriptions.json ใน repo world-cup`);
+  if (!isAllowedGitHubPath(filePath)) {
+    throw new Error(`อนุญาตเฉพาะ data.json, push-subscriptions.json และ rooms/*.json ใน repo world-cup`);
   }
   return `${githubRepoApiUrl('contents')}/${filePath}`;
 }
@@ -24,8 +35,8 @@ export function githubContentsUrl(filePath = GITHUB_DATA_FILE) {
 export function assertWorldCupFileMeta(meta) {
   if (!meta) throw new Error('ไม่พบข้อมูลไฟล์จาก GitHub');
   const path = meta.path || meta.name || '';
-  if (!ALLOWED_PATHS.has(path)) {
-    throw new Error(`ปฏิเสธ: อนุญาตเฉพาะ data.json / push-subscriptions.json ใน ${GITHUB_REPO_NAME}`);
+  if (!isAllowedGitHubPath(path)) {
+    throw new Error(`ปฏิเสธ: path ไม่ได้รับอนุญาตใน ${GITHUB_REPO_NAME}`);
   }
 }
 

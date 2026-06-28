@@ -1,0 +1,10 @@
+{
+  "rooms": [
+    {
+      "id": "default",
+      "name": "ห้องหลัก",
+      "createdAt": "2026-06-28T17:34:08.500Z",
+      "playerCount": 62
+    }
+  ]
+}

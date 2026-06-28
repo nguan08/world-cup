@@ -153,6 +153,16 @@
         </li>
       </nav>
       
+      <div class="room-panel" id="room-panel">
+        <div class="room-panel__label">ห้องปัจจุบัน</div>
+        <div class="room-panel__name" id="room-current-name">ห้องหลัก</div>
+        <div class="room-panel__meta" id="room-current-meta">—</div>
+        <div class="room-panel__actions">
+          <button type="button" class="btn btn-secondary room-panel__btn" id="copy-room-link-btn">คัดลอกลิงก์</button>
+          <button type="button" class="btn btn-primary room-panel__btn" id="open-create-room-btn">+ สร้างห้องใหม่</button>
+        </div>
+      </div>
+
       <div class="sidebar-footer">
         <div id="notification-settings" class="notification-settings">
           <div class="notification-settings__label">การแจ้งเตือนอัปเดต</div>
@@ -954,6 +964,39 @@
       </div>
     </div>
 
+    <!-- MODAL: CREATE ROOM -->
+    <div class="drawer-overlay" id="create-room-overlay">
+      <div class="drawer room-create-drawer">
+        <div class="drawer-header">
+          <h2>สร้างห้องใหม่</h2>
+          <button class="close-btn" id="close-create-room-btn" type="button">×</button>
+        </div>
+        <div class="room-create-body">
+          <label class="room-create-field">
+            <span>ชื่อห้อง</span>
+            <input type="text" id="create-room-name" maxlength="60" placeholder="เช่น กลุ่มออฟฟิศ, เพื่อนบ้าน" autocomplete="off">
+          </label>
+          <label class="room-create-field">
+            <span>รหัสห้อง (ในลิงก์)</span>
+            <div class="room-create-slug-row">
+              <input type="text" id="create-room-slug" maxlength="32" placeholder="สุ่มอัตโนมัติ" autocomplete="off">
+              <button type="button" class="btn btn-secondary" id="regenerate-room-slug-btn">สุ่มใหม่</button>
+            </div>
+          </label>
+          <label class="room-create-field">
+            <span>ลิงก์ห้อง (หลังสร้างแล้ว)</span>
+            <input type="text" id="create-room-link" readonly placeholder="จะแสดงหลังสร้างห้อง">
+          </label>
+          <p class="room-create-hint">แต่ละห้องมีผู้เล่นและคะแนนแยกกัน สกอร์แมตช์ใช้ร่วมกันทุกห้อง</p>
+          <div id="create-room-error" class="room-create-error" style="display:none;"></div>
+          <div class="room-create-actions">
+            <button type="button" class="btn btn-secondary" id="create-room-cancel-btn">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" id="create-room-submit-btn">สร้างห้อง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: CUSTOM CONFIRM -->
     <div class="drawer-overlay" id="confirm-modal-overlay" style="z-index: 10000;">
       <div class="drawer" style="width: 400px; height: auto; max-height: 90%; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(50px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 24px;">
@@ -973,6 +1016,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260626-remaining-teams-fix"></script>
+  <script type="module" src="js/main.js?v=20260628-multi-room"></script>
 </body>
 </html>

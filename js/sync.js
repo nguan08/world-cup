@@ -5,18 +5,32 @@ import { notifyDataUpdate, processBroadcast, flushPendingBroadcast, updateBroadc
 import { isMobileDevice } from './device.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
+import { DEFAULT_ROOM_ID, parseRoomFromUrl, roomStorageKey } from './room.js';
+import { fetchRoomFromNetwork } from './room-store.js';
 
 export { saveToServer };
 
-export function clearCachedData() {
-  const cachedKeys = [
+function getRoomCacheKeys(roomId = app.roomId) {
+  return {
+    matches: roomStorageKey('matches', roomId),
+    players: roomStorageKey('players', roomId),
+    eliminated: roomStorageKey('eliminated_teams', roomId),
+    edited: roomStorageKey('manually_edited_matches', roomId),
+    deleted: roomStorageKey('deleted_matches', roomId)
+  };
+}
+
+export function clearCachedData(roomId = app.roomId) {
+  const keys = getRoomCacheKeys(roomId);
+  Object.values(keys).forEach((key) => localStorage.removeItem(key));
+  // legacy single-room keys
+  [
     'worldcup_matches',
     'worldcup_players',
     'worldcup_eliminated_teams',
     'worldcup_manually_edited_matches',
     'worldcup_deleted_matches'
-  ];
-  cachedKeys.forEach(key => localStorage.removeItem(key));
+  ].forEach((key) => localStorage.removeItem(key));
 }
 
 function readStoredJsonArray(key) {
@@ -31,18 +45,57 @@ function readStoredJsonArray(key) {
 }
 
 function applySeedFallback() {
+  const cache = getRoomCacheKeys();
   if (!app.matches?.length && INITIAL_MATCHES.length) {
     app.matches = [...INITIAL_MATCHES];
-    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+    localStorage.setItem(cache.matches, JSON.stringify(app.matches));
   }
-  if (!app.players?.length && INITIAL_PLAYERS.length) {
+  if (!app.players?.length && INITIAL_PLAYERS.length && app.roomId === DEFAULT_ROOM_ID) {
     app.players = [...INITIAL_PLAYERS];
-    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    localStorage.setItem(cache.players, JSON.stringify(app.players));
   }
 }
 
+async function loadRoomPlayers(serverData) {
+  const cache = getRoomCacheKeys();
+  const roomData = await fetchRoomFromNetwork(app.roomId);
+
+  if (roomData) {
+    app.roomName = roomData.name || app.roomId;
+    app.roomCreatedAt = roomData.createdAt || null;
+    app.players = Array.isArray(roomData.players) ? roomData.players : [];
+    localStorage.setItem(cache.players, JSON.stringify(app.players));
+    app.roomLoaded = true;
+    return;
+  }
+
+  if (app.roomId !== DEFAULT_ROOM_ID) {
+    app.roomName = app.roomId;
+    app.players = [];
+    app.roomLoaded = false;
+    return;
+  }
+
+  const storedPlayers = readStoredJsonArray(cache.players)
+    || readStoredJsonArray('worldcup_players');
+  if (storedPlayers) {
+    app.players = [...storedPlayers];
+  } else if (Array.isArray(serverData.players) && serverData.players.length > 0) {
+    app.players = serverData.players;
+  } else {
+    app.players = [...INITIAL_PLAYERS];
+  }
+  app.roomName = 'ห้องหลัก';
+  app.roomLoaded = true;
+  localStorage.setItem(cache.players, JSON.stringify(app.players));
+}
+
 export async function initData() {
+  app.roomId = parseRoomFromUrl();
+  window.__wcRoomId = app.roomId;
+
   let serverData = { matches: [], players: [], eliminatedTeams: [] };
+  const cache = getRoomCacheKeys();
   
   // 1. Detect local Node sync API (skip on GitHub Pages — no /api/status endpoint)
   window.isSyncEnabled = false;
@@ -80,11 +133,10 @@ export async function initData() {
   if (serverIsBlank) {
     clearCachedData();
     app.matches = [...INITIAL_MATCHES];
-    app.players = [...INITIAL_PLAYERS];
     app.manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
-    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
-    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
-    localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+    localStorage.setItem(cache.matches, JSON.stringify(app.matches));
+    localStorage.setItem(cache.eliminated, JSON.stringify(Array.from(app.manualEliminatedTeams)));
+    await loadRoomPlayers(serverData);
     if (serverData.broadcast) {
       app.broadcast = serverData.broadcast;
       updateBroadcastBanner(serverData.broadcast);
@@ -102,34 +154,29 @@ export async function initData() {
     window.isSyncEnabled = true;
   }
   if (hasServerData) {
-    const localMatchesStr = localStorage.getItem('worldcup_matches');
+    const localMatchesStr = localStorage.getItem(cache.matches) || localStorage.getItem('worldcup_matches');
     const serverMatchesStr = JSON.stringify(serverData.matches || []);
     if (localMatchesStr !== serverMatchesStr) {
-      // Server data newer than cache — localStorage refreshed below
-      clearCachedData();
+      clearCachedData(app.roomId);
     }
   }
 
-  // 3. Load database state
+  // 3. Load shared match data
   if (app.isSyncEnabled && serverData.matches && serverData.matches.length > 0) {
 
     app.matches = serverData.matches;
-    app.players = serverData.players || [];
     app.manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
-    
-    // Fallback sync to localstorage so offline fallback is close to last saved state
-    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
-    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
-    localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+    localStorage.setItem(cache.matches, JSON.stringify(app.matches));
+    localStorage.setItem(cache.eliminated, JSON.stringify(Array.from(app.manualEliminatedTeams)));
+    await loadRoomPlayers(serverData);
   } else {
 
-    const storedMatches = readStoredJsonArray('worldcup_matches');
-    const storedPlayers = readStoredJsonArray('worldcup_players');
+    const storedMatches = readStoredJsonArray(cache.matches) || readStoredJsonArray('worldcup_matches');
     
     // Load override lists from localStorage with safety try-catch
     let manuallyEditedMatches = [];
     try {
-      manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+      manuallyEditedMatches = JSON.parse(localStorage.getItem(cache.edited) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
       if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
     } catch (e) {
       console.error('Failed to parse manually edited app.matches:', e);
@@ -137,7 +184,7 @@ export async function initData() {
 
     let deletedMatches = [];
     try {
-      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+      deletedMatches = JSON.parse(localStorage.getItem(cache.deleted) || localStorage.getItem('worldcup_deleted_matches') || '[]');
       if (!Array.isArray(deletedMatches)) deletedMatches = [];
     } catch (e) {
       console.error('Failed to parse deleted app.matches:', e);
@@ -170,7 +217,7 @@ export async function initData() {
         }
       });
 
-      localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+      localStorage.setItem(cache.matches, JSON.stringify(app.matches));
     } else if (storedMatches) {
       app.matches = [...storedMatches];
       
@@ -212,34 +259,21 @@ export async function initData() {
         }
       });
       
-      if (updated) localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+      if (updated) localStorage.setItem(cache.matches, JSON.stringify(app.matches));
     } else {
       app.matches = [...INITIAL_MATCHES];
-      // Filter out deleted matches if any exist (using loose comparison for safety)
       if (deletedMatches.length > 0) {
         app.matches = app.matches.filter(m => !deletedMatches.some(id => id == m.id));
       }
-      localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
+      localStorage.setItem(cache.matches, JSON.stringify(app.matches));
     }
-    
-    if (storedPlayers) {
-      app.players = [...storedPlayers];
-      
-      // Auto-sync app.players from server data if there are new ones
-      let updated = false;
-      if (serverData.players && serverData.players.length > 0) {
-        serverData.players.forEach(sp => {
-          if (!app.players.some(p => p.name === sp.name)) {
-            app.players.push(sp);
-            updated = true;
-          }
-        });
-      }
-      if (updated) localStorage.setItem('worldcup_players', JSON.stringify(app.players));
-    } else {
-      app.players = (serverData.players && serverData.players.length > 0) ? serverData.players : [...INITIAL_PLAYERS];
-      localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+
+    if (serverData.eliminatedTeams) {
+      app.manualEliminatedTeams = new Set(serverData.eliminatedTeams);
+      localStorage.setItem(cache.eliminated, JSON.stringify(Array.from(app.manualEliminatedTeams)));
     }
+
+    await loadRoomPlayers(serverData);
   }
 
   if (serverData.broadcast) {
@@ -284,22 +318,33 @@ export function updateDataSyncStatus(status = 'idle', extra = '') {
   el.className = 'data-sync-status';
 }
 
-export function mergeServerDataIntoLocal(serverData) {
+export async function mergeServerDataIntoLocal(serverData) {
   if (!serverData || !serverData.matches) return false;
 
   let updated = false;
+  const cache = getRoomCacheKeys();
 
   if (app.isSyncEnabled && serverData.matches.length > 0) {
     const newMatchesStr = JSON.stringify(serverData.matches);
-    const newPlayersStr = JSON.stringify(serverData.players || []);
-    if (JSON.stringify(app.matches) !== newMatchesStr || JSON.stringify(app.players) !== newPlayersStr) {
+    const elimStr = JSON.stringify(serverData.eliminatedTeams || []);
+    if (JSON.stringify(app.matches) !== newMatchesStr
+      || JSON.stringify(Array.from(app.manualEliminatedTeams)) !== elimStr) {
       app.matches = serverData.matches;
-      app.players = serverData.players || [];
       app.manualEliminatedTeams = new Set(serverData.eliminatedTeams || []);
-      localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
-      localStorage.setItem('worldcup_players', JSON.stringify(app.players));
-      localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+      localStorage.setItem(cache.matches, JSON.stringify(app.matches));
+      localStorage.setItem(cache.eliminated, JSON.stringify(Array.from(app.manualEliminatedTeams)));
       updated = true;
+    }
+
+    const roomData = await fetchRoomFromNetwork(app.roomId);
+    if (roomData?.players) {
+      const newPlayersStr = JSON.stringify(roomData.players);
+      if (JSON.stringify(app.players) !== newPlayersStr) {
+        app.players = roomData.players;
+        app.roomName = roomData.name || app.roomName;
+        localStorage.setItem(cache.players, JSON.stringify(app.players));
+        updated = true;
+      }
     }
     return updated;
   }
@@ -307,9 +352,9 @@ export function mergeServerDataIntoLocal(serverData) {
   let manuallyEditedMatches = [];
   let deletedMatches = [];
   try {
-    manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+    manuallyEditedMatches = JSON.parse(localStorage.getItem(cache.edited) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
     if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
-    deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
+    deletedMatches = JSON.parse(localStorage.getItem(cache.deleted) || localStorage.getItem('worldcup_deleted_matches') || '[]');
     if (!Array.isArray(deletedMatches)) deletedMatches = [];
   } catch (e) {
     manuallyEditedMatches = [];
@@ -335,18 +380,18 @@ export function mergeServerDataIntoLocal(serverData) {
     }
   });
 
-  if (serverData.players && serverData.players.length > 0) {
-    serverData.players.forEach(sp => {
-      if (!app.players.some(p => p.name === sp.name)) {
-        app.players.push(sp);
-        updated = true;
-      }
-    });
+  const roomData = await fetchRoomFromNetwork(app.roomId);
+  if (roomData?.players?.length) {
+    const newPlayersStr = JSON.stringify(roomData.players);
+    if (JSON.stringify(app.players) !== newPlayersStr) {
+      app.players = roomData.players;
+      localStorage.setItem(cache.players, JSON.stringify(app.players));
+      updated = true;
+    }
   }
 
   if (updated) {
-    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
-    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
+    localStorage.setItem(cache.matches, JSON.stringify(app.matches));
   }
 
   return updated;
@@ -378,7 +423,7 @@ export async function pollServerData() {
     const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const serverData = await res.json();
-    const changed = mergeServerDataIntoLocal(serverData);
+    const changed = await mergeServerDataIntoLocal(serverData);
     if (serverData.broadcast) {
       app.broadcast = serverData.broadcast;
       updateBroadcastBanner(serverData.broadcast);

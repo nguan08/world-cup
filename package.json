@@ -11,6 +11,7 @@
     "scrape": "node update-scores.js",
     "pull:matches": "node scripts/pull-matches-from-git.mjs",
     "pull:knockout": "node scripts/pull-knockout-from-espn.mjs",
+    "migrate:rooms": "node scripts/migrate-rooms.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

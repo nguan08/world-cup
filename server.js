@@ -7,6 +7,9 @@ const PUBLIC_DIR = __dirname;
 
 const ADMIN_PASSWORD = '123456';
 const DATA_PATH = path.join(PUBLIC_DIR, 'data.json');
+const ROOMS_DIR = path.join(PUBLIC_DIR, 'rooms');
+const ROOMS_INDEX_PATH = path.join(ROOMS_DIR, 'index.json');
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{3,32}$/;
 
 function readDataJson() {
   return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
@@ -27,6 +30,88 @@ function isAdminAuthorized(req, body = {}) {
 function normalizeEliminatedTeams(raw) {
   if (!Array.isArray(raw)) return [];
   return [...new Set(raw.map((t) => String(t || '').trim()).filter(Boolean))];
+}
+
+function ensureRoomsDir() {
+  if (!fs.existsSync(ROOMS_DIR)) fs.mkdirSync(ROOMS_DIR, { recursive: true });
+}
+
+function normalizeRoomSlug(raw) {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 32);
+}
+
+function isValidRoomSlug(slug) {
+  if (!slug) return false;
+  if (slug === 'default') return true;
+  return SLUG_RE.test(slug);
+}
+
+function roomFilePath(slug) {
+  return path.join(ROOMS_DIR, `${slug}.json`);
+}
+
+function readRoomsIndex() {
+  ensureRoomsDir();
+  if (!fs.existsSync(ROOMS_INDEX_PATH)) return { rooms: [] };
+  return JSON.parse(fs.readFileSync(ROOMS_INDEX_PATH, 'utf8'));
+}
+
+function writeRoomsIndex(index) {
+  ensureRoomsDir();
+  fs.writeFileSync(ROOMS_INDEX_PATH, JSON.stringify(index, null, 2) + '\n', 'utf8');
+}
+
+function readRoom(slug) {
+  const filePath = roomFilePath(slug);
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function writeRoom(record) {
+  ensureRoomsDir();
+  fs.writeFileSync(roomFilePath(record.id), JSON.stringify(record, null, 2) + '\n', 'utf8');
+}
+
+function upsertRoomIndex(record) {
+  const index = readRoomsIndex();
+  const rooms = Array.isArray(index.rooms) ? [...index.rooms] : [];
+  const entry = {
+    id: record.id,
+    name: record.name,
+    createdAt: record.createdAt,
+    playerCount: Array.isArray(record.players) ? record.players.length : 0
+  };
+  const idx = rooms.findIndex((r) => r.id === record.id);
+  if (idx === -1) rooms.push(entry);
+  else rooms[idx] = { ...rooms[idx], ...entry };
+  writeRoomsIndex({ rooms });
+}
+
+function parseJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function sendJson(res, status, payload) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
 }
 
 const MIME_TYPES = {
@@ -127,6 +212,89 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const roomsMatch = req.url.match(/^\/api\/rooms\/([a-z0-9-]+)\/save$/);
+  if (req.method === 'POST' && roomsMatch) {
+    parseJsonBody(req).then((payload) => {
+      try {
+        const slug = normalizeRoomSlug(roomsMatch[1]);
+        if (!isValidRoomSlug(slug)) {
+          sendJson(res, 400, { error: 'Invalid room id' });
+          return;
+        }
+        if (!isAdminAuthorized(req, payload)) {
+          sendJson(res, 401, { error: 'Unauthorized: admin credentials required' });
+          return;
+        }
+        const existing = readRoom(slug);
+        const record = {
+          id: slug,
+          name: String(payload.name || existing?.name || slug).trim() || slug,
+          createdAt: existing?.createdAt || payload.createdAt || new Date().toISOString(),
+          players: Array.isArray(payload.players) ? payload.players : (existing?.players || [])
+        };
+        writeRoom(record);
+        upsertRoomIndex(record);
+        if (slug === 'default') {
+          const data = readDataJson();
+          data.players = record.players;
+          writeDataJson(data);
+        }
+        console.log(`[Server] Saved room ${slug} (${record.players.length} players)`);
+        sendJson(res, 200, { success: true, room: record });
+      } catch (e) {
+        sendJson(res, 500, { error: e.message });
+      }
+    }).catch(() => sendJson(res, 400, { error: 'Invalid JSON' }));
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/api/rooms') {
+    try {
+      sendJson(res, 200, readRoomsIndex());
+    } catch (e) {
+      sendJson(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/rooms') {
+    parseJsonBody(req).then((payload) => {
+      try {
+        const name = String(payload.name || '').trim();
+        if (!name) {
+          sendJson(res, 400, { error: 'Room name is required' });
+          return;
+        }
+        const index = readRoomsIndex();
+        const taken = new Set((index.rooms || []).map((r) => r.id));
+        let slug = normalizeRoomSlug(payload.id || payload.slug || name);
+        if (!slug || taken.has(slug) || !isValidRoomSlug(slug)) {
+          const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+          do {
+            slug = Array.from({ length: 8 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+          } while (taken.has(slug));
+        }
+        if (readRoom(slug)) {
+          sendJson(res, 409, { error: 'Room already exists' });
+          return;
+        }
+        const record = {
+          id: slug,
+          name,
+          createdAt: new Date().toISOString(),
+          players: []
+        };
+        writeRoom(record);
+        upsertRoomIndex(record);
+        console.log(`[Server] Created room ${slug} (${name})`);
+        sendJson(res, 201, { success: true, room: record });
+      } catch (e) {
+        sendJson(res, 500, { error: e.message });
+      }
+    }).catch(() => sendJson(res, 400, { error: 'Invalid JSON' }));
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/api/save') {
     let body = '';
     req.on('data', chunk => {
@@ -135,9 +303,9 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body);
-        if (!payload.matches || !payload.players) {
+        if (!payload.matches) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid payload: matches and players are required' }));
+          res.end(JSON.stringify({ error: 'Invalid payload: matches are required' }));
           return;
         }
 
@@ -151,17 +319,32 @@ const server = http.createServer((req, res) => {
         }
 
         // Basic shape validation (arrays as expected)
-        if (!Array.isArray(payload.matches) || !Array.isArray(payload.players)) {
+        if (!Array.isArray(payload.matches)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid payload shape: matches and players must be arrays' }));
+          res.end(JSON.stringify({ error: 'Invalid payload shape: matches must be an array' }));
           return;
         }
 
-        // Write to data.json (strip auth fields)
-        const { adminPassword: _pw, ...dataToSave } = payload;
+        const { adminPassword: _pw, roomId, ...dataToSave } = payload;
         if (dataToSave.eliminatedTeams !== undefined) {
           dataToSave.eliminatedTeams = normalizeEliminatedTeams(dataToSave.eliminatedTeams);
         }
+
+        const slug = normalizeRoomSlug(roomId || 'default') || 'default';
+        if (Array.isArray(dataToSave.players)) {
+          const roomRecord = {
+            id: slug,
+            name: dataToSave.roomName || slug,
+            createdAt: readRoom(slug)?.createdAt || new Date().toISOString(),
+            players: dataToSave.players
+          };
+          writeRoom(roomRecord);
+          upsertRoomIndex(roomRecord);
+          if (slug !== 'default') {
+            delete dataToSave.players;
+          }
+        }
+
         writeDataJson(dataToSave);
         console.log(`[Server] Successfully saved data.json from IP: ${req.socket.remoteAddress}`);
 
