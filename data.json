@@ -749,9 +749,9 @@
     {
       "home": "โคลอมเบีย",
       "away": "โปรตุเกส",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 69
@@ -2112,8 +2112,8 @@
     "แอลจีเรีย"
   ],
   "broadcast": {
-    "id": 1782616994107,
-    "message": "⚽ อัปเดตสกอร์: แอลจีเรีย 2-2 ออสเตรีย",
-    "sentAt": "2026-06-28T03:23:14.107Z"
+    "id": 1782617784710,
+    "message": "⚽ อัปเดตสกอร์: โคลอมเบีย 0-0 โปรตุเกส",
+    "sentAt": "2026-06-28T03:36:24.710Z"
   }
 }
