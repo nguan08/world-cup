@@ -190,7 +190,8 @@ async function handleAveragePayoutToggle(event) {
 
   const enabled = Boolean(event.target.checked);
   app.roomSettings = { ...app.roomSettings, averagePayoutRules: enabled };
-  localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+  app.roomSettingsDirtyUntil = Date.now() + 120_000;
+  localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
 
   try {
     const ok = await saveRoomToServer({ quiet: true });
@@ -209,8 +210,9 @@ async function handleAveragePayoutToggle(event) {
     });
   } catch (e) {
     app.roomSettings = { ...app.roomSettings, averagePayoutRules: !enabled };
+    app.roomSettingsDirtyUntil = 0;
     event.target.checked = !enabled;
-    localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+    localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
     alert(e.message || 'บันทึกการตั้งค่าไม่สำเร็จ');
   }
 }

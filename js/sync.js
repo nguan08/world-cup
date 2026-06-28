@@ -311,6 +311,7 @@ export async function switchToRoom(roomId, { updateHistory = true } = {}) {
 
   app.roomId = target;
   window.__wcRoomId = target;
+  app.roomSettingsDirtyUntil = 0;
 
   if (sessionStorage.getItem('worldcup_isAdmin') === 'true') {
     app.isAdmin = true;
@@ -430,11 +431,13 @@ export async function mergeServerDataIntoLocal(serverData) {
 
     const roomData = await fetchRoomFromNetwork(app.roomId);
     if (roomData) {
-      const newSettings = normalizeRoomSettings(roomData.settings);
-      if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
-        app.roomSettings = newSettings;
-        localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
-        updated = true;
+      if (Date.now() >= app.roomSettingsDirtyUntil) {
+        const newSettings = normalizeRoomSettings(roomData.settings);
+        if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
+          app.roomSettings = newSettings;
+          localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
+          updated = true;
+        }
       }
       if (roomData.players) {
         const newPlayersStr = JSON.stringify(roomData.players);
@@ -482,11 +485,13 @@ export async function mergeServerDataIntoLocal(serverData) {
 
   const roomData = await fetchRoomFromNetwork(app.roomId);
   if (roomData) {
-    const newSettings = normalizeRoomSettings(roomData.settings);
-    if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
-      app.roomSettings = newSettings;
-      localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
-      updated = true;
+    if (Date.now() >= app.roomSettingsDirtyUntil) {
+      const newSettings = normalizeRoomSettings(roomData.settings);
+      if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
+        app.roomSettings = newSettings;
+        localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
+        updated = true;
+      }
     }
     if (roomData.players?.length) {
       const newPlayersStr = JSON.stringify(roomData.players);

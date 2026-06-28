@@ -8,6 +8,7 @@ import {
   assertWorldCupFileMeta,
   assertWorldCupRepo,
   githubContentsUrl,
+  githubRawUrl,
   githubRepoApiUrl
 } from './github-config.js';
 import {
@@ -96,10 +97,17 @@ async function verifyRepo(token) {
   assertWorldCupRepo(await res.json());
 }
 
+function roomDataFetchUrl(relativePath) {
+  if (isLocalDevHost()) {
+    return `${resolveAppPath(relativePath)}?t=${Date.now()}`;
+  }
+  return `${githubRawUrl(relativePath)}?t=${Date.now()}`;
+}
+
 export async function fetchRoomFromNetwork(slug) {
   const path = roomFilePath(slug);
   try {
-    const res = await fetch(`${resolveAppPath(path)}?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(roomDataFetchUrl(path), { cache: 'no-store' });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -113,13 +121,71 @@ export async function fetchRoomFromNetwork(slug) {
 
 export async function fetchRoomsIndex() {
   try {
-    const res = await fetch(`${resolveAppPath(roomsIndexPath())}?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(roomDataFetchUrl(roomsIndexPath()), { cache: 'no-store' });
     if (!res.ok) return { rooms: [] };
     const data = await res.json();
     return Array.isArray(data?.rooms) ? data : { rooms: [] };
   } catch {
     return { rooms: [] };
   }
+}
+
+function formatRoomOptionLabel(room) {
+  const name = String(room?.name || room?.id || '').trim() || room?.id;
+  const count = Number(room?.playerCount) || 0;
+  const id = room?.id === DEFAULT_ROOM_ID ? 'ห้องหลัก' : room?.id;
+  return `${name} (${id}) · ${count} คน`;
+}
+
+export async function fetchSortedRooms(preferredRoomId = app.roomId) {
+  let rooms = [];
+  try {
+    const index = await fetchRoomsIndex();
+    rooms = Array.isArray(index?.rooms) ? [...index.rooms] : [];
+  } catch {
+    rooms = [];
+  }
+
+  if (!rooms.some((r) => r.id === preferredRoomId)) {
+    rooms.unshift({
+      id: preferredRoomId,
+      name: app.roomName || preferredRoomId,
+      playerCount: Array.isArray(app.players) ? app.players.length : 0
+    });
+  }
+
+  rooms.sort((a, b) => {
+    if (a.id === DEFAULT_ROOM_ID) return -1;
+    if (b.id === DEFAULT_ROOM_ID) return 1;
+    return String(a.name || a.id).localeCompare(String(b.name || b.id), 'th');
+  });
+
+  return rooms;
+}
+
+export async function populateRoomSelect(select, preferredRoomId = app.roomId) {
+  if (!select) return [];
+
+  select.disabled = true;
+  select.innerHTML = '<option value="">กำลังโหลดรายการห้อง...</option>';
+
+  const rooms = await fetchSortedRooms(preferredRoomId);
+
+  if (!rooms.length) {
+    select.innerHTML = '<option value="">ไม่พบห้องในระบบ</option>';
+    select.disabled = true;
+    return rooms;
+  }
+
+  select.innerHTML = rooms.map((room) => {
+    const label = escapeHtml(formatRoomOptionLabel(room));
+    return `<option value="${escapeHtml(room.id)}">${label}</option>`;
+  }).join('');
+
+  const selected = rooms.some((r) => r.id === preferredRoomId) ? preferredRoomId : rooms[0].id;
+  select.value = selected;
+  select.disabled = false;
+  return rooms;
 }
 
 function pickUniqueSlug(requested, taken) {
@@ -230,6 +296,7 @@ export async function saveRoomToServer({ quiet = false } = {}) {
         })
       });
       if (res.ok) {
+        app.roomSettingsDirtyUntil = Date.now() + 120_000;
         if (!quiet) console.log(`[Room] Saved room ${app.roomId} locally`);
         return true;
       }
@@ -256,6 +323,7 @@ export async function saveRoomToServer({ quiet = false } = {}) {
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         await putGitHubJson(path, record, token, sha, `Update room ${app.roomId}`);
+        app.roomSettingsDirtyUntil = Date.now() + 120_000;
         if (app.roomId === DEFAULT_ROOM_ID) {
           // keep index player count fresh
           try {

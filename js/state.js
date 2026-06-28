@@ -17,6 +17,8 @@ export const app = {
   roomCreatedAt: null,
   roomLoaded: false,
   roomSettings: { averagePayoutRules: true },
+  /** Skip poll overwrite of room settings until this timestamp (ms). */
+  roomSettingsDirtyUntil: 0,
   broadcast: null,
   lastHighlightPlayer: '',
   lastChartRanks: {},

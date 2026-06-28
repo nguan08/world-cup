@@ -32,6 +32,14 @@ export function githubContentsUrl(filePath = GITHUB_DATA_FILE) {
   return `${githubRepoApiUrl('contents')}/${filePath}`;
 }
 
+/** Raw file URL — updates faster than GitHub Pages after API commits. */
+export function githubRawUrl(filePath) {
+  if (!isAllowedGitHubPath(filePath)) {
+    throw new Error(`อนุญาตเฉพาะ data.json, push-subscriptions.json และ rooms/*.json ใน repo world-cup`);
+  }
+  return `https://raw.githubusercontent.com/${GITHUB_REPO_FULL}/${GITHUB_BRANCH}/${filePath}`;
+}
+
 export function assertWorldCupFileMeta(meta) {
   if (!meta) throw new Error('ไม่พบข้อมูลไฟล์จาก GitHub');
   const path = meta.path || meta.name || '';
