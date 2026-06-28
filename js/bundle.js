@@ -5227,9 +5227,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPWA();
   initNotifications();
   setRecalcHook(resetTeamPopularityCache);
+  initAdminState();
   await initData();
   initRoomUI();
-  updateRoomBadge();
   updateDataSyncStatus();
   setupAutoRefresh();
   initRankSoundVoices();
@@ -5238,9 +5238,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
   attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
-
-  // Initialize admin status
-  initAdminState();
 
   // Toggle Admin Login / Logout
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');

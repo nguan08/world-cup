@@ -5,7 +5,14 @@ import { notifyDataUpdate, processBroadcast, flushPendingBroadcast, updateBroadc
 import { isMobileDevice } from './device.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
-import { DEFAULT_ROOM_ID, normalizeRoomSettings, parseRoomFromUrl, roomStorageKey } from './room.js';
+import {
+  DEFAULT_ROOM_ID,
+  getRoomUrl,
+  normalizeRoomSettings,
+  normalizeRoomSlug,
+  parseRoomFromUrl,
+  roomStorageKey
+} from './room.js';
 import { fetchRoomFromNetwork } from './room-store.js';
 import { syncAdminRoomSettingsUI } from './admin.js';
 

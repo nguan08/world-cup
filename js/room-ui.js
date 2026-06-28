@@ -67,11 +67,27 @@ async function populateRoomSwitchSelect() {
   await populateRoomSelect(select, app.roomId);
 }
 
-function handleRoomSwitch(event) {
-  const selected = event.target.value;
+async function handleRoomSwitch(event) {
+  const select = event.target;
+  const selected = select.value;
   if (!selected || selected === app.roomId || _roomSwitchBusy) return;
+
   _roomSwitchBusy = true;
-  location.href = getRoomUrl(selected);
+  select.disabled = true;
+  sessionStorage.setItem('worldcup_isAdmin', 'true');
+
+  try {
+    const { switchToRoom } = await import('./sync.js');
+    const switched = await switchToRoom(selected);
+    if (!switched) select.value = app.roomId;
+  } catch (e) {
+    console.error('[Room] switch failed:', e);
+    select.value = app.roomId;
+    alert('สลับห้องไม่สำเร็จ — ลองใหม่อีกครั้ง');
+  } finally {
+    select.disabled = false;
+    _roomSwitchBusy = false;
+  }
 }
 
 function setCreateRoomError(message = '') {

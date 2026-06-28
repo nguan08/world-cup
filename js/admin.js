@@ -1,5 +1,5 @@
 import { app } from './state.js';
-import { escapeHtml, getCachedEl } from './utils.js';
+import { getCachedEl } from './utils.js';
 import { populateRoomSelect } from './room-store.js';
 import { DEFAULT_ROOM_ID, getRoomUrl } from './room.js';
 import { updateRoomBadge } from './room-ui.js';
@@ -51,56 +51,8 @@ export function initAdminState() {
   updateAdminUI();
 }
 
-function formatRoomOptionLabel(room) {
-  const name = String(room?.name || room?.id || '').trim() || room?.id;
-  const count = Number(room?.playerCount) || 0;
-  const id = room?.id === DEFAULT_ROOM_ID ? 'ห้องหลัก' : room?.id;
-  return `${name} (${id}) · ${count} คน`;
-}
-
 export async function populateAdminRoomSelect(preferredRoomId = app.roomId) {
-  const select = document.getElementById('admin-room-select');
-  if (!select) return;
-
-  select.disabled = true;
-  select.innerHTML = '<option value="">กำลังโหลดรายการห้อง...</option>';
-
-  let rooms = [];
-  try {
-    const index = await fetchRoomsIndex();
-    rooms = Array.isArray(index?.rooms) ? [...index.rooms] : [];
-  } catch {
-    rooms = [];
-  }
-
-  if (!rooms.some((r) => r.id === app.roomId)) {
-    rooms.unshift({
-      id: app.roomId,
-      name: app.roomName || app.roomId,
-      playerCount: Array.isArray(app.players) ? app.players.length : 0
-    });
-  }
-
-  rooms.sort((a, b) => {
-    if (a.id === DEFAULT_ROOM_ID) return -1;
-    if (b.id === DEFAULT_ROOM_ID) return 1;
-    return String(a.name || a.id).localeCompare(String(b.name || b.id), 'th');
-  });
-
-  if (!rooms.length) {
-    select.innerHTML = '<option value="">ไม่พบห้องในระบบ</option>';
-    select.disabled = true;
-    return;
-  }
-
-  select.innerHTML = rooms.map((room) => {
-    const label = escapeHtml(formatRoomOptionLabel(room));
-    return `<option value="${escapeHtml(room.id)}">${label}</option>`;
-  }).join('');
-
-  const selected = rooms.some((r) => r.id === preferredRoomId) ? preferredRoomId : rooms[0].id;
-  select.value = selected;
-  select.disabled = false;
+  await populateRoomSelect(document.getElementById('admin-room-select'), preferredRoomId);
 }
 
 export async function openAdminLoginModal() {
@@ -156,7 +108,14 @@ export async function handleAdminLoginSubmit() {
   sessionStorage.setItem('worldcup_isAdmin', 'true');
 
   if (selectedRoom !== app.roomId) {
-    location.href = getRoomUrl(selectedRoom);
+    const { switchToRoom } = await import('./sync.js');
+    await switchToRoom(selectedRoom);
+    closeAdminLoginModal();
+    alert('เข้าสู่ระบบแอดมินสำเร็จ!');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'เข้าสู่ระบบ';
+    }
     return true;
   }
 
