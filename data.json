@@ -780,9 +780,9 @@
     {
       "home": "จอร์แดน",
       "away": "อาร์เจนตินา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 72
@@ -2112,8 +2112,8 @@
     "แอลจีเรีย"
   ],
   "broadcast": {
-    "id": 1782617784710,
-    "message": "⚽ อัปเดตสกอร์: โคลอมเบีย 0-0 โปรตุเกส",
-    "sentAt": "2026-06-28T03:36:24.710Z"
+    "id": 1782618857590,
+    "message": "⚽ อัปเดตสกอร์: จอร์แดน 1-3 อาร์เจนตินา",
+    "sentAt": "2026-06-28T03:54:17.590Z"
   }
 }
