@@ -734,7 +734,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 67
+      "id": 67,
+      "penaltyWinner": null
     },
     {
       "home": "โครเอเชีย",
@@ -744,7 +745,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 68
+      "id": 68,
+      "penaltyWinner": null
     },
     {
       "home": "โคลอมเบีย",
@@ -754,7 +756,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 69
+      "id": 69,
+      "penaltyWinner": null
     },
     {
       "home": "คองโก",
@@ -764,7 +767,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 70
+      "id": 70,
+      "penaltyWinner": null
     },
     {
       "home": "แอลจีเรีย",
@@ -785,7 +789,8 @@
       "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
-      "id": 72
+      "id": 72,
+      "penaltyWinner": null
     }
   ],
   "players": [
