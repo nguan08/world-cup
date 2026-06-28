@@ -10,6 +10,7 @@
     "build:icons": "node scripts/generate-pwa-icons.mjs",
     "scrape": "node update-scores.js",
     "pull:matches": "node scripts/pull-matches-from-git.mjs",
+    "pull:knockout": "node scripts/pull-knockout-from-espn.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -35,16 +35,30 @@ if (!Array.isArray(remoteData.matches)) {
   process.exit(1);
 }
 
-const localData = readJson(DATA_PATH);
-const before = Array.isArray(localData.matches) ? localData.matches.length : 0;
-const finishedBefore = (localData.matches || []).filter((m) => m.status === 'finished').length;
+function matchKey(home, away) {
+  return `${home}|${away}`;
+}
 
-localData.matches = remoteData.matches;
+const localData = readJson(DATA_PATH);
+const localMatches = Array.isArray(localData.matches) ? localData.matches : [];
+const before = localMatches.length;
+const finishedBefore = localMatches.filter((m) => m.status === 'finished').length;
+const knockoutBefore = localMatches.filter((m) => m.isKnockout).length;
+
+const remoteKeys = new Set(remoteData.matches.map((m) => matchKey(m.home, m.away)));
+const preservedKnockout = localMatches.filter(
+  (m) => m.isKnockout && !remoteKeys.has(matchKey(m.home, m.away))
+);
+
+localData.matches = [...remoteData.matches, ...preservedKnockout];
 
 writeJson(DATA_PATH, localData);
 
-const finishedAfter = remoteData.matches.filter((m) => m.status === 'finished').length;
+const finishedAfter = localData.matches.filter((m) => m.status === 'finished').length;
+const knockoutAfter = localData.matches.filter((m) => m.isKnockout).length;
 console.log(`[pull-matches] Updated matches only in data.json`);
-console.log(`  local before: ${before} matches (${finishedBefore} finished)`);
-console.log(`  from Git:     ${remoteData.matches.length} matches (${finishedAfter} finished)`);
+console.log(`  local before: ${before} matches (${finishedBefore} finished, ${knockoutBefore} knockout)`);
+console.log(`  from Git:     ${remoteData.matches.length} matches`);
+console.log(`  kept knockout: ${preservedKnockout.length} local fixture(s) not yet on Git`);
+console.log(`  total now:    ${localData.matches.length} matches (${finishedAfter} finished, ${knockoutAfter} knockout)`);
 console.log(`  kept: players (${(localData.players || []).length}), eliminatedTeams (${(localData.eliminatedTeams || []).length})`);

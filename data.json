@@ -791,6 +791,182 @@
       "date": "2026-06-28",
       "id": 72,
       "penaltyWinner": null
+    },
+    {
+      "id": 73,
+      "home": "แอฟริกาใต้",
+      "away": "แคนาดา",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-28",
+      "penaltyWinner": null
+    },
+    {
+      "id": 74,
+      "home": "บราซิล",
+      "away": "ญี่ปุ่น",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-29",
+      "penaltyWinner": null
+    },
+    {
+      "id": 75,
+      "home": "เยอรมนี",
+      "away": "ปารากวัย",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-29",
+      "penaltyWinner": null
+    },
+    {
+      "id": 76,
+      "home": "เนเธอร์แลนด์",
+      "away": "โมร็อกโก",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-30",
+      "penaltyWinner": null
+    },
+    {
+      "id": 77,
+      "home": "ฝรั่งเศส",
+      "away": "สวีเดน",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-30",
+      "penaltyWinner": null
+    },
+    {
+      "id": 78,
+      "home": "ไอเวอรีโคสต์",
+      "away": "นอร์เวย์",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-06-30",
+      "penaltyWinner": null
+    },
+    {
+      "id": 79,
+      "home": "เบลเยียม",
+      "away": "เซเนกัล",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-01",
+      "penaltyWinner": null
+    },
+    {
+      "id": 80,
+      "home": "เม็กซิโก",
+      "away": "เอกวาดอร์",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-01",
+      "penaltyWinner": null
+    },
+    {
+      "id": 81,
+      "home": "อังกฤษ",
+      "away": "คองโก",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-01",
+      "penaltyWinner": null
+    },
+    {
+      "id": 82,
+      "home": "โปรตุเกส",
+      "away": "โครเอเชีย",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-02",
+      "penaltyWinner": null
+    },
+    {
+      "id": 83,
+      "home": "สเปน",
+      "away": "ออสเตรีย",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-02",
+      "penaltyWinner": null
+    },
+    {
+      "id": 84,
+      "home": "สหรัฐอเมริกา",
+      "away": "บอสเนีย",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-02",
+      "penaltyWinner": null
+    },
+    {
+      "id": 85,
+      "home": "สวิตเซอร์แลนด์",
+      "away": "แอลจีเรีย",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-03",
+      "penaltyWinner": null
+    },
+    {
+      "id": 86,
+      "home": "ออสเตรเลีย",
+      "away": "อียิปต์",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-03",
+      "penaltyWinner": null
+    },
+    {
+      "id": 87,
+      "home": "อาร์เจนตินา",
+      "away": "เคปเวิร์ด",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-03",
+      "penaltyWinner": null
+    },
+    {
+      "id": 88,
+      "home": "โคลอมเบีย",
+      "away": "กานา",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-04",
+      "penaltyWinner": null
     }
   ],
   "players": [
