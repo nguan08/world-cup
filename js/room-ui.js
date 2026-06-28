@@ -22,6 +22,13 @@ export function updateRoomBadge() {
 
   nameEl.textContent = missing ? `ไม่พบห้อง "${app.roomId}"` : (app.roomName || app.roomId || 'ห้องหลัก');
   if (metaEl) {
+    if (!app.isAdmin) {
+      metaEl.textContent = '';
+      metaEl.hidden = true;
+      return;
+    }
+
+    metaEl.hidden = false;
     const count = Array.isArray(app.players) ? app.players.length : 0;
     const slugLabel = app.roomId === DEFAULT_ROOM_ID ? 'ห้องหลัก' : app.roomId;
     metaEl.textContent = missing
