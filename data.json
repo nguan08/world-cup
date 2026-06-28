@@ -759,9 +759,9 @@
     {
       "home": "คองโก",
       "away": "อุซเบกิสถาน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": false,
       "date": "2026-06-28",
       "id": 70
@@ -2110,8 +2110,8 @@
     "อุซเบกิสถาน"
   ],
   "broadcast": {
-    "id": 1782601030101,
-    "message": "⚽ อัปเดตสกอร์: ปานามา 0-2 อังกฤษ",
-    "sentAt": "2026-06-27T22:57:10.101Z"
+    "id": 1782615093708,
+    "message": "⚽ อัปเดตสกอร์: คองโก 3-1 อุซเบกิสถาน",
+    "sentAt": "2026-06-28T02:51:33.708Z"
   }
 }
