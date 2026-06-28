@@ -157,13 +157,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/api/status') {
+  // Parse path and normalize (strip APP_BASE prefix if any)
+  const APP_BASE = '/world-cup';
+  let urlPath = req.url.split('?')[0];
+  if (urlPath.startsWith(APP_BASE)) {
+    urlPath = urlPath.slice(APP_BASE.length);
+  }
+  if (!urlPath.startsWith('/')) {
+    urlPath = '/' + urlPath;
+  }
+
+  if (req.method === 'GET' && urlPath === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ sync: true }));
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/api/eliminated-teams') {
+  if (req.method === 'GET' && urlPath === '/api/eliminated-teams') {
     try {
       const data = readDataJson();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -176,7 +186,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if ((req.method === 'POST' || req.method === 'PATCH') && req.url === '/api/eliminated-teams') {
+  if ((req.method === 'POST' || req.method === 'PATCH') && urlPath === '/api/eliminated-teams') {
     let body = '';
     req.on('data', (chunk) => {
       body += chunk.toString();
@@ -229,7 +239,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const roomsMatch = req.url.match(/^\/api\/rooms\/([a-z0-9-]+)\/save$/);
+  const roomsMatch = urlPath.match(/^\/api\/rooms\/([a-z0-9-]+)\/save$/);
   if (req.method === 'POST' && roomsMatch) {
     parseJsonBody(req).then((payload) => {
       try {
@@ -260,7 +270,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/api/rooms') {
+  if (req.method === 'GET' && urlPath === '/api/rooms') {
     try {
       sendJson(res, 200, readRoomsIndex());
     } catch (e) {
@@ -269,7 +279,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/rooms') {
+  if (req.method === 'POST' && urlPath === '/api/rooms') {
     parseJsonBody(req).then((payload) => {
       try {
         const name = String(payload.name || '').trim();
@@ -307,7 +317,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/save') {
+  if (req.method === 'POST' && urlPath === '/api/save') {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
@@ -377,12 +387,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let requestPath = req.url.split('?')[0];
-  // Support subpath deployment e.g. /world-cup/
-  const APP_BASE = '/world-cup';
-  if (requestPath.startsWith(APP_BASE)) {
-    requestPath = requestPath.slice(APP_BASE.length) || '/';
-  }
+  let requestPath = urlPath;
   if (requestPath === '/favicon.ico') {
     const pngPath = path.join(PUBLIC_DIR, 'icons', 'icon-192.png');
     fs.access(pngPath, fs.constants.F_OK, (err) => {

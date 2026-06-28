@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v61-fetch-fallback';
+const CACHE_NAME = 'wc2026-v62-fetch-fallback';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
@@ -82,7 +82,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.pathname.endsWith('/data.json') || url.pathname.includes('/api/')) {
+  if (url.pathname.endsWith('/data.json') || url.pathname.includes('/api/') || url.pathname.includes('/rooms/')) {
     event.respondWith(networkFirstData(event.request));
     return;
   }

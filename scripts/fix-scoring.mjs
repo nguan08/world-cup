@@ -13,13 +13,14 @@ const sections = [
   [444, 450],
   [453, 546],
   [549, 577],
-  [580, 776],
-  [796, 802],
-  [803, 806],
-  [809, 821],
-  [824, 829],
-  [832, 851],
-  [853, 858],
+  [580, 772],
+  [797, 803],
+  [804, 807],
+  [810, 822],
+  [825, 830],
+  [833, 852],
+  [854, 857],
+  [859, 864],
 ];
 
 let body = sections.map(([s, e]) => slice(s, e)).join('\n\n');
@@ -34,7 +35,8 @@ body = body
 
 const STATE_KEYS = [
   'matches', 'players', 'simulationScores', 'isSyncEnabled',
-  'manualEliminatedTeams', 'teamPoints', 'processedPlayers', 'teamMatchesPlayedCounts'
+  'manualEliminatedTeams', 'teamPoints', 'processedPlayers', 'teamMatchesPlayedCounts',
+  'roomSettings'
 ];
 
 for (const key of STATE_KEYS) {

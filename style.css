@@ -4268,49 +4268,18 @@ html.pwa-standalone .mobile-header {
   background: transparent;
 }
 
-.admin-broadcast-panel {
-  display: none;
+.admin-panel-header:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.admin-collapsible-content {
+  display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: rgba(99, 102, 241, 0.08);
+  gap: 8px;
 }
 
-html.is-admin .admin-broadcast-panel,
-.admin-broadcast-panel.admin-broadcast-panel--visible {
-  display: flex !important;
-}
-
-.admin-broadcast-panel__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.admin-broadcast-panel__hint {
-  margin: 0;
-  font-size: 10px;
-  line-height: 1.35;
-  color: var(--text-muted);
-}
-
-.admin-broadcast-panel__input {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: var(--bg-primary);
-  color: #fff;
-  font-family: inherit;
-  font-size: 12px;
-}
-
-.admin-broadcast-btn {
-  width: 100%;
-  padding: 8px 12px !important;
-  font-size: 12px !important;
+.admin-collapsible-content--collapsed {
+  display: none !important;
 }
 
 .admin-login-btn {
@@ -4407,7 +4376,7 @@ html.is-admin .admin-broadcast-panel,
   .sidebar {
     transform: translateX(-100%);
     width: 280px;
-    z-index: 500;
+    z-index: 1500;
     box-shadow: 10px 0 40px rgba(0, 0, 0, 0.5);
   }
 
@@ -4421,7 +4390,7 @@ html.is-admin .admin-broadcast-panel,
     position: fixed;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 499;
+    z-index: 1499;
   }
 
   .sidebar-backdrop.active {

@@ -683,51 +683,47 @@ function processPlayers(teamScores) {
   const lastIndex = total - 1;
   const secondLastIndex = total - 2;
 
-  // Find Red Zone players and calculate average score
-  const redZonePlayers = processed.filter(p => p.zone === 'red');
+  const useAveragePayoutRules = roomSettings?.averagePayoutRules !== false;
 
   let closestToAvgPlayer = null;
-  if (redZonePlayers.length > 0) {
-    const avgScore = redZonePlayers.reduce((sum, p) => sum + p.totalScore, 0) / redZonePlayers.length;
-    closestToAvgPlayer = redZonePlayers.reduce((closest, p) => {
-      const currentDiff = Math.abs(p.totalScore - avgScore);
-      const closestDiff = Math.abs(closest.totalScore - avgScore);
-      return currentDiff < closestDiff ? p : closest;
-    });
-  }
-
-  // Find the top of Red Zone (first player in Red Zone) - DEPRECATED, use closest to avg instead
-  let topRedPlayer = null;
-  for (let i = 0; i < total; i++) {
-    if (processed[i].zone === 'red') {
-      topRedPlayer = processed[i];
-      break;
-    }
-  }
-
-  // Find Green Zone players and calculate average score for the special charge rule
-  const greenPlayers = processed.filter(p => p.zone === 'green');
   let closestToAvgGreen = null;
-  if (greenPlayers.length > 0) {
-    const greenAvgScore = greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length;
-    closestToAvgGreen = greenPlayers.reduce((closest, p) => {
-      if (!closest) return p;
-      const currentDiff = Math.abs(p.totalScore - greenAvgScore);
-      const closestDiff = Math.abs(closest.totalScore - greenAvgScore);
-      return currentDiff < closestDiff ? p : closest;
-    }, null);
-  }
-
-  // Find overall average score for the all-player charging rule
   let closestToAvgAll = null;
-  if (total > 0) {
-    const overallAvgScore = processed.reduce((sum, p) => sum + p.totalScore, 0) / total;
-    closestToAvgAll = processed.reduce((closest, p) => {
-      if (!closest) return p;
-      const currentDiff = Math.abs(p.totalScore - overallAvgScore);
-      const closestDiff = Math.abs(closest.totalScore - overallAvgScore);
-      return currentDiff < closestDiff ? p : closest;
-    }, null);
+
+  if (useAveragePayoutRules) {
+    // Find Red Zone players and calculate average score
+    const redZonePlayers = processed.filter(p => p.zone === 'red');
+
+    if (redZonePlayers.length > 0) {
+      const avgScore = redZonePlayers.reduce((sum, p) => sum + p.totalScore, 0) / redZonePlayers.length;
+      closestToAvgPlayer = redZonePlayers.reduce((closest, p) => {
+        const currentDiff = Math.abs(p.totalScore - avgScore);
+        const closestDiff = Math.abs(closest.totalScore - avgScore);
+        return currentDiff < closestDiff ? p : closest;
+      });
+    }
+
+    // Find Green Zone players and calculate average score for the special charge rule
+    const greenPlayers = processed.filter(p => p.zone === 'green');
+    if (greenPlayers.length > 0) {
+      const greenAvgScore = greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length;
+      closestToAvgGreen = greenPlayers.reduce((closest, p) => {
+        if (!closest) return p;
+        const currentDiff = Math.abs(p.totalScore - greenAvgScore);
+        const closestDiff = Math.abs(closest.totalScore - greenAvgScore);
+        return currentDiff < closestDiff ? p : closest;
+      }, null);
+    }
+
+    // Find overall average score for the all-player charging rule
+    if (total > 0) {
+      const overallAvgScore = processed.reduce((sum, p) => sum + p.totalScore, 0) / total;
+      closestToAvgAll = processed.reduce((closest, p) => {
+        if (!closest) return p;
+        const currentDiff = Math.abs(p.totalScore - overallAvgScore);
+        const closestDiff = Math.abs(closest.totalScore - overallAvgScore);
+        return currentDiff < closestDiff ? p : closest;
+      }, null);
+    }
   }
 
   processed.forEach((p, idx) => {
@@ -778,6 +774,7 @@ function processPlayers(teamScores) {
 // Global calculated state
 let teamPoints = {};
 let processedPlayers = [];
+let roomSettings = null;
 let manualEliminatedTeams = new Set();
 let lastHighlightPlayer = "";
 let lastChartRanks = {};
@@ -852,6 +849,11 @@ function isTeamEliminated(teamName) {
   }
 
   return false;
+}
+
+function getPlayerRemainingTeamCount(teams) {
+  if (!teams?.length) return 0;
+  return teams.filter(t => !isTeamEliminated(t)).length;
 }
 
 function recalculateAll() {
@@ -6211,9 +6213,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       } else {
         // Show login modal
-        document.getElementById('admin-password-input').value = '';
-        document.getElementById('login-error-msg').style.display = 'none';
-        document.getElementById('admin-login-overlay').classList.add('active');
+        if (typeof openAdminLoginModal === 'function') {
+          openAdminLoginModal();
+        } else {
+          document.getElementById('admin-password-input').value = '';
+          document.getElementById('login-error-msg').style.display = 'none';
+          document.getElementById('admin-login-overlay').classList.add('active');
+        }
       }
     });
   }

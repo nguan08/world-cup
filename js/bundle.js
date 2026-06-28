@@ -16,14 +16,10 @@ import {
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
 import { saveToServer, saveEliminatedTeamsToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
-import {
-  initAdminState, updateAdminUI,
-  openAdminLoginModal, closeAdminLoginModal, handleAdminLoginSubmit
-} from './admin.js';
+import { initAdminState, updateAdminUI, openAdminLoginModal } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
-import { initRoomUI, updateRoomBadge } from './room-ui.js';
-import { roomStorageKey } from './room.js';
+import { initRoomUI } from './room-ui.js';
 
 // Lock background scroll while player stats drawer is open (prevents scroll chaining on mobile/desktop)
 app._playerDrawerSavedScrollY = 0;
@@ -1672,18 +1668,14 @@ function renderLeaderboard(options = {}) {
     const redPlayers = fullPlayers.filter(p => p.zone === 'red');
     const redAvg = redPlayers.length ? (redPlayers.reduce((sum, p) => sum + p.totalScore, 0) / redPlayers.length) : 0;
 
-    const avgRulesOn = app.roomSettings?.averagePayoutRules !== false;
-    avgNoteEl.innerHTML = avgRulesOn
-      ? `<span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
+    avgNoteEl.innerHTML = `
+      <span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
         หมายเหตุ: 
         <span style="color:#f43f5e">ค่าเฉลี่ยทั้งหมด (ต้องจ่าย) ${overallAvg.toFixed(1)}</span> • 
         <span style="color:#f43f5e">Green Zone (ต้องจ่าย) ${greenAvg.toFixed(1)}</span> • 
         <span style="color:#34d399">Red Zone (ไม่ต้องจ่าย) ${redAvg.toFixed(1)}</span>
-      </span>`
-      : `<span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
-        หมายเหตุ: กฎค่าเฉลี่ยต้องจ่ายเงินปิดอยู่ในห้องนี้
-        (ค่าเฉลี่ยรวม ${overallAvg.toFixed(1)} · Green ${greenAvg.toFixed(1)} · Red ${redAvg.toFixed(1)})
-      </span>`;
+      </span>
+    `;
   }
 }
 
@@ -2691,7 +2683,7 @@ function deleteMatch(matchId) {
     // Track deleted matches to persist on page loads with safety try-catch
     let deletedMatches = [];
     try {
-      deletedMatches = JSON.parse(localStorage.getItem(roomStorageKey('deleted_matches')) || localStorage.getItem('worldcup_deleted_matches') || '[]');
+      deletedMatches = JSON.parse(localStorage.getItem('worldcup_deleted_matches') || '[]');
       if (!Array.isArray(deletedMatches)) deletedMatches = [];
     } catch (e) {
       console.error(e);
@@ -2699,10 +2691,10 @@ function deleteMatch(matchId) {
 
     if (!deletedMatches.some(id => id == matchId)) {
       deletedMatches.push(matchId);
-      localStorage.setItem(roomStorageKey('deleted_matches'), JSON.stringify(deletedMatches));
+      localStorage.setItem('worldcup_deleted_matches', JSON.stringify(deletedMatches));
     }
 
-    localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
+    localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
     await saveToServer();
     recalculateAll();
     renderMatches();
@@ -2870,7 +2862,7 @@ function setupMatchCardListeners() {
         // Track manual scores edits with safety try-catch
         let manuallyEditedMatches = [];
         try {
-          manuallyEditedMatches = JSON.parse(localStorage.getItem(roomStorageKey('manually_edited_matches')) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
           if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
         } catch (e) {
           console.error(e);
@@ -2878,10 +2870,10 @@ function setupMatchCardListeners() {
 
         if (!manuallyEditedMatches.some(id => id == matchId)) {
           manuallyEditedMatches.push(matchId);
-          localStorage.setItem(roomStorageKey('manually_edited_matches'), JSON.stringify(manuallyEditedMatches));
+          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
 
-        localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         const synced = await saveAdminScoreUpdate([match]);
         alert(synced
           ? 'บันทึกสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
@@ -2906,7 +2898,7 @@ function setupMatchCardListeners() {
         // Track manual score clear with safety try-catch
         let manuallyEditedMatches = [];
         try {
-          manuallyEditedMatches = JSON.parse(localStorage.getItem(roomStorageKey('manually_edited_matches')) || localStorage.getItem('worldcup_manually_edited_matches') || '[]');
+          manuallyEditedMatches = JSON.parse(localStorage.getItem('worldcup_manually_edited_matches') || '[]');
           if (!Array.isArray(manuallyEditedMatches)) manuallyEditedMatches = [];
         } catch (e) {
           console.error(e);
@@ -2914,10 +2906,10 @@ function setupMatchCardListeners() {
 
         if (!manuallyEditedMatches.some(id => id == matchId)) {
           manuallyEditedMatches.push(matchId);
-          localStorage.setItem(roomStorageKey('manually_edited_matches'), JSON.stringify(manuallyEditedMatches));
+          localStorage.setItem('worldcup_manually_edited_matches', JSON.stringify(manuallyEditedMatches));
         }
 
-        localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
+        localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
         const synced = await saveAdminScoreUpdate([match], { cleared: true });
         alert(synced
           ? 'ล้างสกอร์ ซิงค์ GitHub และแจ้งเตือนทุกคนแล้ว!'
@@ -4828,7 +4820,7 @@ function bindPlayerDrawerAdminButtons(player, playerName) {
       if (!app.isAdmin) return;
       showCustomConfirm(`คุณต้องการลบผู้เล่น "${player.name}" ใช่หรือไม่?`, async () => {
         app.players= app.players.filter(p => p.name !== playerName);
-        localStorage.setItem(roomStorageKey('players'), JSON.stringify(app.players));
+        localStorage.setItem('worldcup_players', JSON.stringify(app.players));
         if (app.isSyncEnabled) await saveToServer();
         hidePlayerDetailsDrawer();
         recalculateAll();
@@ -5196,7 +5188,7 @@ async function handleMatchFormSubmit() {
   };
 
   app.matches.push(newMatch);
-  localStorage.setItem(roomStorageKey('matches'), JSON.stringify(app.matches));
+  localStorage.setItem('worldcup_matches', JSON.stringify(app.matches));
   await saveToServer();
 
   closeMatchForm();
@@ -5224,12 +5216,11 @@ export function refreshActivePage() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   registerRefreshPage(refreshActivePage);
+  initRoomUI();
   initPWA();
   initNotifications();
   setRecalcHook(resetTeamPopularityCache);
-  initAdminState();
   await initData();
-  initRoomUI();
   updateDataSyncStatus();
   setupAutoRefresh();
   initRankSoundVoices();
@@ -5238,6 +5229,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   attachOutsideCloseForPlayerDrawer();  // Mobile: close player stats drawer when tapping outside / top menu / main content
   attachPlayerRowOpenHandlers();        // NEW: robust tbody-delegated opener for player details drawer (top-10, leaderboard, players table)
   attachStatsFinalGuessPlayerHandlers(); // Stats final-guess bar player chips
+
+  // Initialize admin status
+  initAdminState();
 
   // Toggle Admin Login / Logout
   const adminToggleBtn = document.getElementById('admin-login-toggle-btn');
@@ -5259,7 +5253,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('ออกจากระบบแอดมินเรียบร้อย');
         });
       } else {
-        void openAdminLoginModal();
+        // Show login modal
+        if (typeof openAdminLoginModal === 'function') {
+          openAdminLoginModal();
+        } else {
+          document.getElementById('admin-password-input').value = '';
+          document.getElementById('login-error-msg').style.display = 'none';
+          document.getElementById('admin-login-overlay').classList.add('active');
+        }
       }
     });
   }
@@ -5747,14 +5748,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   const closeLoginBtn = document.getElementById('close-login-btn');
   if (closeLoginBtn) {
-    closeLoginBtn.addEventListener('click', closeAdminLoginModal);
+    closeLoginBtn.addEventListener('click', () => {
+      document.getElementById('admin-login-overlay').classList.remove('active');
+    });
   }
 
+  // Handle admin login submission
   const loginForm = document.getElementById('admin-login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      void handleAdminLoginSubmit();
+      const password = document.getElementById('admin-password-input').value;
+      const errorMsg = document.getElementById('login-error-msg');
+
+      if (password === app.ADMIN_PASSWORD) {
+        app.isAdmin = true;
+        sessionStorage.setItem('worldcup_isAdmin', 'true');
+        updateAdminUI();
+        errorMsg.style.display = 'none';
+        document.getElementById('admin-login-overlay').classList.remove('active');
+
+        recalculateAll();
+        // rerender current active view
+        if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
+        if (document.getElementById('leaderboard').classList.contains('active')) renderLeaderboard({ forceRecalc: false });
+        if (document.getElementById('matches').classList.contains('active')) renderMatches();
+        if (document.getElementById('players').classList.contains('active')) renderPlayers();
+        if (document.getElementById('statistics') && document.getElementById('statistics').classList.contains('active')) renderStatistics();
+
+        alert('เข้าสู่ระบบแอดมินสำเร็จ!');
+      } else {
+        errorMsg.style.display = 'block';
+        document.getElementById('admin-password-input').value = '';
+        document.getElementById('admin-password-input').focus();
+      }
     });
   }
 
@@ -5965,7 +5992,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    localStorage.setItem(roomStorageKey('players'), JSON.stringify(app.players));
+    localStorage.setItem('worldcup_players', JSON.stringify(app.players));
     if (app.isSyncEnabled) {
       await saveToServer();
     }

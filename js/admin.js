@@ -144,13 +144,6 @@ export async function handleAdminLoginSubmit() {
   return true;
 }
 
-function setBroadcastPanelVisible(visible) {
-  const broadcastPanel = document.getElementById('admin-broadcast-panel');
-  if (!broadcastPanel) return;
-  broadcastPanel.classList.toggle('admin-broadcast-panel--visible', visible);
-  broadcastPanel.setAttribute('aria-hidden', visible ? 'false' : 'true');
-}
-
 function setRoomSettingsPanelVisible(visible) {
   const panel = document.getElementById('admin-room-settings-panel');
   if (!panel) return;
@@ -171,12 +164,15 @@ export function updateAdminUI() {
   const adminLoginToggleBtn = document.getElementById('admin-login-toggle-btn');
   const resetAllBtn = document.getElementById('reset-all-btn');
 
+  const adminPanelHeader = document.getElementById('admin-panel-header');
+  const collapsibleContent = document.getElementById('admin-collapsible-content');
+  const toggleIcon = document.getElementById('admin-panel-toggle-icon');
+
   document.documentElement.classList.toggle('is-admin', Boolean(app.isAdmin));
   
   if (app.isAdmin) {
     if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'block';
     if (openAddMatchBtn) openAddMatchBtn.style.display = 'block';
-    setBroadcastPanelVisible(true);
     setRoomSettingsPanelVisible(true);
     syncAdminRoomSettingsUI();
     if (adminLoginToggleBtn) {
@@ -186,6 +182,34 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = 'linear-gradient(135deg, var(--accent), #e11d48)';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'block';
+
+    if (adminPanelHeader) {
+      adminPanelHeader.style.display = 'flex';
+      if (!adminPanelHeader._toggleBound) {
+        adminPanelHeader._toggleBound = true;
+        adminPanelHeader.addEventListener('click', () => {
+          const currentCollapsed = localStorage.getItem('worldcup_adminPanelCollapsed') === 'true';
+          const newCollapsed = !currentCollapsed;
+          localStorage.setItem('worldcup_adminPanelCollapsed', String(newCollapsed));
+          
+          if (collapsibleContent) {
+            collapsibleContent.classList.toggle('admin-collapsible-content--collapsed', newCollapsed);
+          }
+          if (toggleIcon) {
+            toggleIcon.textContent = newCollapsed ? '▼' : '▲';
+          }
+        });
+      }
+    }
+
+    const isCollapsed = localStorage.getItem('worldcup_adminPanelCollapsed') === 'true';
+    if (collapsibleContent) {
+      collapsibleContent.classList.toggle('admin-collapsible-content--collapsed', isCollapsed);
+    }
+    if (toggleIcon) {
+      toggleIcon.textContent = isCollapsed ? '▼' : '▲';
+    }
+
   } else {
     if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'none';
     if (openAddMatchBtn) openAddMatchBtn.style.display = 'none';
@@ -196,8 +220,10 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = '';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'none';
-    setBroadcastPanelVisible(false);
     setRoomSettingsPanelVisible(false);
+
+    if (adminPanelHeader) adminPanelHeader.style.display = 'none';
+    if (collapsibleContent) collapsibleContent.classList.remove('admin-collapsible-content--collapsed');
   }
 
 

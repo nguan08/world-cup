@@ -1,7 +1,6 @@
 import { TEAMS } from './constants.js';
 import { app } from './state.js';
 import { saveToServer } from './persist.js';
-import { roomStorageKey } from './room.js';
 
 let _recalcHook = null;
 export function setRecalcHook(fn) { _recalcHook = typeof fn === 'function' ? fn : null; }
@@ -252,7 +251,9 @@ export function processPlayers(teamScores) {
   let closestToAvgAll = null;
 
   if (useAveragePayoutRules) {
+    // Find Red Zone app.players and calculate average score
     const redZonePlayers = processed.filter(p => p.zone === 'red');
+
     if (redZonePlayers.length > 0) {
       const avgScore = redZonePlayers.reduce((sum, p) => sum + p.totalScore, 0) / redZonePlayers.length;
       closestToAvgPlayer = redZonePlayers.reduce((closest, p) => {
@@ -262,6 +263,7 @@ export function processPlayers(teamScores) {
       });
     }
 
+    // Find Green Zone app.players and calculate average score for the special charge rule
     const greenPlayers = processed.filter(p => p.zone === 'green');
     if (greenPlayers.length > 0) {
       const greenAvgScore = greenPlayers.reduce((sum, p) => sum + p.totalScore, 0) / greenPlayers.length;
@@ -273,6 +275,7 @@ export function processPlayers(teamScores) {
       }, null);
     }
 
+    // Find overall average score for the all-player charging rule
     if (total > 0) {
       const overallAvgScore = processed.reduce((sum, p) => sum + p.totalScore, 0) / total;
       closestToAvgAll = processed.reduce((closest, p) => {
@@ -344,8 +347,7 @@ export function getPlayerTotalMatchesPlayed(playerTeams) {
 
 export function loadEliminatedTeams() {
   if (app.isSyncEnabled) return; // Do not load from localstorage if sync is enabled
-  const stored = localStorage.getItem(roomStorageKey('eliminated_teams'))
-    || localStorage.getItem('worldcup_eliminated_teams');
+  const stored = localStorage.getItem('worldcup_eliminated_teams');
   if (stored) {
     try {
       app.manualEliminatedTeams = new Set(JSON.parse(stored));
@@ -358,9 +360,10 @@ export function loadEliminatedTeams() {
 }
 
 export async function saveEliminatedTeams() {
-  localStorage.setItem(roomStorageKey('eliminated_teams'), JSON.stringify(Array.from(app.manualEliminatedTeams)));
-  const { saveEliminatedTeamsToServer } = await import('./persist.js');
-  await saveEliminatedTeamsToServer({ quiet: true });
+  localStorage.setItem('worldcup_eliminated_teams', JSON.stringify(Array.from(app.manualEliminatedTeams)));
+  if (app.isSyncEnabled) {
+    await saveToServer();
+  }
 }
 
 export function isTeamEliminated(teamName) {
@@ -386,7 +389,7 @@ export function isTeamEliminated(teamName) {
 
 export function getPlayerRemainingTeamCount(teams) {
   if (!teams?.length) return 0;
-  return teams.filter((t) => !isTeamEliminated(t)).length;
+  return teams.filter(t => !isTeamEliminated(t)).length;
 }
 
 export function recalculateAll() {

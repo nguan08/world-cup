@@ -18,7 +18,6 @@
   <link rel="dns-prefetch" href="https://flagcdn.com">
   <link rel="stylesheet" href="style.css?v=20260626-mobile-remaining">
   <style>
-    #admin-broadcast-panel:not(.admin-broadcast-panel--visible),
     #admin-room-settings-panel:not(.admin-room-settings-panel--visible){display:none!important}
   </style>
   <script>
@@ -179,27 +178,28 @@
         </button>
 
         <div id="admin-actions" class="admin-actions">
-          <button type="button" class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
-            <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            เพิ่มผู้เล่นใหม่
-          </button>
-          <div id="admin-room-settings-panel" class="admin-room-settings-panel" aria-hidden="true">
-            <div class="admin-room-settings-panel__label">ตั้งค่าห้องนี้</div>
-            <label class="admin-room-settings-toggle" for="room-setting-average-payout">
-              <input type="checkbox" id="room-setting-average-payout" checked>
-              <span>เปิดกฎค่าเฉลี่ยต้องจ่ายเงิน</span>
-            </label>
-            <p class="admin-room-settings-hint">ปิด = ไม่คิดยกเว้น Red / ชาร์จ Green / ชาร์จค่าเฉลี่ยรวม</p>
-            <div class="admin-room-settings-actions">
-              <button type="button" class="btn btn-secondary admin-room-settings-save-btn" id="room-settings-save-btn" disabled>บันทึกการตั้งค่า</button>
-              <span class="admin-room-settings-save-status" id="room-settings-save-status" aria-live="polite"></span>
-            </div>
+          <div id="admin-panel-header" class="admin-panel-header" style="display: none; justify-content: space-between; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; border: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+            <span>🛠️ เมนูแอดมิน</span>
+            <span id="admin-panel-toggle-icon">▲</span>
           </div>
-          <div id="admin-broadcast-panel" class="admin-broadcast-panel" aria-hidden="true">
-            <div class="admin-broadcast-panel__label">ส่งแจ้งเตือนถึงทุกคน</div>
-            <p class="admin-broadcast-panel__hint">เครื่องอื่นจะได้รับแจ้งเตือนภายใน ~30 วินาที</p>
-            <input type="text" id="admin-broadcast-message" class="admin-broadcast-panel__input" maxlength="200" placeholder="ข้อความ เช่น ผลอัปเดตแล้ว มาดูเลย!" autocomplete="off">
-            <button type="button" class="btn btn-secondary admin-broadcast-btn" id="admin-broadcast-btn">🔔 ส่งถึงทุกคน</button>
+          
+          <div id="admin-collapsible-content" class="admin-collapsible-content">
+            <button type="button" class="btn btn-primary sidebar-add-btn" id="open-add-player-btn">
+              <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              เพิ่มผู้เล่นใหม่
+            </button>
+            <div id="admin-room-settings-panel" class="admin-room-settings-panel" aria-hidden="true">
+              <div class="admin-room-settings-panel__label">ตั้งค่าห้องนี้</div>
+              <label class="admin-room-settings-toggle" for="room-setting-average-payout">
+                <input type="checkbox" id="room-setting-average-payout" checked>
+                <span>เปิดกฎค่าเฉลี่ยต้องจ่ายเงิน</span>
+              </label>
+              <p class="admin-room-settings-hint">ปิด = ไม่คิดยกเว้น Red / ชาร์จ Green / ชาร์จค่าเฉลี่ยรวม</p>
+              <div class="admin-room-settings-actions">
+                <button type="button" class="btn btn-secondary admin-room-settings-save-btn" id="room-settings-save-btn" disabled>บันทึกการตั้งค่า</button>
+                <span class="admin-room-settings-save-status" id="room-settings-save-status" aria-live="polite"></span>
+              </div>
+            </div>
           </div>
           <button type="button" class="btn btn-secondary admin-login-btn" id="admin-login-toggle-btn">
             Admin

@@ -60,9 +60,10 @@ import {
   setupAutoRefresh, updateDataSyncStatus, registerRefreshPage
 } from './sync.js';
 import { saveToServer, saveEliminatedTeamsToServer, sendBroadcastNotification, saveAdminScoreUpdate } from './persist.js';
-import { initAdminState, updateAdminUI } from './admin.js';
+import { initAdminState, updateAdminUI, openAdminLoginModal } from './admin.js';
 import { initPWA } from './pwa.js';
 import { initNotifications, notifyDataUpdate } from './notifications.js';
+import { initRoomUI } from './room-ui.js';
 
 `;
 
@@ -252,6 +253,7 @@ bundleCode = bundleCode.replace(
 
 document.addEventListener('DOMContentLoaded', async () => {
   registerRefreshPage(refreshActivePage);
+  initRoomUI();
   initPWA();
   initNotifications();
   setRecalcHook(resetTeamPopularityCache);`
