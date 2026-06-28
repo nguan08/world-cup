@@ -306,7 +306,11 @@ export async function saveRoomToServer({ quiet = false } = {}) {
   }
 
   const token = getGitHubWriteToken();
-  if (!token) return false;
+  if (!token) {
+    const err = new Error('ไม่มีสิทธิ์บันทึก — เข้าสู่ระบบแอดมินก่อน');
+    if (!quiet) throw err;
+    return false;
+  }
 
   try {
     await verifyRepo(token);

@@ -2,7 +2,7 @@ import { app } from './state.js';
 import { getCachedEl } from './utils.js';
 import { populateRoomSelect } from './room-store.js';
 import { DEFAULT_ROOM_ID, getRoomUrl } from './room.js';
-import { updateRoomBadge } from './room-ui.js';
+import { syncRoomSettingsSaveUI, updateRoomBadge } from './room-ui.js';
 
 const GITHUB_TOKEN_KEY = 'worldcup_githubToken';
 const GITHUB_TOKEN_BUILTIN = [103,105,116,104,117,98,95,112,97,116,95,49,49,65,68,89,75,65,71,89,48,118,115,84,51,80,114,105,122,72,122,114,65,95,79,109,120,72,113,65,104,85,70,111,68,48,68,85,67,120,70,120,100,104,113,106,108,102,48,75,83,74,117,89,108,69,105,89,111,114,70,85,112,68,57,65,89,74,83,77,51,53,81,66,67,82,49,102,107,121,72,50,81]
@@ -162,6 +162,7 @@ export function syncAdminRoomSettingsUI() {
   const checkbox = document.getElementById('room-setting-average-payout');
   if (!checkbox) return;
   checkbox.checked = app.roomSettings?.averagePayoutRules !== false;
+  syncRoomSettingsSaveUI();
 }
 
 export function updateAdminUI() {

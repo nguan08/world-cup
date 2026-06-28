@@ -182,44 +182,96 @@ async function copyCurrentRoomLink() {
   }
 }
 
-async function handleAveragePayoutToggle(event) {
+function savedAveragePayoutEnabled() {
+  return app.roomSettings?.averagePayoutRules !== false;
+}
+
+export function syncRoomSettingsSaveUI() {
+  const checkbox = document.getElementById('room-setting-average-payout');
+  const btn = document.getElementById('room-settings-save-btn');
+  const status = document.getElementById('room-settings-save-status');
+  if (!checkbox || !btn) return;
+
+  const dirty = Boolean(checkbox.checked) !== savedAveragePayoutEnabled();
+  btn.disabled = !dirty || btn.dataset.busy === '1';
+  btn.textContent = btn.dataset.busy === '1' ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า';
+
+  if (dirty && status) {
+    status.textContent = 'มีการเปลี่ยนแปลง — กดบันทึก';
+    status.classList.remove('admin-room-settings-save-status--error');
+  } else if (status && status.textContent === 'มีการเปลี่ยนแปลง — กดบันทึก') {
+    status.textContent = '';
+    status.classList.remove('admin-room-settings-save-status--error');
+  }
+}
+
+function handleAveragePayoutChange(event) {
   if (!app.isAdmin) {
-    event.target.checked = app.roomSettings?.averagePayoutRules !== false;
+    event.target.checked = savedAveragePayoutEnabled();
     return;
   }
+  syncRoomSettingsSaveUI();
+}
 
-  const enabled = Boolean(event.target.checked);
+function refreshViewsAfterSettingsSave() {
+  recalculateAll();
+  import('./bundle.js').then((m) => {
+    if (document.getElementById('leaderboard')?.classList.contains('active')) {
+      m.renderLeaderboard({ forceRecalc: false });
+    }
+    if (document.getElementById('payout')?.classList.contains('active')) {
+      m.renderPayout();
+    }
+    if (document.getElementById('dashboard')?.classList.contains('active')) {
+      m.renderDashboard();
+    }
+  });
+}
+
+function setRoomSettingsSaveStatus(message = '', isError = false) {
+  const status = document.getElementById('room-settings-save-status');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('admin-room-settings-save-status--error', Boolean(isError && message));
+}
+
+async function handleSaveRoomSettings() {
+  if (!app.isAdmin) return;
+
+  const checkbox = document.getElementById('room-setting-average-payout');
+  const btn = document.getElementById('room-settings-save-btn');
+  if (!checkbox || !btn || btn.disabled) return;
+
+  const enabled = Boolean(checkbox.checked);
   app.roomSettings = { ...app.roomSettings, averagePayoutRules: enabled };
   app.roomSettingsDirtyUntil = Date.now() + 120_000;
   localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
 
+  btn.dataset.busy = '1';
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
+  setRoomSettingsSaveStatus('');
+
   try {
-    const ok = await saveRoomToServer({ quiet: true });
-    if (!ok) throw new Error('บันทึกการตั้งค่าไม่สำเร็จ');
-    recalculateAll();
-    import('./bundle.js').then((m) => {
-      if (document.getElementById('leaderboard')?.classList.contains('active')) {
-        m.renderLeaderboard({ forceRecalc: false });
-      }
-      if (document.getElementById('payout')?.classList.contains('active')) {
-        m.renderPayout();
-      }
-      if (document.getElementById('dashboard')?.classList.contains('active')) {
-        m.renderDashboard();
-      }
-    });
+    const ok = await saveRoomToServer({ quiet: false });
+    if (!ok) {
+      throw new Error('บันทึกไม่สำเร็จ — ตรวจสอบว่าเข้าสู่ระบบแอดมินแล้ว');
+    }
+    refreshViewsAfterSettingsSave();
+    setRoomSettingsSaveStatus('บันทึกแล้ว');
   } catch (e) {
-    app.roomSettings = { ...app.roomSettings, averagePayoutRules: !enabled };
-    app.roomSettingsDirtyUntil = 0;
-    event.target.checked = !enabled;
-    localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
+    setRoomSettingsSaveStatus(e.message || 'บันทึกไม่สำเร็จ', true);
     alert(e.message || 'บันทึกการตั้งค่าไม่สำเร็จ');
+  } finally {
+    delete btn.dataset.busy;
+    syncRoomSettingsSaveUI();
   }
 }
 
 export function initRoomUI() {
   updateRoomBadge();
   syncAdminRoomSettingsUI();
+  syncRoomSettingsSaveUI();
 
   document.getElementById('room-switch-select')?.addEventListener('change', handleRoomSwitch);
   document.getElementById('open-create-room-btn')?.addEventListener('click', openCreateRoomModal);
@@ -238,5 +290,6 @@ export function initRoomUI() {
     if (e.target.id === 'create-room-overlay') closeCreateRoomModal();
   });
 
-  document.getElementById('room-setting-average-payout')?.addEventListener('change', handleAveragePayoutToggle);
+  document.getElementById('room-setting-average-payout')?.addEventListener('change', handleAveragePayoutChange);
+  document.getElementById('room-settings-save-btn')?.addEventListener('click', handleSaveRoomSettings);
 }
