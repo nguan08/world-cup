@@ -194,6 +194,6 @@
     }
   ],
   "settings": {
-    "averagePayoutRules": true
+    "averagePayoutRules": false
   }
 }
