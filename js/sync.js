@@ -5,8 +5,9 @@ import { notifyDataUpdate, processBroadcast, flushPendingBroadcast, updateBroadc
 import { isMobileDevice } from './device.js';
 import { saveToServer } from './persist.js';
 import { isLocalDevHost, resolveAppPath } from './app-path.js';
-import { DEFAULT_ROOM_ID, parseRoomFromUrl, roomStorageKey } from './room.js';
+import { DEFAULT_ROOM_ID, normalizeRoomSettings, parseRoomFromUrl, roomStorageKey } from './room.js';
 import { fetchRoomFromNetwork } from './room-store.js';
+import { syncAdminRoomSettingsUI } from './admin.js';
 
 export { saveToServer };
 
@@ -63,8 +64,10 @@ async function loadRoomPlayers(serverData) {
   if (roomData) {
     app.roomName = roomData.name || app.roomId;
     app.roomCreatedAt = roomData.createdAt || null;
+    app.roomSettings = normalizeRoomSettings(roomData.settings);
     app.players = Array.isArray(roomData.players) ? roomData.players : [];
     localStorage.setItem(cache.players, JSON.stringify(app.players));
+    localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
     app.roomLoaded = true;
     return;
   }
@@ -72,6 +75,7 @@ async function loadRoomPlayers(serverData) {
   if (app.roomId !== DEFAULT_ROOM_ID) {
     app.roomName = app.roomId;
     app.players = [];
+    app.roomSettings = normalizeRoomSettings(null);
     app.roomLoaded = false;
     return;
   }
@@ -86,6 +90,9 @@ async function loadRoomPlayers(serverData) {
     app.players = [...INITIAL_PLAYERS];
   }
   app.roomName = 'ห้องหลัก';
+  app.roomSettings = normalizeRoomSettings(
+    JSON.parse(localStorage.getItem(roomStorageKey('settings')) || 'null')
+  );
   app.roomLoaded = true;
   localStorage.setItem(cache.players, JSON.stringify(app.players));
 }
@@ -337,13 +344,21 @@ export async function mergeServerDataIntoLocal(serverData) {
     }
 
     const roomData = await fetchRoomFromNetwork(app.roomId);
-    if (roomData?.players) {
-      const newPlayersStr = JSON.stringify(roomData.players);
-      if (JSON.stringify(app.players) !== newPlayersStr) {
-        app.players = roomData.players;
-        app.roomName = roomData.name || app.roomName;
-        localStorage.setItem(cache.players, JSON.stringify(app.players));
+    if (roomData) {
+      const newSettings = normalizeRoomSettings(roomData.settings);
+      if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
+        app.roomSettings = newSettings;
+        localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
         updated = true;
+      }
+      if (roomData.players) {
+        const newPlayersStr = JSON.stringify(roomData.players);
+        if (JSON.stringify(app.players) !== newPlayersStr) {
+          app.players = roomData.players;
+          app.roomName = roomData.name || app.roomName;
+          localStorage.setItem(cache.players, JSON.stringify(app.players));
+          updated = true;
+        }
       }
     }
     return updated;
@@ -381,12 +396,20 @@ export async function mergeServerDataIntoLocal(serverData) {
   });
 
   const roomData = await fetchRoomFromNetwork(app.roomId);
-  if (roomData?.players?.length) {
-    const newPlayersStr = JSON.stringify(roomData.players);
-    if (JSON.stringify(app.players) !== newPlayersStr) {
-      app.players = roomData.players;
-      localStorage.setItem(cache.players, JSON.stringify(app.players));
+  if (roomData) {
+    const newSettings = normalizeRoomSettings(roomData.settings);
+    if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
+      app.roomSettings = newSettings;
+      localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
       updated = true;
+    }
+    if (roomData.players?.length) {
+      const newPlayersStr = JSON.stringify(roomData.players);
+      if (JSON.stringify(app.players) !== newPlayersStr) {
+        app.players = roomData.players;
+        localStorage.setItem(cache.players, JSON.stringify(app.players));
+        updated = true;
+      }
     }
   }
 
@@ -424,6 +447,7 @@ export async function pollServerData() {
     if (!res.ok) return;
     const serverData = await res.json();
     const changed = await mergeServerDataIntoLocal(serverData);
+    syncAdminRoomSettingsUI();
     if (serverData.broadcast) {
       app.broadcast = serverData.broadcast;
       updateBroadcastBanner(serverData.broadcast);

@@ -1669,14 +1669,18 @@ function renderLeaderboard(options = {}) {
     const redPlayers = fullPlayers.filter(p => p.zone === 'red');
     const redAvg = redPlayers.length ? (redPlayers.reduce((sum, p) => sum + p.totalScore, 0) / redPlayers.length) : 0;
 
-    avgNoteEl.innerHTML = `
-      <span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
+    const avgRulesOn = app.roomSettings?.averagePayoutRules !== false;
+    avgNoteEl.innerHTML = avgRulesOn
+      ? `<span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
         หมายเหตุ: 
         <span style="color:#f43f5e">ค่าเฉลี่ยทั้งหมด (ต้องจ่าย) ${overallAvg.toFixed(1)}</span> • 
         <span style="color:#f43f5e">Green Zone (ต้องจ่าย) ${greenAvg.toFixed(1)}</span> • 
         <span style="color:#34d399">Red Zone (ไม่ต้องจ่าย) ${redAvg.toFixed(1)}</span>
-      </span>
-    `;
+      </span>`
+      : `<span style="color:#64748b; white-space:normal; display:block; width:100%; max-width:100%; box-sizing:border-box;">
+        หมายเหตุ: กฎค่าเฉลี่ยต้องจ่ายเงินปิดอยู่ในห้องนี้
+        (ค่าเฉลี่ยรวม ${overallAvg.toFixed(1)} · Green ${greenAvg.toFixed(1)} · Red ${redAvg.toFixed(1)})
+      </span>`;
   }
 }
 

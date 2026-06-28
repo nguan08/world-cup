@@ -16,6 +16,7 @@ export const app = {
   roomName: 'ห้องหลัก',
   roomCreatedAt: null,
   roomLoaded: false,
+  roomSettings: { averagePayoutRules: true },
   broadcast: null,
   lastHighlightPlayer: '',
   lastChartRanks: {},

@@ -14,6 +14,7 @@ import {
   buildRoomRecord,
   generateRoomSlug,
   isValidRoomSlug,
+  normalizeRoomSettings,
   normalizeRoomSlug,
   roomFilePath,
   roomsIndexPath
@@ -213,7 +214,8 @@ export async function saveRoomToServer({ quiet = false } = {}) {
     id: app.roomId,
     name: app.roomName || app.roomId,
     createdAt: app.roomCreatedAt || new Date().toISOString(),
-    players: app.players || []
+    players: app.players || [],
+    settings: normalizeRoomSettings(app.roomSettings)
   };
 
   if (isLocalDevHost()) {

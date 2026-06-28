@@ -61,11 +61,23 @@ export function roomStorageKey(suffix, roomId = null) {
   return `worldcup:${id}:${suffix}`;
 }
 
-export function buildRoomRecord({ id, name, players = [] }) {
+export const DEFAULT_ROOM_SETTINGS = {
+  averagePayoutRules: true
+};
+
+export function normalizeRoomSettings(raw) {
+  const settings = raw && typeof raw === 'object' ? raw : {};
+  return {
+    averagePayoutRules: settings.averagePayoutRules !== false
+  };
+}
+
+export function buildRoomRecord({ id, name, players = [], settings = null }) {
   return {
     id,
     name: String(name || id).trim() || id,
     createdAt: new Date().toISOString(),
-    players: Array.isArray(players) ? players : []
+    players: Array.isArray(players) ? players : [],
+    settings: normalizeRoomSettings(settings ?? DEFAULT_ROOM_SETTINGS)
   };
 }

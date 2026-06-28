@@ -1,5 +1,8 @@
 import { app } from './state.js';
-import { createRoom } from './room-store.js';
+import { syncAdminRoomSettingsUI } from './admin.js';
+import { recalculateAll } from './scoring.js';
+import { createRoom, saveRoomToServer } from './room-store.js';
+import { roomStorageKey } from './room.js';
 import {
   DEFAULT_ROOM_ID,
   generateRoomSlug,
@@ -117,8 +120,42 @@ async function copyCurrentRoomLink() {
   }
 }
 
+async function handleAveragePayoutToggle(event) {
+  if (!app.isAdmin) {
+    event.target.checked = app.roomSettings?.averagePayoutRules !== false;
+    return;
+  }
+
+  const enabled = Boolean(event.target.checked);
+  app.roomSettings = { ...app.roomSettings, averagePayoutRules: enabled };
+  localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+
+  try {
+    const ok = await saveRoomToServer({ quiet: true });
+    if (!ok) throw new Error('บันทึกการตั้งค่าไม่สำเร็จ');
+    recalculateAll();
+    import('./bundle.js').then((m) => {
+      if (document.getElementById('leaderboard')?.classList.contains('active')) {
+        m.renderLeaderboard({ forceRecalc: false });
+      }
+      if (document.getElementById('payout')?.classList.contains('active')) {
+        m.renderPayout();
+      }
+      if (document.getElementById('dashboard')?.classList.contains('active')) {
+        m.renderDashboard();
+      }
+    });
+  } catch (e) {
+    app.roomSettings = { ...app.roomSettings, averagePayoutRules: !enabled };
+    event.target.checked = !enabled;
+    localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+    alert(e.message || 'บันทึกการตั้งค่าไม่สำเร็จ');
+  }
+}
+
 export function initRoomUI() {
   updateRoomBadge();
+  syncAdminRoomSettingsUI();
 
   document.getElementById('open-create-room-btn')?.addEventListener('click', openCreateRoomModal);
   document.getElementById('close-create-room-btn')?.addEventListener('click', closeCreateRoomModal);
@@ -135,4 +172,6 @@ export function initRoomUI() {
   document.getElementById('create-room-overlay')?.addEventListener('click', (e) => {
     if (e.target.id === 'create-room-overlay') closeCreateRoomModal();
   });
+
+  document.getElementById('room-setting-average-payout')?.addEventListener('change', handleAveragePayoutToggle);
 }

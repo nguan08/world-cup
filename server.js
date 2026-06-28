@@ -114,6 +114,23 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function normalizeRoomSettings(raw) {
+  const settings = raw && typeof raw === 'object' ? raw : {};
+  return {
+    averagePayoutRules: settings.averagePayoutRules !== false
+  };
+}
+
+function buildRoomRecord({ existing, payload, slug, fallbackName }) {
+  return {
+    id: slug,
+    name: String(payload?.name || existing?.name || fallbackName || slug).trim() || slug,
+    createdAt: existing?.createdAt || payload?.createdAt || new Date().toISOString(),
+    players: Array.isArray(payload?.players) ? payload.players : (existing?.players || []),
+    settings: normalizeRoomSettings(payload?.settings ?? existing?.settings)
+  };
+}
+
 const MIME_TYPES = {
   '.html': 'text/html',
   '.css': 'text/css',
@@ -226,12 +243,7 @@ const server = http.createServer((req, res) => {
           return;
         }
         const existing = readRoom(slug);
-        const record = {
-          id: slug,
-          name: String(payload.name || existing?.name || slug).trim() || slug,
-          createdAt: existing?.createdAt || payload.createdAt || new Date().toISOString(),
-          players: Array.isArray(payload.players) ? payload.players : (existing?.players || [])
-        };
+        const record = buildRoomRecord({ existing, payload, slug });
         writeRoom(record);
         upsertRoomIndex(record);
         if (slug === 'default') {
@@ -278,12 +290,12 @@ const server = http.createServer((req, res) => {
           sendJson(res, 409, { error: 'Room already exists' });
           return;
         }
-        const record = {
-          id: slug,
-          name,
-          createdAt: new Date().toISOString(),
-          players: []
-        };
+        const record = buildRoomRecord({
+          payload: { name, settings: { averagePayoutRules: true } },
+          slug,
+          fallbackName: name
+        });
+        record.players = [];
         writeRoom(record);
         upsertRoomIndex(record);
         console.log(`[Server] Created room ${slug} (${name})`);
@@ -332,12 +344,17 @@ const server = http.createServer((req, res) => {
 
         const slug = normalizeRoomSlug(roomId || 'default') || 'default';
         if (Array.isArray(dataToSave.players)) {
-          const roomRecord = {
-            id: slug,
-            name: dataToSave.roomName || slug,
-            createdAt: readRoom(slug)?.createdAt || new Date().toISOString(),
-            players: dataToSave.players
-          };
+          const existingRoom = readRoom(slug);
+          const roomRecord = buildRoomRecord({
+            existing: existingRoom,
+            payload: {
+              name: dataToSave.roomName,
+              players: dataToSave.players,
+              settings: dataToSave.roomSettings
+            },
+            slug,
+            fallbackName: slug
+          });
           writeRoom(roomRecord);
           upsertRoomIndex(roomRecord);
           if (slug !== 'default') {

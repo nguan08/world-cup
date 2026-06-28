@@ -55,6 +55,19 @@ function setBroadcastPanelVisible(visible) {
   broadcastPanel.setAttribute('aria-hidden', visible ? 'false' : 'true');
 }
 
+function setRoomSettingsPanelVisible(visible) {
+  const panel = document.getElementById('admin-room-settings-panel');
+  if (!panel) return;
+  panel.classList.toggle('admin-room-settings-panel--visible', visible);
+  panel.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+export function syncAdminRoomSettingsUI() {
+  const checkbox = document.getElementById('room-setting-average-payout');
+  if (!checkbox) return;
+  checkbox.checked = app.roomSettings?.averagePayoutRules !== false;
+}
+
 export function updateAdminUI() {
   const openAddPlayerBtn = document.getElementById('open-add-player-btn');
   const openAddMatchBtn = document.getElementById('open-add-match-btn');
@@ -67,6 +80,8 @@ export function updateAdminUI() {
     if (openAddPlayerBtn) openAddPlayerBtn.style.display = 'block';
     if (openAddMatchBtn) openAddMatchBtn.style.display = 'block';
     setBroadcastPanelVisible(true);
+    setRoomSettingsPanelVisible(true);
+    syncAdminRoomSettingsUI();
     if (adminLoginToggleBtn) {
       adminLoginToggleBtn.textContent = 'ออก';
       adminLoginToggleBtn.classList.remove('btn-secondary');
@@ -85,6 +100,7 @@ export function updateAdminUI() {
     }
     if (resetAllBtn) resetAllBtn.style.display = 'none';
     setBroadcastPanelVisible(false);
+    setRoomSettingsPanelVisible(false);
   }
 
 

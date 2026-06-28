@@ -211,6 +211,8 @@ async function saveToLocalDevMirror(payload) {
     const body = {
       ...payload,
       players: app.players,
+      roomSettings: app.roomSettings,
+      roomName: app.roomName,
       adminPassword: app.ADMIN_PASSWORD,
       roomId: app.roomId
     };
