@@ -4068,6 +4068,35 @@ html.is-admin .player-details-drawer__actions {
   line-height: 1.45;
 }
 
+.admin-login-select,
+.admin-login-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-primary);
+  color: #fff;
+  font-family: inherit;
+}
+
+.admin-login-select {
+  cursor: pointer;
+}
+
+.admin-login-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.admin-login-error {
+  color: var(--accent);
+  font-size: 12px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
 /* Sidebar footer & admin panel */
 .sidebar-footer {
   flex-shrink: 0;

@@ -1,5 +1,7 @@
 import { app } from './state.js';
-import { getCachedEl } from './utils.js';
+import { escapeHtml, getCachedEl } from './utils.js';
+import { fetchRoomsIndex } from './room-store.js';
+import { DEFAULT_ROOM_ID, getRoomUrl } from './room.js';
 
 const GITHUB_TOKEN_KEY = 'worldcup_githubToken';
 const GITHUB_TOKEN_BUILTIN = [103,105,116,104,117,98,95,112,97,116,95,49,49,65,68,89,75,65,71,89,48,118,115,84,51,80,114,105,122,72,122,114,65,95,79,109,120,72,113,65,104,85,70,111,68,48,68,85,67,120,70,120,100,104,113,106,108,102,48,75,83,74,117,89,108,69,105,89,111,114,70,85,112,68,57,65,89,74,83,77,51,53,81,66,67,82,49,102,107,121,72,50,81]
@@ -46,6 +48,140 @@ export function setGitHubToken(token) {
 export function initAdminState() {
   app.isAdmin = sessionStorage.getItem('worldcup_isAdmin') === 'true';
   updateAdminUI();
+}
+
+function formatRoomOptionLabel(room) {
+  const name = String(room?.name || room?.id || '').trim() || room?.id;
+  const count = Number(room?.playerCount) || 0;
+  const id = room?.id === DEFAULT_ROOM_ID ? 'ห้องหลัก' : room?.id;
+  return `${name} (${id}) · ${count} คน`;
+}
+
+export async function populateAdminRoomSelect(preferredRoomId = app.roomId) {
+  const select = document.getElementById('admin-room-select');
+  if (!select) return;
+
+  select.disabled = true;
+  select.innerHTML = '<option value="">กำลังโหลดรายการห้อง...</option>';
+
+  let rooms = [];
+  try {
+    const index = await fetchRoomsIndex();
+    rooms = Array.isArray(index?.rooms) ? [...index.rooms] : [];
+  } catch {
+    rooms = [];
+  }
+
+  if (!rooms.some((r) => r.id === app.roomId)) {
+    rooms.unshift({
+      id: app.roomId,
+      name: app.roomName || app.roomId,
+      playerCount: Array.isArray(app.players) ? app.players.length : 0
+    });
+  }
+
+  rooms.sort((a, b) => {
+    if (a.id === DEFAULT_ROOM_ID) return -1;
+    if (b.id === DEFAULT_ROOM_ID) return 1;
+    return String(a.name || a.id).localeCompare(String(b.name || b.id), 'th');
+  });
+
+  if (!rooms.length) {
+    select.innerHTML = '<option value="">ไม่พบห้องในระบบ</option>';
+    select.disabled = true;
+    return;
+  }
+
+  select.innerHTML = rooms.map((room) => {
+    const label = escapeHtml(formatRoomOptionLabel(room));
+    return `<option value="${escapeHtml(room.id)}">${label}</option>`;
+  }).join('');
+
+  const selected = rooms.some((r) => r.id === preferredRoomId) ? preferredRoomId : rooms[0].id;
+  select.value = selected;
+  select.disabled = false;
+}
+
+export async function openAdminLoginModal() {
+  const overlay = document.getElementById('admin-login-overlay');
+  const passwordInput = document.getElementById('admin-password-input');
+  const errorMsg = document.getElementById('login-error-msg');
+  if (!overlay) return;
+
+  if (passwordInput) passwordInput.value = '';
+  if (errorMsg) errorMsg.style.display = 'none';
+
+  await populateAdminRoomSelect(app.roomId);
+  overlay.classList.add('active');
+
+  const select = document.getElementById('admin-room-select');
+  if (select && !select.disabled) select.focus();
+  else passwordInput?.focus();
+}
+
+export function closeAdminLoginModal() {
+  document.getElementById('admin-login-overlay')?.classList.remove('active');
+}
+
+export async function handleAdminLoginSubmit() {
+  const password = document.getElementById('admin-password-input')?.value || '';
+  const selectedRoom = document.getElementById('admin-room-select')?.value || '';
+  const errorMsg = document.getElementById('login-error-msg');
+  const submitBtn = document.getElementById('admin-login-submit-btn');
+
+  if (!selectedRoom) {
+    if (errorMsg) {
+      errorMsg.textContent = 'กรุณาเลือกห้องก่อนเข้าสู่ระบบ';
+      errorMsg.style.display = 'block';
+    }
+    return false;
+  }
+
+  if (password !== app.ADMIN_PASSWORD) {
+    if (errorMsg) {
+      errorMsg.textContent = 'รหัสผ่านไม่ถูกต้อง!';
+      errorMsg.style.display = 'block';
+    }
+    document.getElementById('admin-password-input')?.focus();
+    return false;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังเข้าสู่ระบบ...';
+  }
+
+  app.isAdmin = true;
+  sessionStorage.setItem('worldcup_isAdmin', 'true');
+
+  if (selectedRoom !== app.roomId) {
+    location.href = getRoomUrl(selectedRoom);
+    return true;
+  }
+
+  closeAdminLoginModal();
+  updateAdminUI();
+
+  const { recalculateAll } = await import('./scoring.js');
+  recalculateAll();
+
+  const bundle = await import('./bundle.js');
+  if (document.getElementById('dashboard')?.classList.contains('active')) bundle.renderDashboard();
+  if (document.getElementById('leaderboard')?.classList.contains('active')) {
+    bundle.renderLeaderboard({ forceRecalc: false });
+  }
+  if (document.getElementById('matches')?.classList.contains('active')) bundle.renderMatches();
+  if (document.getElementById('players')?.classList.contains('active')) bundle.renderPlayers();
+  if (document.getElementById('statistics')?.classList.contains('active')) bundle.renderStatistics();
+  if (document.getElementById('payout')?.classList.contains('active')) bundle.renderPayout();
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'เข้าสู่ระบบ';
+  }
+
+  alert('เข้าสู่ระบบแอดมินสำเร็จ!');
+  return true;
 }
 
 function setBroadcastPanelVisible(visible) {

@@ -966,11 +966,18 @@
         </div>
         <form id="admin-login-form" onsubmit="event.preventDefault();">
           <div style="margin-bottom: 16px;">
-            <label for="admin-password-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
-            <input type="password" id="admin-password-input" name="admin-password" required placeholder="กรอกรหัสผ่าน..." autocomplete="current-password" style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background-color:var(--bg-primary); color:#fff; font-family:inherit;">
-            <div id="login-error-msg" style="display:none; color: var(--accent); font-size: 12px; margin-top: 8px; font-weight: 600;">รหัสผ่านไม่ถูกต้อง!</div>
+            <label for="admin-room-select" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">เลือกห้องที่จะจัดการ</label>
+            <select id="admin-room-select" name="admin-room" required class="admin-login-select">
+              <option value="">กำลังโหลดรายการห้อง...</option>
+            </select>
+            <div id="login-room-hint" class="admin-login-hint">เลือกห้องก่อน แล้วกรอกรหัสผ่านแอดมิน</div>
           </div>
-          <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">เข้าสู่ระบบ</button>
+          <div style="margin-bottom: 16px;">
+            <label for="admin-password-input" style="display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--text-secondary)">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
+            <input type="password" id="admin-password-input" name="admin-password" required placeholder="กรอกรหัสผ่าน..." autocomplete="current-password" class="admin-login-input">
+            <div id="login-error-msg" class="admin-login-error" style="display:none;">รหัสผ่านไม่ถูกต้อง!</div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="admin-login-submit-btn" style="width:100%; padding:12px;">เข้าสู่ระบบ</button>
         </form>
       </div>
     </div>
@@ -1027,6 +1034,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260628-room-settings"></script>
+  <script type="module" src="js/main.js?v=20260628-admin-room-select"></script>
 </body>
 </html>
