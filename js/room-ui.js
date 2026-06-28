@@ -14,20 +14,29 @@ import {
 export function updateRoomBadge() {
   const nameEl = document.getElementById('room-current-name');
   const metaEl = document.getElementById('room-current-meta');
+  const actionsEl = document.querySelector('.room-panel__actions');
   const panel = document.getElementById('room-panel');
   if (!nameEl) return;
 
   const missing = app.roomId !== DEFAULT_ROOM_ID && !app.roomLoaded;
-  if (panel) panel.classList.toggle('room-panel--missing', missing);
+  if (panel) {
+    panel.classList.toggle('room-panel--missing', missing);
+    panel.classList.toggle('room-panel--guest', !app.isAdmin);
+  }
 
   nameEl.textContent = missing ? `ไม่พบห้อง "${app.roomId}"` : (app.roomName || app.roomId || 'ห้องหลัก');
-  if (metaEl) {
-    if (!app.isAdmin) {
+
+  if (!app.isAdmin) {
+    if (metaEl) {
       metaEl.textContent = '';
       metaEl.hidden = true;
-      return;
     }
+    if (actionsEl) actionsEl.hidden = true;
+    return;
+  }
 
+  if (actionsEl) actionsEl.hidden = false;
+  if (metaEl) {
     metaEl.hidden = false;
     const count = Array.isArray(app.players) ? app.players.length : 0;
     const slugLabel = app.roomId === DEFAULT_ROOM_ID ? 'ห้องหลัก' : app.roomId;

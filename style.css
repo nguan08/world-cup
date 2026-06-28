@@ -3970,6 +3970,10 @@ html.is-admin .player-details-drawer__actions {
   border-color: rgba(225, 29, 72, 0.35);
 }
 
+.room-panel--guest .room-panel__actions {
+  display: none;
+}
+
 .room-create-drawer {
   width: min(440px, 92vw);
   height: auto;
