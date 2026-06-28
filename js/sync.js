@@ -74,7 +74,7 @@ async function loadRoomPlayers(serverData) {
     app.roomSettings = normalizeRoomSettings(roomData.settings);
     app.players = Array.isArray(roomData.players) ? roomData.players : [];
     localStorage.setItem(cache.players, JSON.stringify(app.players));
-    localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+    localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
     app.roomLoaded = true;
     return;
   }
@@ -98,7 +98,7 @@ async function loadRoomPlayers(serverData) {
   }
   app.roomName = 'ห้องหลัก';
   app.roomSettings = normalizeRoomSettings(
-    JSON.parse(localStorage.getItem(roomStorageKey('settings')) || 'null')
+    JSON.parse(localStorage.getItem(roomStorageKey('settings', app.roomId)) || 'null')
   );
   app.roomLoaded = true;
   localStorage.setItem(cache.players, JSON.stringify(app.players));
@@ -301,6 +301,84 @@ export async function initData() {
   app.lastDataRefreshTime = new Date();
 }
 
+export async function switchToRoom(roomId, { updateHistory = true } = {}) {
+  const target = normalizeRoomSlug(roomId) || DEFAULT_ROOM_ID;
+  if (target === app.roomId) return false;
+
+  if (updateHistory) {
+    history.pushState({ roomId: target }, '', getRoomUrl(target));
+  }
+
+  app.roomId = target;
+  window.__wcRoomId = target;
+
+  if (sessionStorage.getItem('worldcup_isAdmin') === 'true') {
+    app.isAdmin = true;
+  }
+
+  const cache = getRoomCacheKeys(target);
+  const roomData = await fetchRoomFromNetwork(target);
+
+  if (roomData) {
+    app.roomName = roomData.name || target;
+    app.roomCreatedAt = roomData.createdAt || null;
+    app.roomSettings = normalizeRoomSettings(roomData.settings);
+    app.players = Array.isArray(roomData.players) ? roomData.players : [];
+    app.roomLoaded = true;
+  } else {
+    const cachedPlayers = readStoredJsonArray(cache.players);
+    const cachedSettings = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(roomStorageKey('settings', target)) || 'null');
+      } catch {
+        return null;
+      }
+    })();
+
+    if (cachedPlayers) {
+      app.players = [...cachedPlayers];
+      app.roomName = target === DEFAULT_ROOM_ID ? 'ห้องหลัก' : target;
+      app.roomSettings = normalizeRoomSettings(cachedSettings);
+      app.roomLoaded = true;
+    } else if (target === DEFAULT_ROOM_ID) {
+      app.roomName = 'ห้องหลัก';
+      app.roomSettings = normalizeRoomSettings(cachedSettings);
+      app.roomLoaded = true;
+      app.players = [];
+      try {
+        const res = await fetch(`${resolveAppPath('data.json')}?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.players) && data.players.length) {
+            app.players = data.players;
+          }
+        }
+      } catch {
+        // keep empty / cached state
+      }
+    } else {
+      app.roomName = target;
+      app.players = [];
+      app.roomSettings = normalizeRoomSettings(null);
+      app.roomLoaded = false;
+    }
+  }
+
+  localStorage.setItem(cache.players, JSON.stringify(app.players));
+  localStorage.setItem(roomStorageKey('settings', target), JSON.stringify(app.roomSettings));
+
+  recalculateAll();
+  app.lastDataRefreshTime = new Date();
+
+  const { updateAdminUI, syncAdminRoomSettingsUI } = await import('./admin.js');
+  const { updateRoomBadge } = await import('./room-ui.js');
+  updateAdminUI();
+  syncAdminRoomSettingsUI();
+  updateRoomBadge();
+  _refreshPage();
+
+  return true;
+}
 
 let _refreshPage = () => {};
 export function registerRefreshPage(fn) {
@@ -355,7 +433,7 @@ export async function mergeServerDataIntoLocal(serverData) {
       const newSettings = normalizeRoomSettings(roomData.settings);
       if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
         app.roomSettings = newSettings;
-        localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+        localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
         updated = true;
       }
       if (roomData.players) {
@@ -407,7 +485,7 @@ export async function mergeServerDataIntoLocal(serverData) {
     const newSettings = normalizeRoomSettings(roomData.settings);
     if (JSON.stringify(app.roomSettings) !== JSON.stringify(newSettings)) {
       app.roomSettings = newSettings;
-      localStorage.setItem(roomStorageKey('settings'), JSON.stringify(app.roomSettings));
+      localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
       updated = true;
     }
     if (roomData.players?.length) {
@@ -479,7 +557,17 @@ export async function pollServerData() {
   }
 }
 
+export function setupRoomHistory() {
+  window.addEventListener('popstate', () => {
+    const roomId = parseRoomFromUrl();
+    if (roomId !== app.roomId) {
+      void switchToRoom(roomId, { updateHistory: false });
+    }
+  });
+}
+
 export function setupAutoRefresh() {
+  setupRoomHistory();
   setupPollChannel();
   if (app.autoRefreshTimer) clearInterval(app.autoRefreshTimer);
   app.lastDataRefreshTime = new Date();
