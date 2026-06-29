@@ -3216,6 +3216,14 @@ tr.leader-second-row {
   overflow: hidden;
 }
 
+#player-form-drawer-overlay #form-team-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 24px;
+}
+
 #player-form-drawer-overlay #form-team-selector {
   flex: 1;
   min-height: 0;
