@@ -6289,6 +6289,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  const exportPlayersBtn = document.getElementById('export-players-btn');
+  if (exportPlayersBtn) {
+    exportPlayersBtn.addEventListener('click', async () => {
+      const originalLabel = exportPlayersBtn.textContent;
+      exportPlayersBtn.disabled = true;
+      exportPlayersBtn.textContent = '⏳ กำลังสร้างภาพ...';
+      try {
+        await exportPlayersImage();
+      } catch (err) {
+        console.error('Export players failed', err);
+        alert('การส่งออกภาพล้มเหลว');
+      } finally {
+        exportPlayersBtn.disabled = false;
+        exportPlayersBtn.textContent = originalLabel;
+      }
+    });
+  }
   // Close login modal
 
   function downloadCanvasAsJpeg(canvas, fileName) {
@@ -6605,6 +6623,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       await capturePageExportRoot(exportRoot, 'team-stats.jpg');
+    } finally {
+      exportRoot.remove();
+    }
+  }
+
+  async function exportPlayersImage() {
+    const section = document.getElementById('players');
+    const liveCard = section?.querySelector('.card');
+    const liveTable = section?.querySelector('.table-container table');
+    if (!section || !liveCard || !liveTable) {
+      return alert('ไม่พบข้อมูลการเลือกทีมเพื่อส่งออก');
+    }
+
+    try { await loadHtml2Canvas(); } catch (_) {
+      return alert('ระบบส่งออกภาพยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (e) { /* ignore */ }
+    }
+
+    const sectionWidth = Math.max(section.getBoundingClientRect().width, liveCard.getBoundingClientRect().width, 320);
+    const exportRoot = createPageExportRoot('players-export-root', sectionWidth);
+
+    const sectionClone = section.cloneNode(true);
+    preparePageExportClone(sectionClone, 'players-export-section');
+    sectionClone.querySelector('.search-bar')?.remove();
+    sectionClone.querySelector('#export-players-btn')?.remove();
+    replacePageHeaderWithExportBanner(sectionClone);
+    beautifyPageExportContent(sectionClone);
+
+    const clonedCard = sectionClone.querySelector('.card');
+    if (clonedCard) {
+      clonedCard.style.overflow = 'visible';
+      clonedCard.style.maxHeight = 'none';
+      clonedCard.style.width = '100%';
+    }
+
+    stripExportGradients(exportRoot);
+    exportRoot.appendChild(sectionClone);
+    document.body.appendChild(exportRoot);
+    stripExportGradients(exportRoot);
+
+    try {
+      await capturePageExportRoot(exportRoot, 'selections.jpg');
     } finally {
       exportRoot.remove();
     }
