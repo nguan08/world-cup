@@ -413,4 +413,48 @@ export function initRoomUI() {
       inp.addEventListener('change', syncRoomSettingsSaveUI);
     }
   });
+
+  // Initialize Room panel toggling
+  const roomPanelHeader = document.getElementById('room-panel-header');
+  const roomPanel = document.getElementById('room-panel');
+  const roomToggleIcon = document.getElementById('room-panel-toggle-icon');
+
+  if (roomPanelHeader && roomPanel && roomToggleIcon) {
+    const isCollapsed = localStorage.getItem('worldcup_roomPanelCollapsed') === 'true';
+    if (isCollapsed) {
+      roomPanel.classList.add('room-panel--collapsed');
+      roomToggleIcon.textContent = '▼';
+    } else {
+      roomPanel.classList.remove('room-panel--collapsed');
+      roomToggleIcon.textContent = '▲';
+    }
+
+    roomPanelHeader.addEventListener('click', () => {
+      const collapsed = roomPanel.classList.toggle('room-panel--collapsed');
+      roomToggleIcon.textContent = collapsed ? '▼' : '▲';
+      localStorage.setItem('worldcup_roomPanelCollapsed', collapsed ? 'true' : 'false');
+    });
+  }
+
+  // Initialize Notification panel toggling
+  const notifHeader = document.getElementById('notification-settings-header');
+  const notifPanel = document.getElementById('notification-settings');
+  const notifToggleIcon = document.getElementById('notification-settings-toggle-icon');
+
+  if (notifHeader && notifPanel && notifToggleIcon) {
+    const isCollapsed = localStorage.getItem('worldcup_notifPanelCollapsed') === 'true';
+    if (isCollapsed) {
+      notifPanel.classList.add('notification-settings--collapsed');
+      notifToggleIcon.textContent = '▼';
+    } else {
+      notifPanel.classList.remove('notification-settings--collapsed');
+      notifToggleIcon.textContent = '▲';
+    }
+
+    notifHeader.addEventListener('click', () => {
+      const collapsed = notifPanel.classList.toggle('notification-settings--collapsed');
+      notifToggleIcon.textContent = collapsed ? '▼' : '▲';
+      localStorage.setItem('worldcup_notifPanelCollapsed', collapsed ? 'true' : 'false');
+    });
+  }
 }

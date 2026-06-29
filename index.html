@@ -155,8 +155,12 @@
         </li>
       </nav>
       
+      <div class="room-panel-header" id="room-panel-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+        <span>🏠 ห้องปัจจุบัน</span>
+        <span id="room-panel-toggle-icon">▲</span>
+      </div>
       <div class="room-panel" id="room-panel">
-        <div class="room-panel__label" id="room-panel-label">ห้องปัจจุบัน</div>
+        <div class="room-panel__label" id="room-panel-label" style="display: none;">ห้องปัจจุบัน</div>
         <div class="room-panel__name" id="room-current-name">ห้องหลัก</div>
         <select id="room-switch-select" class="room-panel__select" hidden aria-label="สลับห้อง"></select>
         <div class="room-panel__meta" id="room-current-meta">—</div>
@@ -167,8 +171,11 @@
       </div>
 
       <div class="sidebar-footer">
+        <div class="notification-settings-header" id="notification-settings-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+          <span>🔔 การแจ้งเตือนอัปเดต</span>
+          <span id="notification-settings-toggle-icon">▲</span>
+        </div>
         <div id="notification-settings" class="notification-settings">
-          <div class="notification-settings__label">การแจ้งเตือนอัปเดต</div>
           <div class="notification-settings__status" data-notif-status>ยังไม่ได้เปิด</div>
           <button type="button" class="btn btn-secondary notification-enable-btn" data-notif-enable>เปิดการแจ้งเตือน</button>
         </div>
