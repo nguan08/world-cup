@@ -1097,6 +1097,26 @@
       </div>
     </div>
 
+    <!-- MODAL: IMAGE EXPORT VIEW -->
+    <div class="drawer-overlay" id="export-preview-overlay" style="z-index: 11000;">
+      <div class="drawer" style="width: 90%; max-width: 600px; height: auto; max-height: 90%; margin: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative; transform: translateY(50px); transition: transform var(--transition-speed); box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #1e293b;">
+        <div class="drawer-header" style="border-bottom: none; padding-bottom: 0;">
+          <h2 style="font-size: 18px; color: var(--text-primary);">ดาวน์โหลดรูปภาพ (.jpg)</h2>
+          <button class="close-btn" id="close-export-preview-btn">×</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">
+          กดปุ่มดาวน์โหลดรูปภาพ หรือกดค้างที่รูปภาพเพื่อบันทึก (.jpg) ลงในเครื่องของคุณ
+        </p>
+        <div style="flex: 1; overflow-y: auto; text-align: center; border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.2);">
+          <img id="export-preview-img" style="max-width: 100%; height: auto; border-radius: 4px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" alt="Export Preview">
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;">
+          <button class="btn btn-secondary" id="export-preview-close-btn" style="padding: 10px 20px; font-size: 14px; background: rgba(255,255,255,0.05); color: #fff;">ปิด</button>
+          <a class="btn btn-primary" id="export-preview-download-btn" style="padding: 10px 20px; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">ดาวน์โหลดรูปภาพ</a>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script type="module" src="js/main.js?v=20260628-room-switch-fix"></script>

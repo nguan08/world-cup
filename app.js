@@ -6318,22 +6318,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = fileName;
-        a.target = '_blank';
-        document.body.appendChild(a);
-        const clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
-        const clickResult = a.dispatchEvent(clickEvent);
 
-        if (!clickResult || !a.href) {
-          window.open(url, '_blank');
+        const overlay = document.getElementById('export-preview-overlay');
+        const img = document.getElementById('export-preview-img');
+        const dlBtn = document.getElementById('export-preview-download-btn');
+        const closeBtn = document.getElementById('close-export-preview-btn');
+        const closeBtn2 = document.getElementById('export-preview-close-btn');
+
+        if (overlay && img && dlBtn) {
+          img.src = url;
+          dlBtn.href = url;
+          dlBtn.download = fileName;
+          overlay.classList.add('active');
+
+          const cleanup = () => {
+            overlay.classList.remove('active');
+            closeBtn?.removeEventListener('click', cleanup);
+            closeBtn2?.removeEventListener('click', cleanup);
+            dlBtn.removeEventListener('click', cleanup);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+            resolve(true);
+          };
+
+          closeBtn?.addEventListener('click', cleanup);
+          closeBtn2?.addEventListener('click', cleanup);
+          dlBtn.addEventListener('click', cleanup);
+
+          overlay.onclick = (e) => {
+            if (e.target === overlay) cleanup();
+          };
+        } else {
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = fileName;
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          resolve(true);
         }
-
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-        resolve(true);
       }, 'image/jpeg', 0.92);
     });
   }
