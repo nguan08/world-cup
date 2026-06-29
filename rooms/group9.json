@@ -196,6 +196,11 @@
   "settings": {
     "averagePayoutRules": false,
     "blueZonePercent": 25,
-    "greenZonePercent": 35
+    "greenZonePercent": 35,
+    "blueZonePayout": 0,
+    "greenZonePayout": 0,
+    "redZonePayout": 2000,
+    "secondLastPlacePayout": 2000,
+    "lastPlacePayout": 2000
   }
 }
