@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v70-player-edit-bugfix';
+const CACHE_NAME = 'wc2026-v71-sw-post-fix';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
@@ -126,7 +126,7 @@ async function respondWithCacheThenNetwork(request, { updateCache = false } = {}
 async function networkFirstData(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok && request.method === 'GET') {
       const clone = response.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
     }
@@ -175,7 +175,13 @@ async function networkFirstData(request) {
       lastDataHash = hash;
     }
     return response;
-  } catch {
+  } catch (err) {
+    if (request.method !== 'GET') {
+      return new Response(JSON.stringify({ error: 'Network failed' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     const cached = await caches.match(request);
     return cached || new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } });
   }
