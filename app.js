@@ -6311,13 +6311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function downloadCanvasAsJpeg(canvas, fileName) {
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          alert('สร้างภาพล้มเหลว');
-          return resolve(false);
-        }
-
-        const url = URL.createObjectURL(blob);
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
         const overlay = document.getElementById('export-preview-overlay');
         const img = document.getElementById('export-preview-img');
@@ -6326,8 +6321,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const closeBtn2 = document.getElementById('export-preview-close-btn');
 
         if (overlay && img && dlBtn) {
-          img.src = url;
-          dlBtn.href = url;
+          img.src = dataUrl;
+          dlBtn.href = dataUrl;
           dlBtn.download = fileName;
           overlay.classList.add('active');
 
@@ -6336,7 +6331,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeBtn?.removeEventListener('click', cleanup);
             closeBtn2?.removeEventListener('click', cleanup);
             dlBtn.removeEventListener('click', cleanup);
-            setTimeout(() => URL.revokeObjectURL(url), 1500);
             resolve(true);
           };
 
@@ -6350,6 +6344,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
           const a = document.createElement('a');
           a.style.display = 'none';
+          a.href = dataUrl;
+          a.download = fileName;
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          resolve(true);
+        }
+      } catch (err) {
+        console.error('Data URL export failed, falling back to Blob', err);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            alert('สร้างภาพล้มเหลว');
+            return resolve(false);
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
           a.href = url;
           a.download = fileName;
           a.target = '_blank';
@@ -6358,8 +6370,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           a.remove();
           setTimeout(() => URL.revokeObjectURL(url), 1500);
           resolve(true);
-        }
-      }, 'image/jpeg', 0.92);
+        }, 'image/jpeg', 0.92);
+      }
     });
   }
 
