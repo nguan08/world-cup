@@ -298,45 +298,49 @@ export function processPlayers(teamScores) {
     }
   }
 
+  const bluePayout = app.roomSettings?.blueZonePayout !== undefined ? app.roomSettings.blueZonePayout : 0;
+  const greenPayout = app.roomSettings?.greenZonePayout !== undefined ? app.roomSettings.greenZonePayout : 0;
+  const redPayout = app.roomSettings?.redZonePayout !== undefined ? app.roomSettings.redZonePayout : 1000;
+  const secondLastPayout = app.roomSettings?.secondLastPlacePayout !== undefined ? app.roomSettings.secondLastPlacePayout : 1200;
+  const lastPayout = app.roomSettings?.lastPlacePayout !== undefined ? app.roomSettings.lastPlacePayout : 1500;
+
   processed.forEach((p, idx) => {
     p.payout = 0;
     p.payoutLabel = 'ไม่ต้องจ่าย';
 
-    if (p.zone === 'red') {
-      p.payout = 1000;
-      p.payoutLabel = 'จ่าย 1,000 บาท';
+    if (p.zone === 'blue') {
+      p.payout = bluePayout;
+      p.payoutLabel = bluePayout > 0 ? `จ่าย ${bluePayout.toLocaleString()} บาท` : 'สิทธิ์เลือกสถานที่ (ไม่ต้องจ่าย)';
+    } else if (p.zone === 'green') {
+      p.payout = greenPayout;
+      p.payoutLabel = greenPayout > 0 ? `จ่าย ${greenPayout.toLocaleString()} บาท` : 'ไม่ต้องจ่าย';
+
+      // Closest to Green Zone average - must pay redPayout
+      if (closestToAvgGreen && p.name === closestToAvgGreen.name) {
+        p.payout = redPayout;
+        p.payoutLabel = `จ่าย ${redPayout.toLocaleString()} บาท (ใกล้ค่าเฉลี่ย Green Zone)`;
+      }
+    } else if (p.zone === 'red') {
+      p.payout = redPayout;
+      p.payoutLabel = `จ่าย ${redPayout.toLocaleString()} บาท`;
 
       // Closest to Red Zone average exemption
       if (closestToAvgPlayer && p.name === closestToAvgPlayer.name) {
         p.payout = 0;
         p.payoutLabel = 'ยกเว้นไม่ต้องจ่าย (ใกล้ค่าเฉลี่ย Red Zone)';
       }
-
-      // Second to last
-      if (idx === secondLastIndex) {
-        p.payout = 1200;
-        p.payoutLabel = 'รองบ๊วย จ่าย 1,200 บาท';
-      }
-
-      // Last place
-      if (idx === lastIndex) {
-        p.payout = 1500;
-        p.payoutLabel = 'บ๊วย จ่าย 1,500 บาท';
-      }
-    } else if (p.zone === 'green') {
-      // Closest to Green Zone average - must pay 1000
-      if (closestToAvgGreen && p.name === closestToAvgGreen.name) {
-        p.payout = 1000;
-        p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ย Green Zone)';
-      }
-    } else if (p.zone === 'blue') {
-      p.payoutLabel = 'สิทธิ์เลือกสถานที่ (ไม่ต้องจ่าย)';
     }
 
-    // Closest to overall average - must pay 1000
-    if (closestToAvgAll && p.name === closestToAvgAll.name) {
-      p.payout = 1000;
-      p.payoutLabel = 'จ่าย 1,000 บาท (ใกล้ค่าเฉลี่ยทั้งหมด)';
+    // Override bottom 2 payouts and closest to overall avg
+    if (idx === secondLastIndex) {
+      p.payout = secondLastPayout;
+      p.payoutLabel = `รองบ๊วย จ่าย ${secondLastPayout.toLocaleString()} บาท`;
+    } else if (idx === lastIndex) {
+      p.payout = lastPayout;
+      p.payoutLabel = `บ๊วย จ่าย ${lastPayout.toLocaleString()} บาท`;
+    } else if (closestToAvgAll && p.name === closestToAvgAll.name) {
+      p.payout = redPayout;
+      p.payoutLabel = `จ่าย ${redPayout.toLocaleString()} บาท (ใกล้ค่าเฉลี่ยทั้งหมด)`;
     }
   });
 

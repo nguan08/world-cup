@@ -62,7 +62,14 @@ export function roomStorageKey(suffix, roomId = null) {
 }
 
 export const DEFAULT_ROOM_SETTINGS = {
-  averagePayoutRules: true
+  averagePayoutRules: true,
+  blueZonePercent: undefined,
+  greenZonePercent: undefined,
+  blueZonePayout: 0,
+  greenZonePayout: 0,
+  redZonePayout: 1000,
+  secondLastPlacePayout: 1200,
+  lastPlacePayout: 1500
 };
 
 export function normalizeRoomSettings(raw) {
@@ -70,7 +77,12 @@ export function normalizeRoomSettings(raw) {
   return {
     averagePayoutRules: settings.averagePayoutRules !== false,
     blueZonePercent: typeof settings.blueZonePercent === 'number' ? settings.blueZonePercent : undefined,
-    greenZonePercent: typeof settings.greenZonePercent === 'number' ? settings.greenZonePercent : undefined
+    greenZonePercent: typeof settings.greenZonePercent === 'number' ? settings.greenZonePercent : undefined,
+    blueZonePayout: typeof settings.blueZonePayout === 'number' ? settings.blueZonePayout : undefined,
+    greenZonePayout: typeof settings.greenZonePayout === 'number' ? settings.greenZonePayout : undefined,
+    redZonePayout: typeof settings.redZonePayout === 'number' ? settings.redZonePayout : undefined,
+    secondLastPlacePayout: typeof settings.secondLastPlacePayout === 'number' ? settings.secondLastPlacePayout : undefined,
+    lastPlacePayout: typeof settings.lastPlacePayout === 'number' ? settings.lastPlacePayout : undefined
   };
 }
 

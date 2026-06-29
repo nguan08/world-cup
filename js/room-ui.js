@@ -203,7 +203,33 @@ export function syncRoomSettingsSaveUI() {
   const savedGreen = app.roomSettings?.greenZonePercent !== undefined ? app.roomSettings.greenZonePercent : 50;
   
   const percentDirty = blueVal !== savedBlue || greenVal !== savedGreen;
-  const dirty = checkboxDirty || percentDirty;
+
+  // Payout inputs
+  const bluePayoutInput = document.getElementById('room-setting-blue-payout');
+  const greenPayoutInput = document.getElementById('room-setting-green-payout');
+  const redPayoutInput = document.getElementById('room-setting-red-payout');
+  const secondLastPayoutInput = document.getElementById('room-setting-second-last-payout');
+  const lastPayoutInput = document.getElementById('room-setting-last-payout');
+
+  const bluePayoutVal = bluePayoutInput ? (parseInt(bluePayoutInput.value, 10) || 0) : 0;
+  const greenPayoutVal = greenPayoutInput ? (parseInt(greenPayoutInput.value, 10) || 0) : 0;
+  const redPayoutVal = redPayoutInput ? (parseInt(redPayoutInput.value, 10) || 0) : 1000;
+  const secondLastPayoutVal = secondLastPayoutInput ? (parseInt(secondLastPayoutInput.value, 10) || 0) : 1200;
+  const lastPayoutVal = lastPayoutInput ? (parseInt(lastPayoutInput.value, 10) || 0) : 1500;
+
+  const savedBluePayout = app.roomSettings?.blueZonePayout !== undefined ? app.roomSettings.blueZonePayout : 0;
+  const savedGreenPayout = app.roomSettings?.greenZonePayout !== undefined ? app.roomSettings.greenZonePayout : 0;
+  const savedRedPayout = app.roomSettings?.redZonePayout !== undefined ? app.roomSettings.redZonePayout : 1000;
+  const savedSecondLastPayout = app.roomSettings?.secondLastPlacePayout !== undefined ? app.roomSettings.secondLastPlacePayout : 1200;
+  const savedLastPayout = app.roomSettings?.lastPlacePayout !== undefined ? app.roomSettings.lastPlacePayout : 1500;
+
+  const payoutDirty = bluePayoutVal !== savedBluePayout ||
+                       greenPayoutVal !== savedGreenPayout ||
+                       redPayoutVal !== savedRedPayout ||
+                       secondLastPayoutVal !== savedSecondLastPayout ||
+                       lastPayoutVal !== savedLastPayout;
+
+  const dirty = checkboxDirty || percentDirty || payoutDirty;
 
   btn.disabled = !dirty || btn.dataset.busy === '1';
   btn.textContent = btn.dataset.busy === '1' ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า';
@@ -290,11 +316,28 @@ async function handleSaveRoomSettings() {
   const bluePct = blueInput ? (parseInt(blueInput.value, 10) || 0) : 24;
   const greenPct = greenInput ? (parseInt(greenInput.value, 10) || 0) : 50;
 
+  const bluePayoutInput = document.getElementById('room-setting-blue-payout');
+  const greenPayoutInput = document.getElementById('room-setting-green-payout');
+  const redPayoutInput = document.getElementById('room-setting-red-payout');
+  const secondLastPayoutInput = document.getElementById('room-setting-second-last-payout');
+  const lastPayoutInput = document.getElementById('room-setting-last-payout');
+
+  const bluePayout = bluePayoutInput ? (parseInt(bluePayoutInput.value, 10) || 0) : 0;
+  const greenPayout = greenPayoutInput ? (parseInt(greenPayoutInput.value, 10) || 0) : 0;
+  const redPayout = redPayoutInput ? (parseInt(redPayoutInput.value, 10) || 0) : 1000;
+  const secondLastPayout = secondLastPayoutInput ? (parseInt(secondLastPayoutInput.value, 10) || 0) : 1200;
+  const lastPayout = lastPayoutInput ? (parseInt(lastPayoutInput.value, 10) || 0) : 1500;
+
   app.roomSettings = { 
     ...app.roomSettings, 
     averagePayoutRules: enabled,
     blueZonePercent: bluePct,
-    greenZonePercent: greenPct
+    greenZonePercent: greenPct,
+    blueZonePayout: bluePayout,
+    greenZonePayout: greenPayout,
+    redZonePayout: redPayout,
+    secondLastPlacePayout: secondLastPayout,
+    lastPlacePayout: lastPayout
   };
   app.roomSettingsDirtyUntil = Date.now() + 120_000;
   localStorage.setItem(roomStorageKey('settings', app.roomId), JSON.stringify(app.roomSettings));
@@ -355,4 +398,19 @@ export function initRoomUI() {
     greenInput.addEventListener('input', updateRedZonePercent);
     greenInput.addEventListener('change', updateRedZonePercent);
   }
+
+  const payoutInputs = [
+    'room-setting-blue-payout',
+    'room-setting-green-payout',
+    'room-setting-red-payout',
+    'room-setting-second-last-payout',
+    'room-setting-last-payout'
+  ];
+  payoutInputs.forEach(id => {
+    const inp = document.getElementById(id);
+    if (inp) {
+      inp.addEventListener('input', syncRoomSettingsSaveUI);
+      inp.addEventListener('change', syncRoomSettingsSaveUI);
+    }
+  });
 }

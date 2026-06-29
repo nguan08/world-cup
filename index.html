@@ -215,6 +215,36 @@
                 <p class="admin-room-settings-hint" style="margin-top: 6px; font-size: 10px;">Red Zone คำนวณอัตโนมัติจากส่วนที่เหลือ (100% - Blue - Green) โดย Red Zone จะเป็นกลุ่มที่ต้องจ่ายเงิน</p>
               </div>
 
+              <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; margin-bottom: 12px;">
+                <div class="admin-room-settings-panel__label">ค่าใช้จ่ายแต่ละโซน (บาท)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                  <div>
+                    <label for="room-setting-blue-payout" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Blue (บาท)</label>
+                    <input type="number" id="room-setting-blue-payout" min="0" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label for="room-setting-green-payout" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Green (บาท)</label>
+                    <input type="number" id="room-setting-green-payout" min="0" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label for="room-setting-red-payout" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">Red (บาท)</label>
+                    <input type="number" id="room-setting-red-payout" min="0" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                </div>
+                
+                <div class="admin-room-settings-panel__label">ค่าใช้จ่าย 2 อันดับสุดท้าย (บาท)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div>
+                    <label for="room-setting-second-last-payout" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">รองบ๊วย (บาท)</label>
+                    <input type="number" id="room-setting-second-last-payout" min="0" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label for="room-setting-last-payout" style="display:block; font-size:10px; color:var(--text-muted); margin-bottom:4px;">บ๊วย (บาท)</label>
+                    <input type="number" id="room-setting-last-payout" min="0" class="admin-room-settings-input" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-primary); color:#fff; font-size:12px; box-sizing:border-box;">
+                  </div>
+                </div>
+              </div>
+
               <div class="admin-room-settings-actions">
                 <button type="button" class="btn btn-secondary admin-room-settings-save-btn" id="room-settings-save-btn" disabled>บันทึกการตั้งค่า</button>
                 <span class="admin-room-settings-save-status" id="room-settings-save-status" aria-live="polite"></span>

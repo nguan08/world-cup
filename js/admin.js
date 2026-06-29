@@ -167,6 +167,18 @@ export function syncAdminRoomSettingsUI() {
     redInput.value = 100 - bluePct - greenPct;
   }
 
+  const bluePayoutInput = document.getElementById('room-setting-blue-payout');
+  const greenPayoutInput = document.getElementById('room-setting-green-payout');
+  const redPayoutInput = document.getElementById('room-setting-red-payout');
+  const secondLastPayoutInput = document.getElementById('room-setting-second-last-payout');
+  const lastPayoutInput = document.getElementById('room-setting-last-payout');
+
+  if (bluePayoutInput) bluePayoutInput.value = app.roomSettings?.blueZonePayout !== undefined ? app.roomSettings.blueZonePayout : 0;
+  if (greenPayoutInput) greenPayoutInput.value = app.roomSettings?.greenZonePayout !== undefined ? app.roomSettings.greenZonePayout : 0;
+  if (redPayoutInput) redPayoutInput.value = app.roomSettings?.redZonePayout !== undefined ? app.roomSettings.redZonePayout : 1000;
+  if (secondLastPayoutInput) secondLastPayoutInput.value = app.roomSettings?.secondLastPlacePayout !== undefined ? app.roomSettings.secondLastPlacePayout : 1200;
+  if (lastPayoutInput) lastPayoutInput.value = app.roomSettings?.lastPlacePayout !== undefined ? app.roomSettings.lastPlacePayout : 1500;
+
   syncRoomSettingsSaveUI();
 }
 
