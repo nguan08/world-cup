@@ -6107,9 +6107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       const pIdx = app.players.findIndex(p => p.name === id);
       if (pIdx !== -1) {
-        players[pIdx].name = name;
-        players[pIdx].guess = guess;
-        players[pIdx].teams = selectedTeams;
+        app.players[pIdx].name = name;
+        app.players[pIdx].guess = guess;
+        app.players[pIdx].teams = selectedTeams;
       }
     } else {
       // Add mode
