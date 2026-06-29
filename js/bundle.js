@@ -5578,6 +5578,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       el.style.maxHeight = 'none';
       el.style.height = 'auto';
     });
+
+    // Explicitly gray out eliminated teams/badges for html2canvas rendering
+    root.querySelectorAll('.players-team-badge--eliminated').forEach((el) => {
+      el.style.setProperty('opacity', '0.4', 'important');
+      el.style.setProperty('text-decoration', 'line-through', 'important');
+      el.style.setProperty('background', '#334155', 'important');
+      el.style.setProperty('background-color', '#334155', 'important');
+      el.style.setProperty('background-image', 'none', 'important');
+      el.style.setProperty('color', '#94a3b8', 'important');
+      el.style.setProperty('border-color', 'rgba(255,255,255,0.05)', 'important');
+      el.style.setProperty('filter', 'grayscale(1)', 'important');
+      
+      el.querySelectorAll('.players-team-badge__name, .players-team-badge__pts').forEach(sub => {
+        sub.style.setProperty('color', '#94a3b8', 'important');
+        sub.style.setProperty('text-decoration', 'line-through', 'important');
+      });
+    });
+
+    root.querySelectorAll('.team-card-small--out').forEach((el) => {
+      el.style.setProperty('opacity', '0.45', 'important');
+      el.style.setProperty('background', 'rgba(30, 41, 59, 0.5)', 'important');
+      el.style.setProperty('background-color', 'rgba(30, 41, 59, 0.5)', 'important');
+      el.style.setProperty('border-left-color', '#475569', 'important');
+      el.style.setProperty('color', '#94a3b8', 'important');
+      el.style.setProperty('filter', 'grayscale(1)', 'important');
+      
+      el.querySelectorAll('.team-badge-wrapper, .team-badge-text').forEach(sub => {
+        sub.style.setProperty('opacity', '0.4', 'important');
+        sub.style.setProperty('text-decoration', 'line-through', 'important');
+        sub.style.setProperty('background', '#334155', 'important');
+        sub.style.setProperty('color', '#94a3b8', 'important');
+      });
+    });
   }
 
   async function capturePageExportRoot(exportRoot, fileName) {
@@ -5586,7 +5619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const html2canvasFn = await loadHtml2Canvas();
     const captureWidth = Math.ceil(exportRoot.scrollWidth || exportRoot.offsetWidth);
     const captureHeight = Math.ceil(exportRoot.scrollHeight || exportRoot.offsetHeight);
-    const scale = Math.min(2, window.devicePixelRatio > 1 ? 2 : 1.5);
+    const scale = 2; // Always render in 2x high resolution for crisp text
 
     const canvas = await html2canvasFn(exportRoot, {
       backgroundColor: PAGE_EXPORT_BG,
