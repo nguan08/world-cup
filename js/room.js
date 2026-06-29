@@ -74,15 +74,23 @@ export const DEFAULT_ROOM_SETTINGS = {
 
 export function normalizeRoomSettings(raw) {
   const settings = raw && typeof raw === 'object' ? raw : {};
+  const parseNum = (val) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const p = parseInt(val, 10);
+      return isNaN(p) ? undefined : p;
+    }
+    return undefined;
+  };
   return {
     averagePayoutRules: settings.averagePayoutRules !== false,
-    blueZonePercent: typeof settings.blueZonePercent === 'number' ? settings.blueZonePercent : undefined,
-    greenZonePercent: typeof settings.greenZonePercent === 'number' ? settings.greenZonePercent : undefined,
-    blueZonePayout: typeof settings.blueZonePayout === 'number' ? settings.blueZonePayout : undefined,
-    greenZonePayout: typeof settings.greenZonePayout === 'number' ? settings.greenZonePayout : undefined,
-    redZonePayout: typeof settings.redZonePayout === 'number' ? settings.redZonePayout : undefined,
-    secondLastPlacePayout: typeof settings.secondLastPlacePayout === 'number' ? settings.secondLastPlacePayout : undefined,
-    lastPlacePayout: typeof settings.lastPlacePayout === 'number' ? settings.lastPlacePayout : undefined
+    blueZonePercent: parseNum(settings.blueZonePercent),
+    greenZonePercent: parseNum(settings.greenZonePercent),
+    blueZonePayout: parseNum(settings.blueZonePayout),
+    greenZonePayout: parseNum(settings.greenZonePayout),
+    redZonePayout: parseNum(settings.redZonePayout),
+    secondLastPlacePayout: parseNum(settings.secondLastPlacePayout),
+    lastPlacePayout: parseNum(settings.lastPlacePayout)
   };
 }
 
