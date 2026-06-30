@@ -823,7 +823,7 @@
       "status": "finished",
       "isKnockout": true,
       "date": "2026-06-29",
-      "penaltyWinner": null
+      "penaltyWinner": "away"
     },
     {
       "id": 76,
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782759867267,
-    "message": "⚽ อัปเดตสกอร์: บราซิล 2-1 ญี่ปุ่น",
-    "sentAt": "2026-06-29T19:04:27.267Z"
+    "id": 1782791915863,
+    "message": "⚽ อัปเดตสกอร์: เยอรมนี 1-1 ปารากวัย (จุดโทษ: away)",
+    "sentAt": "2026-06-30T03:58:35.863Z"
   },
   "players": [
     {
