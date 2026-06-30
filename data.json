@@ -834,7 +834,7 @@
       "status": "finished",
       "isKnockout": true,
       "date": "2026-06-30",
-      "penaltyWinner": null
+      "penaltyWinner": "away"
     },
     {
       "id": 77,
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782791915863,
-    "message": "⚽ อัปเดตสกอร์: เยอรมนี 1-1 ปารากวัย (จุดโทษ: away)",
-    "sentAt": "2026-06-30T03:58:35.863Z"
+    "id": 1782791924362,
+    "message": "⚽ อัปเดตสกอร์: เนเธอร์แลนด์ 1-1 โมร็อกโก (จุดโทษ: away)",
+    "sentAt": "2026-06-30T03:58:44.362Z"
   },
   "players": [
     {
