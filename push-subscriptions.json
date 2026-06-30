@@ -41,14 +41,6 @@
       "updatedAt": "2026-06-20T00:23:07.392Z"
     },
     {
-      "endpoint": "https://fcm.googleapis.com/fcm/send/fJ0PpcWuY2M:APA91bHp7nvzXrS3RoviVQSnObxRmGS5am7AdsfUoj6WGNFMHiF9QAicyqQItP9viGZS_NHxJFcW47d-GTmpk0GSlrkD2xqAY9-gjUcS01nK4AzCoYbif_UuqTHsvdAvAdXnOJxIaDQs",
-      "keys": {
-        "p256dh": "BHQUXK1dH7aOspUc6BKgp-D-8AeGbt6EqUKSfLzxK_cBgHKOA9ImqdYzzxdbHKM96kUaJUde3SmO2UqAjLniJOI",
-        "auth": "Jx-yi-Y3cpo-VFT4sTakyQ"
-      },
-      "updatedAt": "2026-06-30T05:24:24.152Z"
-    },
-    {
       "endpoint": "https://fcm.googleapis.com/fcm/send/fU8kzP6V99w:APA91bE4JzZVDUQp3_nyixvlIeRI60JzlKgE7OCv99XBETvD7jmMyJSZeWKXif7CWv6y3fnMCF4vLsGGT-8Otq4L3YVC7odQk--wyJk0uyDflE-4jBwpWbJNtOEi-ZvVtjsxS2fhdU0l",
       "keys": {
         "p256dh": "BNrnoKi5--r-C59vN-SRVvwdRvYiPG7MBWZhbKLl90bztiPalhVcHSxWnLTNjBfhFubx78w7RGRYCOe6tNbH3oY",
@@ -57,5 +49,5 @@
       "updatedAt": "2026-06-30T05:28:13.896Z"
     }
   ],
-  "lastSentBroadcastId": 1782791924362
+  "lastSentBroadcastId": 1782845814511
 }
