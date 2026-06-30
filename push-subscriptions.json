@@ -39,6 +39,14 @@
         "auth": "UOokkSWU7E4IMumpXEo_sw"
       },
       "updatedAt": "2026-06-20T00:23:07.392Z"
+    },
+    {
+      "endpoint": "https://fcm.googleapis.com/fcm/send/fJ0PpcWuY2M:APA91bHp7nvzXrS3RoviVQSnObxRmGS5am7AdsfUoj6WGNFMHiF9QAicyqQItP9viGZS_NHxJFcW47d-GTmpk0GSlrkD2xqAY9-gjUcS01nK4AzCoYbif_UuqTHsvdAvAdXnOJxIaDQs",
+      "keys": {
+        "p256dh": "BHQUXK1dH7aOspUc6BKgp-D-8AeGbt6EqUKSfLzxK_cBgHKOA9ImqdYzzxdbHKM96kUaJUde3SmO2UqAjLniJOI",
+        "auth": "Jx-yi-Y3cpo-VFT4sTakyQ"
+      },
+      "updatedAt": "2026-06-30T05:24:24.152Z"
     }
   ],
   "lastSentBroadcastId": 1782791924362
