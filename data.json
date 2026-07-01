@@ -873,9 +873,9 @@
       "id": 80,
       "home": "เม็กซิโก",
       "away": "เอกวาดอร์",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-01",
       "penaltyWinner": null
