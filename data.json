@@ -823,7 +823,7 @@
       "status": "finished",
       "isKnockout": true,
       "date": "2026-06-29",
-      "penaltyWinner": null
+      "penaltyWinner": "away"
     },
     {
       "id": 76,
@@ -834,7 +834,7 @@
       "status": "finished",
       "isKnockout": true,
       "date": "2026-06-30",
-      "penaltyWinner": null
+      "penaltyWinner": "away"
     },
     {
       "id": 77,

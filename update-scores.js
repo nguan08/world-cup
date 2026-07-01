@@ -188,7 +188,7 @@ async function scrape() {
     dbMatch.awayScore = espn.awayScore;
     dbMatch.status = 'finished';
     if (dbMatch.isKnockout && espn.homeScore === espn.awayScore) {
-      dbMatch.penaltyWinner = espn.penaltyWinner || null;
+      dbMatch.penaltyWinner = espn.penaltyWinner || dbMatch.penaltyWinner || null;
     } else if (!dbMatch.isKnockout) {
       dbMatch.penaltyWinner = null;
     }
