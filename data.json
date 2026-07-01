@@ -884,9 +884,9 @@
       "id": 81,
       "home": "อังกฤษ",
       "away": "คองโก",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-01",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782869415854,
-    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 3-0 สวีเดน",
-    "sentAt": "2026-07-01T01:30:15.854Z"
+    "id": 1782930196751,
+    "message": "⚽ อัปเดตสกอร์: อังกฤษ 2-1 คองโก",
+    "sentAt": "2026-07-01T18:23:16.751Z"
   },
   "players": [
     {
