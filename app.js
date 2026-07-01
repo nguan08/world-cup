@@ -1429,6 +1429,12 @@ function buildLiveMatchCard(m, index, options = {}) {
   const localToday = new Date();
   const localTodayStr = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, '0')}-${String(localToday.getDate()).padStart(2, '0')}`;
   const todayStr = options.todayStr || localTodayStr;
+  
+  const localTomorrow = new Date(localToday);
+  localTomorrow.setDate(localToday.getDate() + 1);
+  const localTomorrowStr = `${localTomorrow.getFullYear()}-${String(localTomorrow.getMonth() + 1).padStart(2, '0')}-${String(localTomorrow.getDate()).padStart(2, '0')}`;
+  const tomorrowStr = options.tomorrowStr || localTomorrowStr;
+  
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
   if (mode === 'matches' || mode === 'live') card.classList.add('matches-page-card');
@@ -1458,8 +1464,8 @@ function buildLiveMatchCard(m, index, options = {}) {
     statusLabel = isFinished ? 'จบแล้ว' : 'รอแข่ง';
     statusChipClass = isFinished ? 'finished' : 'pending';
 
-    const homeScoreVal = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
-    const awayScoreVal = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
+    const homeScoreVal = isFinished && m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
+    const awayScoreVal = isFinished && m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
     const adminAttr = isAdmin ? '' : 'disabled';
 
     scoreCenterHtml = `
@@ -1503,7 +1509,8 @@ function buildLiveMatchCard(m, index, options = {}) {
       metaLeft = `${dateLabel} · แมตช์ที่ ${m.id} · ${getMatchRoundLabel(m)}`;
     } else {
       const isToday = m.date === todayStr;
-      const dateLabel = isToday ? 'วันนี้' : 'พรุ่งนี้';
+      const isTomorrow = m.date === tomorrowStr;
+      const dateLabel = isToday ? 'วันนี้' : (isTomorrow ? 'พรุ่งนี้' : 'เมื่อวาน');
       metaLeft = `${dateLabel} · ${m.date}`;
     }
     statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
@@ -1593,8 +1600,11 @@ function renderRecentMatches() {
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  
+  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+  const sixHoursAgoStr = `${sixHoursAgo.getFullYear()}-${String(sixHoursAgo.getMonth() + 1).padStart(2, '0')}-${String(sixHoursAgo.getDate()).padStart(2, '0')}`;
 
-  const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
+  const recent = matches.filter(m => m.date === todayStr || m.date === tomorrowStr || m.date === sixHoursAgoStr);
 
   if (recent.length === 0) {
     container.className = 'live-matches-container';
@@ -1609,7 +1619,7 @@ function renderRecentMatches() {
   });
 
   container.className = 'live-matches-container dashboard-matches-grid';
-  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'live' })));
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'live', todayStr, tomorrowStr })));
   setupLiveMatchesCarousel();
 }
 
