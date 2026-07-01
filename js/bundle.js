@@ -433,7 +433,9 @@ function getMatchRoundLabel(m) {
 
 function buildLiveMatchCard(m, index, options = {}) {
   const mode = options.mode || 'dashboard';
-  const todayStr = options.todayStr || new Date().toISOString().split('T')[0];
+  const localToday = new Date();
+  const localTodayStr = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, '0')}-${String(localToday.getDate()).padStart(2, '0')}`;
+  const todayStr = options.todayStr || localTodayStr;
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
   if (mode === 'matches' || mode === 'live') card.classList.add('matches-page-card');
@@ -594,10 +596,10 @@ function renderRecentMatches() {
   container.innerHTML = '';
 
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
   const recent = app.matches.filter(m => m.date === todayStr || m.date === tomorrowStr);
 
