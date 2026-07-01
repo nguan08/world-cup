@@ -840,9 +840,9 @@
       "id": 77,
       "home": "ฝรั่งเศส",
       "away": "สวีเดน",
-      "homeScore": 0,
+      "homeScore": 3,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-06-30",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782845814511,
-    "message": "⚽ อัปเดตสกอร์: ไอเวอรีโคสต์ 1-2 นอร์เวย์",
-    "sentAt": "2026-06-30T18:56:54.511Z"
+    "id": 1782869415854,
+    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 3-0 สวีเดน",
+    "sentAt": "2026-07-01T01:30:15.854Z"
   },
   "players": [
     {
