@@ -441,6 +441,11 @@ function buildLiveMatchCard(m, index, options = {}) {
   localTomorrow.setDate(localToday.getDate() + 1);
   const localTomorrowStr = `${localTomorrow.getFullYear()}-${String(localTomorrow.getMonth() + 1).padStart(2, '0')}-${String(localTomorrow.getDate()).padStart(2, '0')}`;
   const tomorrowStr = options.tomorrowStr || localTomorrowStr;
+
+  const localYesterday = new Date(localToday);
+  localYesterday.setDate(localToday.getDate() - 1);
+  const localYesterdayStr = `${localYesterday.getFullYear()}-${String(localYesterday.getMonth() + 1).padStart(2, '0')}-${String(localYesterday.getDate()).padStart(2, '0')}`;
+  const yesterdayStr = options.yesterdayStr || localYesterdayStr;
   
   const card = document.createElement('div');
   card.className = `match-card dashboard-match-card live-match-card ${LIVE_MATCH_COLOR_VARIANTS[index % LIVE_MATCH_COLOR_VARIANTS.length]}`;
@@ -517,7 +522,8 @@ function buildLiveMatchCard(m, index, options = {}) {
     } else {
       const isToday = m.date === todayStr;
       const isTomorrow = m.date === tomorrowStr;
-      const dateLabel = isToday ? 'วันนี้' : (isTomorrow ? 'พรุ่งนี้' : 'เมื่อวาน');
+      const isYesterday = m.date === yesterdayStr;
+      const dateLabel = isToday ? 'วันนี้' : (isTomorrow ? 'พรุ่งนี้' : (isYesterday ? 'เมื่อวาน' : formatThaiDate(m.date)));
       metaLeft = `${dateLabel} · ${m.date}`;
     }
     statusLabel = isFinished ? 'จบแล้ว' : (isSimulated ? 'จำลองผล' : 'รอแข่ง');
@@ -603,15 +609,18 @@ function renderRecentMatches() {
   container.innerHTML = '';
 
   const now = new Date();
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-  
-  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-  const sixHoursAgoStr = `${sixHoursAgo.getFullYear()}-${String(sixHoursAgo.getMonth() + 1).padStart(2, '0')}-${String(sixHoursAgo.getDate()).padStart(2, '0')}`;
 
-  const recent = app.matches.filter(m => m.date === todayStr || m.date === tomorrowStr || m.date === sixHoursAgoStr);
+  const recent = app.matches.filter(m => m.date === yesterdayStr || m.date === todayStr || m.date === tomorrowStr);
 
   if (recent.length === 0) {
     container.className = 'live-matches-container';
@@ -626,7 +635,7 @@ function renderRecentMatches() {
   });
 
   container.className = 'live-matches-container dashboard-matches-grid';
-  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'live', todayStr, tomorrowStr })));
+  recent.forEach((m, i) => container.appendChild(buildLiveMatchCard(m, i, { mode: 'live', yesterdayStr, todayStr, tomorrowStr })));
   setupLiveMatchesCarousel();
 }
 
