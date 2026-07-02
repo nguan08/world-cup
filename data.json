@@ -917,9 +917,9 @@
       "id": 84,
       "home": "สหรัฐอเมริกา",
       "away": "บอสเนีย",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-02",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782951584000,
-    "message": "⚽ อัปเดตสกอร์: เบลเยียม 3-2 เซเนกัล",
-    "sentAt": "2026-07-02T00:19:44.000Z"
+    "id": 1782957770713,
+    "message": "⚽ อัปเดตสกอร์: สหรัฐอเมริกา 2-0 บอสเนีย",
+    "sentAt": "2026-07-02T02:02:50.713Z"
   },
   "players": [
     {
