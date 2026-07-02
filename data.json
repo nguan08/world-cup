@@ -906,9 +906,9 @@
       "id": 83,
       "home": "สเปน",
       "away": "ออสเตรีย",
-      "homeScore": 0,
+      "homeScore": 3,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-02",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782957770713,
-    "message": "⚽ อัปเดตสกอร์: สหรัฐอเมริกา 2-0 บอสเนีย",
-    "sentAt": "2026-07-02T02:02:50.713Z"
+    "id": 1783029023428,
+    "message": "⚽ อัปเดตสกอร์: สเปน 3-0 ออสเตรีย",
+    "sentAt": "2026-07-02T21:50:23.428Z"
   },
   "players": [
     {
