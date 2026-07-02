@@ -862,9 +862,9 @@
       "id": 79,
       "home": "เบลเยียม",
       "away": "เซเนกัล",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-01",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1782930451206,
-    "message": "⚽ อัปเดตสกอร์: อังกฤษ 2-1 คองโก",
-    "sentAt": "2026-07-01T18:27:31.206Z"
+    "id": 1782951584000,
+    "message": "⚽ อัปเดตสกอร์: เบลเยียม 3-2 เซเนกัล",
+    "sentAt": "2026-07-02T00:19:44.000Z"
   },
   "players": [
     {
