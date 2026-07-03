@@ -895,9 +895,9 @@
       "id": 82,
       "home": "โปรตุเกส",
       "away": "โครเอเชีย",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-02",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783029023428,
-    "message": "⚽ อัปเดตสกอร์: สเปน 3-0 ออสเตรีย",
-    "sentAt": "2026-07-02T21:50:23.428Z"
+    "id": 1783040177883,
+    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 2-1 โครเอเชีย",
+    "sentAt": "2026-07-03T00:56:17.883Z"
   },
   "players": [
     {
