@@ -844,6 +844,10 @@ h1 {
   transition: none !important;
 }
 
+#score-chart-svg .trend-dot .soccer-ball-marker {
+  transition: transform 0.2s ease;
+}
+
 #score-chart-svg.chart-lite .chart-pulse-lite .chart-ecg-core {
   filter: none;
 }

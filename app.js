@@ -2866,6 +2866,41 @@ function parseChartPathPoints(pathD) {
   }).filter(pt => Number.isFinite(pt.x) && Number.isFinite(pt.y));
 }
 
+const SOCCER_BALL_BASE_R = 3.6;
+
+function buildSoccerBallMarkerSvg(cx, cy, r, strokeColor, opts = {}) {
+  const {
+    glow = false,
+    glowFilterId = 'ball-glow',
+    innerOnly = false,
+    opacity = 1
+  } = opts;
+  const scale = r / SOCCER_BALL_BASE_R;
+  const glowFilter = glow ? ` filter="url(#${glowFilterId})"` : '';
+  const transform = innerOnly
+    ? `scale(${scale})`
+    : `translate(${cx}, ${cy}) scale(${scale})`;
+
+  return `
+    <g class="soccer-ball-marker" transform="${transform}"${glowFilter} opacity="${opacity}" style="pointer-events: none;">
+      ${glow ? `<circle cx="0" cy="0" r="${SOCCER_BALL_BASE_R + 1.2}" fill="rgba(245,200,66,0.35)"/>` : ''}
+      <circle cx="0" cy="0" r="${SOCCER_BALL_BASE_R}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.85"/>
+      <polygon points="0,-1.05 1.0,-0.32 0.62,0.8 -0.62,0.8 -1.0,-0.32" fill="#1e293b"/>
+      <line x1="0" y1="-1.05" x2="0" y2="-${SOCCER_BALL_BASE_R}" stroke="#475569" stroke-width="0.42"/>
+      <line x1="1.0" y1="-0.32" x2="${SOCCER_BALL_BASE_R * 0.82}" y2="-${SOCCER_BALL_BASE_R * 0.48}" stroke="#475569" stroke-width="0.42"/>
+      <line x1="0.62" y1="0.8" x2="${SOCCER_BALL_BASE_R * 0.48}" y2="${SOCCER_BALL_BASE_R * 0.82}" stroke="#475569" stroke-width="0.42"/>
+      <line x1="-0.62" y1="0.8" x2="-${SOCCER_BALL_BASE_R * 0.48}" y2="${SOCCER_BALL_BASE_R * 0.82}" stroke="#475569" stroke-width="0.42"/>
+      <line x1="-1.0" y1="-0.32" x2="-${SOCCER_BALL_BASE_R * 0.82}" y2="-${SOCCER_BALL_BASE_R * 0.48}" stroke="#475569" stroke-width="0.42"/>
+    </g>
+  `;
+}
+
+function setTrendDotBallScale(dot, multiplier = 1) {
+  const baseScale = parseFloat(dot.getAttribute('data-base-scale')) || 0.889;
+  const ball = dot.querySelector('.soccer-ball-marker');
+  if (ball) ball.setAttribute('transform', `scale(${baseScale * multiplier})`);
+}
+
 function renderScoreChart() {
   const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !processedPlayers.length) return;
@@ -3030,7 +3065,8 @@ function renderScoreChart() {
     }
     const pathD = `M ${pathPoints.join(' L ')}`;
     const color = getPlayerColor(ph.zone);
-    const dotR = '3.2';
+    const dotR = 3.2;
+    const dotBaseScale = (dotR / SOCCER_BALL_BASE_R).toFixed(3);
 
     const lineStyle = chartLite
       ? 'cursor:pointer;'
@@ -3040,13 +3076,21 @@ function renderScoreChart() {
     const helperWidth = chartLite ? '12' : '8';
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="${helperWidth}" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
-    if (!chartLite) {
-      for (let i = 0; i <= stepsCount; i++) {
-        const x = xOf(i);
-        const y = yOf(ph.ranks[i]);
-        dotsGroup += `<circle cx="${x}" cy="${y}" r="${dotR}" fill="${color}" fill-opacity="0.6" class="trend-dot" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" style="cursor:pointer; transition: r 0.2s, fill-opacity 0.2s;"/>`;
+    const dotIndices = new Set();
+    if (chartLite) {
+      dotIndices.add(0);
+      dotIndices.add(stepsCount);
+      for (let s = 1; s <= 7; s++) {
+        dotIndices.add(Math.round((s / 8) * stepsCount));
       }
+    } else {
+      for (let i = 0; i <= stepsCount; i++) dotIndices.add(i);
     }
+    dotIndices.forEach(i => {
+      const x = xOf(i);
+      const y = yOf(ph.ranks[i]);
+      dotsGroup += `<g class="trend-dot" transform="translate(${x},${y})" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" data-base-scale="${dotBaseScale}" style="cursor:pointer; opacity:0.6; transition: opacity 0.2s;">${buildSoccerBallMarkerSvg(0, 0, dotR, color, { innerOnly: true })}</g>`;
+    });
 
     // Label at the end of the line
     const lastX = xOf(stepsCount);
@@ -3547,8 +3591,8 @@ function highlightPlayerInChart(playerName) {
     });
     setChartLinePulse(null);
     svgEl.querySelectorAll('.trend-dot').forEach(dot => {
-      dot.setAttribute('r', '3.2');
-      dot.setAttribute('fill-opacity', '0.6');
+      dot.style.opacity = '0.6';
+      setTrendDotBallScale(dot, 1);
     });
     svgEl.querySelectorAll('.trend-end-label').forEach(label => {
       const pName = label.getAttribute('data-player');
@@ -3593,12 +3637,12 @@ function highlightPlayerInChart(playerName) {
   svgEl.querySelectorAll('.trend-dot').forEach(dot => {
     const pName = dot.getAttribute('data-player');
     if (pName === playerName) {
-      dot.setAttribute('r', '5.5');
-      dot.setAttribute('fill-opacity', '1');
+      dot.style.opacity = '1';
+      setTrendDotBallScale(dot, 1.45);
       dot.parentElement.appendChild(dot); // bring to front
     } else {
-      dot.setAttribute('r', '2');
-      dot.setAttribute('fill-opacity', '0');
+      dot.style.opacity = '0';
+      setTrendDotBallScale(dot, 0.55);
     }
   });
 
@@ -6685,22 +6729,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cardsArray = [];
     const safeId = name => String(name).replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    const drawSoccerBall = (cx, cy, r, strokeColor, glow = false) => {
-      const glowFilter = glow ? ` filter="url(#ball-glow)"` : '';
-      return `
-        <g transform="translate(${cx}, ${cy})"${glowFilter}>
-          <circle cx="0" cy="0" r="${r + 1.2}" fill="${glow ? 'rgba(245,200,66,0.35)' : 'none'}"/>
-          <circle cx="0" cy="0" r="${r}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.8"/>
-          <polygon points="0,-1.4 1.2,-0.4 0.8,1 -0.8,1 -1.2,-0.4" fill="#0f172a"/>
-          <line x1="0" y1="-1.4" x2="0" y2="-${r}" stroke="#0f172a" stroke-width="0.5"/>
-          <line x1="1.2" y1="-0.4" x2="${r * 0.86}" y2="-${r * 0.5}" stroke="#0f172a" stroke-width="0.5"/>
-          <line x1="0.8" y1="1" x2="${r * 0.5}" y2="${r * 0.86}" stroke="#0f172a" stroke-width="0.5"/>
-          <line x1="-0.8" y1="1" x2="-${r * 0.5}" y2="${r * 0.86}" stroke="#0f172a" stroke-width="0.5"/>
-          <line x1="-1.2" y1="-0.4" x2="-${r * 0.86}" y2="-${r * 0.5}" stroke="#0f172a" stroke-width="0.5"/>
-        </g>
-      `;
-    };
-
     const appBase = window.__wcAppBase || '/';
     const trophyLogoUrl = `${window.location.origin}${appBase}icons/yec-br-wc-logo.png`;
 
@@ -6869,7 +6897,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!isMarker) continue;
         const rankVal = ph.ranks[i] ?? maxRank;
         const showLabel = i === 0 || isLast || (i > 0 && ph.ranks[i] !== ph.ranks[i - 1]);
-        dots += drawSoccerBall(x, y, isLast ? 3.6 : 2.4, isLast ? '#f5c842' : lineColor, isLast);
+        dots += buildSoccerBallMarkerSvg(x, y, isLast ? 3.6 : 2.4, isLast ? '#f5c842' : lineColor, { glow: isLast });
         if (showLabel) {
           dots += `<text x="${x}" y="${y - (isLast ? 7 : 5.5)}" text-anchor="middle" font-size="6.2" font-weight="800" fill="#fff" font-family="Inter,sans-serif">${rankVal}</text>`;
         }

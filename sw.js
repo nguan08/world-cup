@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v76-players-pill';
+const CACHE_NAME = 'wc2026-v78-network-first-shell';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
@@ -93,6 +93,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isShellAsset = event.request.mode === 'navigate'
+    || url.pathname.endsWith('/')
+    || url.pathname.endsWith('/index.html')
+    || url.pathname.endsWith('style.css')
+    || url.pathname.endsWith('sw.js');
+  if (isShellAsset) {
+    event.respondWith(networkFirstShell(event.request));
+    return;
+  }
+
   event.respondWith(respondWithCacheThenNetwork(event.request));
 });
 
@@ -123,7 +133,7 @@ async function respondWithCacheThenNetwork(request, { updateCache = false } = {}
   }
 }
 
-async function networkFirstJs(request) {
+async function networkFirstFresh(request, { offlineType = 'text/plain; charset=utf-8', offlineBody = 'Offline' } = {}) {
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -134,12 +144,27 @@ async function networkFirstJs(request) {
   } catch (err) {
     const cached = await caches.match(request);
     if (cached) return cached;
-    console.warn('[SW] js network failed, no cache:', request.url, err);
-    return new Response('// offline', {
+    if (request.mode === 'navigate') {
+      const shell = await caches.match('./') || await caches.match('index.html');
+      if (shell) return shell;
+    }
+    console.warn('[SW] network failed, no cache:', request.url, err);
+    return new Response(offlineBody, {
       status: 503,
-      headers: { 'Content-Type': 'application/javascript; charset=utf-8' }
+      headers: { 'Content-Type': offlineType }
     });
   }
+}
+
+async function networkFirstJs(request) {
+  return networkFirstFresh(request, {
+    offlineType: 'application/javascript; charset=utf-8',
+    offlineBody: '// offline'
+  });
+}
+
+async function networkFirstShell(request) {
+  return networkFirstFresh(request);
 }
 
 async function networkFirstData(request) {
