@@ -3187,18 +3187,19 @@ function renderScoreChart() {
 
   // 7. Populate Highlight Dropdown
   const highlightSelect = document.getElementById('chart-highlight-select');
+  let currentVal = "";
   if (highlightSelect) {
-    const currentVal = highlightSelect.value || lastHighlightPlayer;
-    highlightSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
-
     const sortedForSelect = [...players].sort(
       (a, b) => (lastChartRanks[a.name] || 999) - (lastChartRanks[b.name] || 999)
     );
+    currentVal = highlightSelect.value || lastHighlightPlayer || (sortedForSelect[0] ? sortedForSelect[0].name : '');
+    highlightSelect.innerHTML = '';
+
     sortedForSelect.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.name;
       const chartRank = lastChartRanks[p.name];
-      opt.textContent = `${p.name} (อันดับ ${chartRank ?? '—'})`;
+      opt.textContent = `${p.name} [${chartRank ?? '—'}/${players.length}]`;
       if (p.name === currentVal) opt.selected = true;
       highlightSelect.appendChild(opt);
     });
@@ -3206,8 +3207,8 @@ function renderScoreChart() {
 
   bindChartHoverInteractions();
 
-  // Trigger initial highlight if there was a selected player
-  const initialHl = highlightSelect ? highlightSelect.value : lastHighlightPlayer;
+  // Trigger initial highlight if there was a selected player or default to currentVal
+  const initialHl = currentVal || lastHighlightPlayer;
   if (initialHl) {
     highlightPlayerInChart(initialHl);
   }
@@ -3576,7 +3577,7 @@ function highlightPlayerInChart(playerName) {
       line.parentElement.appendChild(line); // bring to front
     } else {
       line.setAttribute('stroke-width', '1');
-      line.setAttribute('stroke-opacity', '0.04');
+      line.setAttribute('stroke-opacity', '0');
     }
   });
 
@@ -3597,7 +3598,7 @@ function highlightPlayerInChart(playerName) {
       dot.parentElement.appendChild(dot); // bring to front
     } else {
       dot.setAttribute('r', '2');
-      dot.setAttribute('fill-opacity', '0.05');
+      dot.setAttribute('fill-opacity', '0');
     }
   });
 
@@ -6636,6 +6637,903 @@ document.addEventListener('DOMContentLoaded', async () => {
     await downloadCanvasAsJpeg(canvas, fileName);
   }
 
+  function buildPrintCardXLabel(stepIndex, stepsCount) {
+    const stageLabels = ['', 'MD1', 'MD2', 'MD3', 'R32', 'R16', 'QF', 'SF', 'F'];
+    if (stepIndex === 0) return '';
+    if (stepsCount <= 0) return 'MD1';
+    const labelIdx = Math.min(
+      stageLabels.length - 1,
+      Math.max(1, Math.round((stepIndex / stepsCount) * (stageLabels.length - 1)))
+    );
+    const label = stageLabels[labelIdx];
+    if (label === 'R32') return 'R32';
+    if (label === 'R16') return 'R16';
+    return label;
+  }
+
+  function buildPrintCardRankZones(maxRank) {
+    if (maxRank <= 1) return { blueLine: 1, greenLine: 1 };
+    const blueLine = Math.ceil(maxRank * 0.2);
+    const greenLine = Math.ceil(maxRank * 0.6);
+    return { blueLine, greenLine };
+  }
+
+  function exportAllPlayerCards() {
+    const chartMatches = getChartEligibleMatches();
+    const chartDaySteps = buildChartDaySteps(chartMatches);
+    const stepsCount = chartDaySteps.length;
+    const chartHistory = buildChartPlayerRankHistory(chartDaySteps);
+    const playerRankHistory = chartHistory.playerRankHistory;
+    
+    if (!playerRankHistory.length) {
+      return alert('ไม่มีข้อมูลผู้เล่นสำหรับพิมพ์');
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebugPrint = urlParams.has('debug_print');
+
+    let printWindow = null;
+    if (!isDebugPrint) {
+      printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        return alert('ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาอนุญาตให้เว็บเบราว์เซอร์เปิดหน้าต่างป็อปอัป (Popup)');
+      }
+    }
+
+    const maxRank = playerRankHistory.length || 1;
+    const { blueLine, greenLine } = buildPrintCardRankZones(maxRank);
+    const cardsArray = [];
+    const safeId = name => String(name).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    const drawSoccerBall = (cx, cy, r, strokeColor, glow = false) => {
+      const glowFilter = glow ? ` filter="url(#ball-glow)"` : '';
+      return `
+        <g transform="translate(${cx}, ${cy})"${glowFilter}>
+          <circle cx="0" cy="0" r="${r + 1.2}" fill="${glow ? 'rgba(245,200,66,0.35)' : 'none'}"/>
+          <circle cx="0" cy="0" r="${r}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.8"/>
+          <polygon points="0,-1.4 1.2,-0.4 0.8,1 -0.8,1 -1.2,-0.4" fill="#0f172a"/>
+          <line x1="0" y1="-1.4" x2="0" y2="-${r}" stroke="#0f172a" stroke-width="0.5"/>
+          <line x1="1.2" y1="-0.4" x2="${r * 0.86}" y2="-${r * 0.5}" stroke="#0f172a" stroke-width="0.5"/>
+          <line x1="0.8" y1="1" x2="${r * 0.5}" y2="${r * 0.86}" stroke="#0f172a" stroke-width="0.5"/>
+          <line x1="-0.8" y1="1" x2="-${r * 0.5}" y2="${r * 0.86}" stroke="#0f172a" stroke-width="0.5"/>
+          <line x1="-1.2" y1="-0.4" x2="-${r * 0.86}" y2="-${r * 0.5}" stroke="#0f172a" stroke-width="0.5"/>
+        </g>
+      `;
+    };
+
+    const appBase = window.__wcAppBase || '/';
+    const trophyLogoUrl = `${window.location.origin}${appBase}icons/yec-br-wc-logo.png`;
+
+    const getZoneColor = zone => {
+      if (zone === 'blue') return '#60a5fa';
+      if (zone === 'green') return '#34d399';
+      return '#f43f5e';
+    };
+    const getZoneLabel = zone => {
+      if (zone === 'blue') return 'BLUE';
+      if (zone === 'green') return 'GREEN';
+      return 'RED';
+    };
+    const getZoneChartFill = zone => {
+      if (zone === 'blue') return '#061525';
+      if (zone === 'green') return '#071a0f';
+      return '#180810';
+    };
+    const getZoneGridStroke = zone => {
+      if (zone === 'blue') return 'rgba(0, 212, 255, 0.10)';
+      if (zone === 'green') return 'rgba(0, 255, 102, 0.08)';
+      return 'rgba(255, 45, 85, 0.10)';
+    };
+    const getZoneTint = zone => {
+      if (zone === 'blue') return 'rgba(0, 40, 72, 0.35)';
+      if (zone === 'green') return 'rgba(0, 40, 20, 0.30)';
+      return 'rgba(60, 8, 20, 0.35)';
+    };
+
+    const secondLastRank = maxRank >= 2 ? maxRank - 1 : 0;
+    const buildPrintCardPositionRankHtml = rank => {
+      let emoji = '';
+      if (rank === 1) emoji = '👑';
+      else if (rank === 2) emoji = '👸';
+      else if (maxRank > 2 && rank === maxRank) emoji = '😢';
+      else if (secondLastRank > 2 && rank === secondLastRank && rank !== maxRank) emoji = '😔';
+      const emojiHtml = emoji ? `<span class="card-position-emoji">${emoji}</span>` : '';
+      return `${emojiHtml}<span class="card-position-rank-num">#${rank}</span>`;
+    };
+
+    const sortedPlayerHistory = [...playerRankHistory].sort((a, b) => {
+      const rankA = a.ranks[a.ranks.length - 1] ?? 999;
+      const rankB = b.ranks[b.ranks.length - 1] ?? 999;
+      return rankA - rankB;
+    });
+
+    sortedPlayerHistory.forEach(ph => {
+      const cardId = safeId(ph.name);
+      const lastRank = ph.ranks[ph.ranks.length - 1] ?? 99;
+      const lastScore = ph.scores[ph.scores.length - 1] ?? 0;
+
+      const processed = processedPlayers.find(p => p.name === ph.name);
+      let player = processed || players.find(p => p.name === ph.name);
+      if (!player) {
+        player = { teamsScore: 0, predictionScore: 0, guess: 0, totalScore: 0, teams: [], teamBreakdown: [] };
+      }
+
+      const bestTeamNames = Array.isArray(player.teamBreakdown) && player.teamBreakdown.length
+        ? [...player.teamBreakdown].sort((a, b) => b.points - a.points).slice(0, 3).map(t => t.name)
+        : (Array.isArray(player.teams) ? player.teams.slice(0, 3) : []);
+      const bestTeamFlagsHtml = bestTeamNames.length
+        ? bestTeamNames.map(name => {
+            const url = getTeamFlagUrl(name);
+            const safeName = escapeHtml(name);
+            return url
+              ? `<img src="${url}" alt="${safeName}" class="card-best-flag" width="14" height="10" title="${safeName}">`
+              : `<span class="card-best-flag-fallback" title="${safeName}">${safeName.slice(0, 2)}</span>`;
+          }).join('')
+        : '—';
+      const lineColor = getZoneColor(ph.zone);
+      const zoneLabel = getZoneLabel(ph.zone);
+      const chartFill = getZoneChartFill(ph.zone);
+      const gridStroke = getZoneGridStroke(ph.zone);
+      const zoneTint = getZoneTint(ph.zone);
+
+      const allTeamNames = Array.isArray(player.teams) ? player.teams : [];
+      const allTeamFlagsHtml = allTeamNames.length
+        ? allTeamNames.map(name => {
+            const url = getTeamFlagUrl(name);
+            const safeName = escapeHtml(name);
+            return url
+              ? `<img src="${url}" alt="${safeName}" class="card-team-flag" title="${safeName}">`
+              : `<span class="card-team-flag-fallback" title="${safeName}">${safeName.slice(0, 2)}</span>`;
+          }).join('')
+        : '';
+
+      const chartPadL = 48;
+      const chartTop = 24;
+      const chartH = 86;
+      const chartW = 318;
+      const chartBottom = chartTop + chartH;
+      const plotRight = chartPadL + chartW;
+
+      const yOfRank = rank => {
+        const r = Math.max(1, Math.min(rank, maxRank));
+        if (maxRank <= 1) return chartTop + chartH / 2;
+        return chartTop + ((r - 1) / (maxRank - 1)) * chartH;
+      };
+      const xOf = i => stepsCount > 0 ? chartPadL + (i / stepsCount) * chartW : chartPadL;
+
+      const pathPoints = [];
+      for (let i = 0; i <= stepsCount; i++) {
+        pathPoints.push(`${xOf(i)},${yOfRank(ph.ranks[i] ?? maxRank)}`);
+      }
+      const pathD = `M ${pathPoints.join(' L ')}`;
+
+      const yTicks = 4;
+      let yAxisMarkup = '';
+      let zoneSeparators = '';
+      for (let i = 0; i <= yTicks; i++) {
+        const rankValue = 1 + (i / yTicks) * (maxRank - 1);
+        const displayRank = Math.round(rankValue);
+        const y = yOfRank(rankValue);
+        yAxisMarkup += `<text x="8" y="${y + 2}" text-anchor="end" font-size="5.5" fill="rgba(255,255,255,0.45)" font-family="Inter,sans-serif">${displayRank}</text>`;
+      }
+      if (maxRank > 1) {
+        const yBlue = yOfRank(blueLine + 0.5);
+        const yGreen = yOfRank(greenLine + 0.5);
+        zoneSeparators += `
+          <line x1="${chartPadL}" x2="${plotRight}" y1="${yBlue}" y2="${yBlue}" stroke="#60a5fa" stroke-width="0.8" stroke-dasharray="4,3" stroke-opacity="0.4"/>
+          <text x="22" y="${yBlue + 2}" font-size="4.8" fill="#60a5fa" font-weight="700" font-family="Plus Jakarta Sans,sans-serif">BLUE</text>
+          <line x1="${chartPadL}" x2="${plotRight}" y1="${yGreen}" y2="${yGreen}" stroke="#34d399" stroke-width="0.8" stroke-dasharray="4,3" stroke-opacity="0.4"/>
+          <text x="22" y="${yGreen + 2}" font-size="4.8" fill="#34d399" font-weight="700" font-family="Plus Jakarta Sans,sans-serif">GREEN</text>
+          <text x="22" y="${chartBottom - 2}" font-size="4.8" fill="#f43f5e" font-weight="700" font-family="Plus Jakarta Sans,sans-serif">RED</text>
+        `;
+      }
+
+      const xLabelIndices = new Set([0, stepsCount]);
+      for (let s = 1; s <= 7; s++) {
+        xLabelIndices.add(Math.round((s / 8) * stepsCount));
+      }
+      let xLabels = '';
+      xLabelIndices.forEach(i => {
+        const x = xOf(i);
+        const labelText = buildPrintCardXLabel(i, stepsCount);
+        const isFinal = labelText === 'F';
+        const stadiumIcon = labelText ? `
+          <ellipse cx="${x}" cy="${chartBottom + 9}" rx="4.5" ry="1.8" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+          <ellipse cx="${x}" cy="${chartBottom + 7.5}" rx="4.5" ry="1" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+        ` : '';
+        xLabels += `
+          ${stadiumIcon}
+          <text x="${x}" y="${chartBottom + (labelText ? 18 : 14)}" text-anchor="middle" font-size="5.2" font-weight="700" fill="${isFinal ? '#f43f5e' : 'rgba(255,255,255,0.55)'}" font-family="Inter,sans-serif" ${isFinal ? 'text-decoration="underline"' : ''}>${labelText}</text>
+        `;
+      });
+
+      let lineSegments = '';
+      for (let i = 0; i < stepsCount; i++) {
+        const x1 = xOf(i);
+        const y1 = yOfRank(ph.ranks[i] ?? maxRank);
+        const x2 = xOf(i + 1);
+        const y2 = yOfRank(ph.ranks[i + 1] ?? maxRank);
+        lineSegments += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${lineColor}" stroke-width="2.2" stroke-linecap="round"/>`;
+      }
+
+      let dots = '';
+      const markerIndices = new Set([0, stepsCount]);
+      for (let s = 1; s <= 7; s++) {
+        markerIndices.add(Math.round((s / 8) * stepsCount));
+      }
+      for (let i = 0; i <= stepsCount; i++) {
+        const x = xOf(i);
+        const y = yOfRank(ph.ranks[i] ?? maxRank);
+        const isLast = i === stepsCount;
+        const isMarker = markerIndices.has(i);
+        if (!isMarker) continue;
+        const rankVal = ph.ranks[i] ?? maxRank;
+        const showLabel = i === 0 || isLast || (i > 0 && ph.ranks[i] !== ph.ranks[i - 1]);
+        dots += drawSoccerBall(x, y, isLast ? 3.6 : 2.4, isLast ? '#f5c842' : lineColor, isLast);
+        if (showLabel) {
+          dots += `<text x="${x}" y="${y - (isLast ? 7 : 5.5)}" text-anchor="middle" font-size="6.2" font-weight="800" fill="#fff" font-family="Inter,sans-serif">${rankVal}</text>`;
+        }
+      }
+
+      const ecgGrid = `
+        <pattern id="ecg-grid-${cardId}" width="12" height="12" patternUnits="userSpaceOnUse" x="${chartPadL}" y="${chartTop}">
+          <path d="M 12 0 L 0 0 0 12" fill="none" stroke="${gridStroke}" stroke-width="0.5"/>
+        </pattern>
+      `;
+
+      const svgHtml = `
+        <svg viewBox="0 0 376 140" width="100%" height="100%" style="display:block;">
+          <defs>
+            <filter id="neon-glow-${cardId}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.5" result="blur1"/>
+              <feGaussianBlur stdDeviation="6" result="blur2"/>
+              <feMerge><feMergeNode in="blur2"/><feMergeNode in="blur1"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="ball-glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            ${ecgGrid}
+          </defs>
+          <text x="${chartPadL + chartW / 2}" y="12" text-anchor="middle" font-size="7" font-weight="800" fill="#fff" font-family="Plus Jakarta Sans,sans-serif" letter-spacing="0.8">SCORE TREND (RANK)</text>
+          <rect x="${chartPadL}" y="${chartTop}" width="${chartW}" height="${chartH}" fill="${chartFill}" stroke="rgba(255,255,255,0.06)" stroke-width="0.8" rx="3"/>
+          <rect x="${chartPadL}" y="${chartTop}" width="${chartW}" height="${chartH}" fill="url(#ecg-grid-${cardId})" rx="3"/>
+          <rect x="${chartPadL}" y="${chartTop}" width="${chartW}" height="${chartH}" fill="${zoneTint}" rx="3"/>
+          <line x1="${chartPadL + chartW / 2}" x2="${chartPadL + chartW / 2}" y1="${chartTop}" y2="${chartBottom}" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>
+          <circle cx="${chartPadL + chartW / 2}" cy="${chartTop + chartH / 2}" r="22" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>
+          ${yAxisMarkup}
+          ${zoneSeparators}
+          <g filter="url(#neon-glow-${cardId})">${lineSegments}</g>
+          <path d="${pathD}" fill="none" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.7" stroke-linecap="round"/>
+          ${dots}
+          ${xLabels}
+        </svg>
+      `;
+
+      const statIcon = (type) => {
+        const icons = {
+          point: '<circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6" r="1.2" fill="currentColor"/>',
+          predPt: '<path d="M2 10 L6 2 L10 10 Z" fill="none" stroke="currentColor" stroke-width="1.1"/>',
+          guess: '<circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M6 3v6M3 6h6" stroke="currentColor" stroke-width="1"/>',
+          total: '<rect x="2" y="8" width="2" height="3" fill="currentColor"/><rect x="5" y="5" width="2" height="6" fill="currentColor"/><rect x="8" y="3" width="2" height="8" fill="currentColor"/>'
+        };
+        return `<svg viewBox="0 0 12 12" class="stat-icon">${icons[type] || icons.total}</svg>`;
+      };
+
+      const cardHtml = `
+        <div class="card card--trend" data-zone="${ph.zone}">
+          <div class="card-spotlight card-spotlight--left"></div>
+          <div class="card-spotlight card-spotlight--right"></div>
+          <div class="card-top-row">
+            <div class="card-title-block">
+              <div class="card-title-gold">YEC-BR WORLD CUP 2026</div>
+              <div class="card-title-white">MATCH TREND ANALYSIS</div>
+            </div>
+            <div class="card-trophy-logo-wrap">
+              <img src="${trophyLogoUrl}" alt="YEC-BR World Cup 2026" class="card-trophy-logo" width="50" height="50">
+            </div>
+          </div>
+          <div class="card-meta-row">
+            <span class="card-meta-item card-meta-item--flags"><strong>BEST TEAM</strong> <span class="card-best-flags">${bestTeamFlagsHtml}</span></span>
+            <span class="card-meta-sep">|</span>
+            <span class="card-meta-item"><strong>PLAYER</strong> <span class="card-meta-player">${escapeHtml(ph.name)}</span></span>
+            <span class="card-meta-sep">|</span>
+            <span class="card-meta-item"><strong>TOURNAMENT</strong> <span class="card-meta-tournament">YEC-BR World Cup 2026™</span></span>
+          </div>
+          <div class="card-stats-bar">
+            <div class="card-stats-inner">
+              <div class="stat-pill"><div class="stat-pill-head">${statIcon('point')}<span class="stat-pill-label">POINT</span></div><span class="stat-pill-val">${(player.teamsScore || 0).toFixed(2)}</span></div>
+              <div class="stat-pill"><div class="stat-pill-head">${statIcon('predPt')}<span class="stat-pill-label">GOAL PREDICT PT</span></div><span class="stat-pill-val">${(player.predictionScore || 0).toFixed(2)}</span></div>
+              <div class="stat-pill"><div class="stat-pill-head">${statIcon('guess')}<span class="stat-pill-label">GOAL PREDICT</span></div><span class="stat-pill-val">${player.guess ?? '—'}</span></div>
+              <div class="stat-pill"><div class="stat-pill-head">${statIcon('total')}<span class="stat-pill-label">TOTAL</span></div><span class="stat-pill-val stat-pill-val--gold">${(player.totalScore || lastScore || 0).toFixed(2)}</span></div>
+              <div class="stat-pill stat-pill--zone stat-pill--zone-${ph.zone}"><div class="stat-pill-head"><span class="stat-pill-label">ZONE</span></div><span class="stat-pill-val stat-pill-val--zone">${zoneLabel}</span></div>
+            </div>
+            <div class="card-position-group">
+              <div class="card-position-box">
+                <span class="card-position-label">POSITION</span>
+                <span class="card-position-rank">${buildPrintCardPositionRankHtml(lastRank)}</span>
+              </div>
+              <div class="stat-pill card-position-total-pill">
+                <div class="stat-pill-head"><span class="stat-pill-label">PLAYERS</span></div>
+                <span class="stat-pill-val">/${maxRank}</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-chart">
+            ${svgHtml}
+            ${allTeamFlagsHtml ? `<div class="card-team-flags-row">${allTeamFlagsHtml}</div>` : ''}
+          </div>
+        </div>
+      `;
+
+      cardsArray.push(cardHtml);
+    });
+
+    let pagesHtml = '';
+    const cardsPerPage = 8;
+    for (let p = 0; p < cardsArray.length; p += cardsPerPage) {
+      const pageCards = cardsArray.slice(p, p + cardsPerPage);
+      pagesHtml += `<div class="page">${pageCards.join('')}</div>`;
+    }
+
+    const pagesCount = Math.ceil(cardsArray.length / cardsPerPage);
+    const totalCards = cardsArray.length;
+
+    const printDoc = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>YEC-BR World Cup 2026 Cards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Sarabun:wght@500;700;800&family=Inter:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: #07070a;
+        font-family: 'Plus Jakarta Sans', Sarabun, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .control-panel {
+        width: 100%;
+        max-width: 840px;
+        margin: 20px auto;
+        padding: 16px 24px;
+        background: #0f0f14;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      }
+      .control-panel h2 {
+        color: #fff;
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+      .control-panel p {
+        color: #94a3b8;
+        font-size: 13px;
+        margin-bottom: 16px;
+      }
+      .btn-print {
+        padding: 10px 24px;
+        font-weight: 700;
+        background: #6366f1;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 12px;
+        transition: background 0.2s;
+        box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+      }
+      .btn-print:hover {
+        background: #4f46e5;
+      }
+      .btn-close {
+        padding: 10px 24px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .btn-close:hover {
+        background: rgba(255,255,255,0.15);
+      }
+      .pages-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .page {
+        width: 21cm;
+        height: 29.7cm;
+        background: #07070a;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        margin-bottom: 30px;
+        display: grid;
+        grid-template-columns: repeat(2, 10.5cm);
+        grid-template-rows: repeat(4, 7.425cm);
+        overflow: hidden;
+        box-sizing: border-box;
+        border: 1px solid rgba(255,255,255,0.05);
+      }
+      .card {
+        width: 10.5cm;
+        height: 7.425cm;
+        box-sizing: border-box;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 7px 9px 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,40,25,0.5) 0%, transparent 70%),
+                    linear-gradient(180deg, #0a0c12 0%, #050508 100%);
+        color: #fff;
+        overflow: hidden;
+        position: relative;
+      }
+      .card--trend::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(0,80,30,0.04) 18px, rgba(0,80,30,0.04) 19px);
+        pointer-events: none;
+      }
+      .card-spotlight {
+        position: absolute;
+        top: -20px;
+        width: 120px;
+        height: 80px;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0.35;
+      }
+      .card-spotlight--left {
+        left: -30px;
+        background: radial-gradient(circle, rgba(255,255,200,0.25) 0%, transparent 70%);
+      }
+      .card-spotlight--right {
+        right: -30px;
+        background: radial-gradient(circle, rgba(255,255,200,0.2) 0%, transparent 70%);
+      }
+      .card-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+        min-height: 34px;
+        padding-right: 54px;
+      }
+      .card-trophy-logo-wrap {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 50px;
+        height: 50px;
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050508;
+      }
+      .card-trophy-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+      }
+      .card-best-flags {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .card-best-flag {
+        border-radius: 2px;
+        border: 1px solid rgba(255,255,255,0.15);
+        vertical-align: middle;
+      }
+      .card-best-flag-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 10px;
+        font-size: 5px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.1);
+        border-radius: 2px;
+        color: #fff;
+      }
+      .stat-pill--zone {
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 4px;
+        padding: 1px 3px;
+      }
+      .stat-pill--zone-blue {
+        background: rgba(96, 165, 250, 0.18);
+        border-color: rgba(96, 165, 250, 0.45);
+      }
+      .stat-pill--zone-green {
+        background: rgba(52, 211, 153, 0.18);
+        border-color: rgba(52, 211, 153, 0.45);
+      }
+      .stat-pill--zone-red {
+        background: rgba(244, 63, 94, 0.18);
+        border-color: rgba(244, 63, 94, 0.45);
+      }
+      .stat-pill-val--zone {
+        font-size: 7.5px !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.3px;
+      }
+      .stat-pill--zone-blue .stat-pill-val--zone { color: #60a5fa !important; }
+      .stat-pill--zone-green .stat-pill-val--zone { color: #34d399 !important; }
+      .stat-pill--zone-red .stat-pill-val--zone { color: #f43f5e !important; }
+      .card-title-block {
+        text-align: center;
+        line-height: 1.05;
+        padding-top: 1px;
+      }
+      .card-title-gold {
+        font-size: 11px;
+        font-weight: 800;
+        color: #f5c842;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        text-shadow: 0 0 8px rgba(245,200,66,0.35);
+      }
+      .card-title-white {
+        font-size: 8.5px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .stat-pill-val--gold { color: #f5c842 !important; }
+      .card-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 5.5px;
+        font-weight: 700;
+        color: #94a3b8;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        padding-bottom: 2px;
+        position: relative;
+        z-index: 1;
+        flex-wrap: nowrap;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .card-meta-row strong { color: rgba(255,255,255,0.4); font-weight: 700; margin-right: 2px; }
+      .card-meta-flag { border-radius: 1px; vertical-align: middle; margin-right: 2px; }
+      .card-meta-team { color: #fff; text-transform: uppercase; }
+      .card-meta-player { color: #f5c842; text-transform: uppercase; }
+      .card-meta-tournament { color: #22c55e; }
+      .card-meta-sep { color: rgba(255,255,255,0.15); }
+      .card-stats-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(0,0,0,0.45);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 5px;
+        padding: 3px 4px;
+        position: relative;
+        z-index: 1;
+      }
+      .card-stats-inner {
+        display: flex;
+        flex: 1;
+        gap: 3px;
+        align-items: center;
+        min-width: 0;
+      }
+      .stat-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        flex: 1;
+        min-width: 0;
+        color: rgba(255,255,255,0.55);
+      }
+      .stat-pill-head {
+        display: flex;
+        align-items: center;
+        gap: 1px;
+      }
+      .stat-icon { width: 7px; height: 7px; flex-shrink: 0; }
+      .stat-pill-label {
+        font-size: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05px;
+        white-space: nowrap;
+        color: rgba(255,255,255,0.45);
+        line-height: 1;
+      }
+      .stat-pill-val {
+        font-size: 7px;
+        font-weight: 800;
+        color: #f8fafc;
+      }
+      .card-position-group {
+        flex-shrink: 0;
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+      }
+      .card-position-box {
+        background: linear-gradient(135deg, #f5c842 0%, #c9a020 55%, #b8860b 100%);
+        border-radius: 4px;
+        padding: 2px 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(245,200,66,0.35);
+        border: 1px solid rgba(255,255,255,0.3);
+        width: 40px;
+      }
+      .card-position-total-pill {
+        flex: 0 0 auto;
+        width: 28px;
+        min-width: 28px;
+      }
+      .card-position-label {
+        font-size: 4px;
+        font-weight: 800;
+        color: #1a1200;
+        letter-spacing: 0.2px;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+      .card-position-rank {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        line-height: 1.1;
+      }
+      .card-position-emoji {
+        font-size: 8px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .card-position-rank-num {
+        font-size: 9px;
+        font-weight: 900;
+        color: #1a1200;
+        white-space: nowrap;
+      }
+      .card-chart {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .card-team-flags-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1px;
+        margin-top: 1px;
+        padding: 0 1px;
+        width: 100%;
+        flex-shrink: 0;
+      }
+      .card-team-flag {
+        flex: 1;
+        min-width: 0;
+        max-width: 20px;
+        height: 11px;
+        object-fit: cover;
+        border-radius: 1px;
+        border: 1px solid rgba(255,255,255,0.12);
+        display: block;
+      }
+      .card-team-flag-fallback {
+        flex: 1;
+        min-width: 0;
+        max-width: 20px;
+        height: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.08);
+        border-radius: 1px;
+        color: rgba(255,255,255,0.6);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      @media print {
+        body {
+          background-color: #000 !important;
+        }
+        .control-panel {
+          display: none !important;
+        }
+        .page {
+          margin: 0 !important;
+          box-shadow: none !important;
+          page-break-after: always;
+          border: none !important;
+          background: #000 !important;
+        }
+        .card {
+          border: 0.5px dashed rgba(255,255,255,0.2) !important;
+          border-radius: 0 !important;
+          background: #050508 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+        .card-position-box,
+        .card-title-gold,
+        .card-spotlight,
+        .card-trophy-logo-wrap {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="control-panel">
+      <h2>YEC-BR World Cup 2026 — Match Trend Cards</h2>
+      <p>กำลังแสดงตัวอย่างหน้าพิมพ์ A4 (8 การ์ดต่อหน้า) จำนวนผู้เล่นทั้งหมด: ${totalCards} คน (${pagesCount} หน้า A4)</p>
+      <button class="btn-print" onclick="window.print()">พิมพ์การ์ดทั้งหมด (Print)</button>
+      <button class="btn-close" onclick="window.close()">ปิดหน้าต่างนี้ (Close)</button>
+    </div>
+    <div class="pages-container">
+      ${pagesHtml}
+    </div>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      });
+    </script>
+  </body>
+  </html>
+    `;
+
+    if (isDebugPrint) {
+      let debugContainer = document.getElementById('debug-print-container');
+      if (!debugContainer) {
+        debugContainer = document.createElement('div');
+        debugContainer.id = 'debug-print-container';
+        document.body.appendChild(debugContainer);
+      }
+      debugContainer.innerHTML = `
+        <style>
+          .page {
+            width: 21cm;
+            height: 29.7cm;
+            background: #07070a;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 30px auto;
+            display: grid;
+            grid-template-columns: repeat(2, 10.5cm);
+            grid-template-rows: repeat(4, 7.425cm);
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.05);
+          }
+          .card {
+            width: 10.5cm;
+            height: 7.425cm;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 7px 9px 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,40,25,0.5) 0%, transparent 70%),
+                        linear-gradient(180deg, #0a0c12 0%, #050508 100%);
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+          }
+          .card--trend::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(0,80,30,0.04) 18px, rgba(0,80,30,0.04) 19px);
+            pointer-events: none;
+          }
+          .card-spotlight { position: absolute; top: -20px; width: 120px; height: 80px; border-radius: 50%; pointer-events: none; opacity: 0.35; }
+          .card-spotlight--left { left: -30px; background: radial-gradient(circle, rgba(255,255,200,0.25) 0%, transparent 70%); }
+          .card-spotlight--right { right: -30px; background: radial-gradient(circle, rgba(255,255,200,0.2) 0%, transparent 70%); }
+          .card-top-row { display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; min-height: 34px; padding-right: 54px; }
+          .card-trophy-logo-wrap { position: absolute; right: 0; top: 0; width: 50px; height: 50px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #050508; }
+          .card-trophy-logo { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+          .card-best-flags { display: inline-flex; align-items: center; gap: 3px; }
+          .card-best-flag { border-radius: 2px; border: 1px solid rgba(255,255,255,0.15); }
+          .card-best-flag-fallback { display: inline-flex; width: 14px; height: 10px; font-size: 5px; font-weight: 700; background: rgba(255,255,255,0.1); border-radius: 2px; color: #fff; align-items: center; justify-content: center; }
+          .stat-pill--zone { border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; padding: 1px 3px; }
+          .stat-pill--zone-blue { background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.45); }
+          .stat-pill--zone-green { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.45); }
+          .stat-pill--zone-red { background: rgba(244,63,94,0.18); border-color: rgba(244,63,94,0.45); }
+          .stat-pill-val--zone { font-size: 7.5px !important; font-weight: 900 !important; }
+          .stat-pill--zone-blue .stat-pill-val--zone { color: #60a5fa !important; }
+          .stat-pill--zone-green .stat-pill-val--zone { color: #34d399 !important; }
+          .stat-pill--zone-red .stat-pill-val--zone { color: #f43f5e !important; }
+          .card-title-block { text-align: center; line-height: 1.05; padding-top: 1px; }
+          .card-title-gold { font-size: 11px; font-weight: 800; color: #f5c842; letter-spacing: 0.6px; text-transform: uppercase; }
+          .card-title-white { font-size: 8.5px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
+          .stat-pill-val--gold { color: #f5c842 !important; }
+          .card-meta-row { display: flex; align-items: center; gap: 5px; font-size: 5.5px; font-weight: 700; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 2px; position: relative; z-index: 1; overflow: hidden; white-space: nowrap; }
+          .card-meta-row strong { color: rgba(255,255,255,0.4); margin-right: 2px; }
+          .card-meta-flag { border-radius: 1px; vertical-align: middle; margin-right: 2px; }
+          .card-meta-team { color: #fff; text-transform: uppercase; }
+          .card-meta-player { color: #f5c842; text-transform: uppercase; }
+          .card-meta-tournament { color: #22c55e; }
+          .card-meta-sep { color: rgba(255,255,255,0.15); }
+          .card-stats-bar { display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; padding: 3px 4px; position: relative; z-index: 1; }
+          .card-stats-inner { display: flex; flex: 1; gap: 3px; align-items: center; min-width: 0; }
+          .stat-pill { display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 1; min-width: 0; color: rgba(255,255,255,0.55); }
+          .stat-pill-head { display: flex; align-items: center; gap: 1px; }
+          .stat-icon { width: 7px; height: 7px; flex-shrink: 0; }
+          .stat-pill-label { font-size: 4.8px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+          .stat-pill-val { font-size: 7px; font-weight: 800; color: #f8fafc; }
+          .card-position-group { flex-shrink: 0; display: flex; align-items: stretch; gap: 2px; }
+          .card-position-box { width: 40px; background: linear-gradient(135deg, #f5c842 0%, #b8860b 100%); border-radius: 4px; padding: 2px 4px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 8px rgba(245,200,66,0.35); }
+          .card-position-total-pill { flex: 0 0 auto; width: 28px; min-width: 28px; }
+          .card-position-label { font-size: 4px; font-weight: 800; color: #1a1200; text-transform: uppercase; }
+          .card-position-rank { display: flex; align-items: center; justify-content: center; gap: 1px; line-height: 1.1; }
+          .card-position-emoji { font-size: 8px; line-height: 1; flex-shrink: 0; }
+          .card-position-rank-num { font-size: 9px; font-weight: 900; color: #1a1200; white-space: nowrap; }
+          .card-chart { flex: 1; min-height: 0; position: relative; z-index: 1; display: flex; flex-direction: column; }
+          .card-team-flags-row { display: flex; align-items: center; justify-content: space-between; gap: 1px; margin-top: 1px; padding: 0 1px; width: 100%; flex-shrink: 0; }
+          .card-team-flag { flex: 1; min-width: 0; max-width: 20px; height: 11px; object-fit: cover; border-radius: 1px; border: 1px solid rgba(255,255,255,0.12); display: block; }
+          .card-team-flag-fallback { flex: 1; min-width: 0; max-width: 20px; height: 11px; display: flex; align-items: center; justify-content: center; font-size: 4px; font-weight: 700; background: rgba(255,255,255,0.08); border-radius: 1px; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+
+        </style>
+        <div class="pages-container" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+          ${pagesHtml}
+        </div>
+      `;
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent) mainContent.style.display = 'none';
+      document.body.style.backgroundColor = '#07070a';
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(printDoc);
+    printWindow.document.close();
+  }
+
   async function exportLeaderboardImage() {
     const section = document.getElementById('leaderboard');
     const liveCard = section?.querySelector('.card');
@@ -6952,6 +7850,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  const exportAllGraphsBtn = document.getElementById('export-all-graphs-btn');
+  if (exportAllGraphsBtn) {
+    exportAllGraphsBtn.addEventListener('click', () => {
+      exportAllPlayerCards();
+    });
+  }
+
   // Close Modals buttons
   document.getElementById('close-detail-btn').addEventListener('click', hidePlayerDetailsDrawer);
 
@@ -7137,6 +8042,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial page renders
   bindChartHoverInteractions();
   renderDashboard();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('debug_print')) {
+    setTimeout(() => {
+      exportAllPlayerCards();
+    }, 100);
+  }
 });
 
 // Handle window resize to update chart responsiveness (debounced + guarded)

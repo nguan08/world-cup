@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v71-sw-post-fix';
+const CACHE_NAME = 'wc2026-v76-players-pill';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
@@ -89,7 +89,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (url.pathname.includes('/js/')) {
-    event.respondWith(respondWithCacheThenNetwork(event.request, { updateCache: true }));
+    event.respondWith(networkFirstJs(event.request));
     return;
   }
 
@@ -119,6 +119,25 @@ async function respondWithCacheThenNetwork(request, { updateCache = false } = {}
       status: 503,
       statusText: 'Service Unavailable',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+}
+
+async function networkFirstJs(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
+    return response;
+  } catch (err) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    console.warn('[SW] js network failed, no cache:', request.url, err);
+    return new Response('// offline', {
+      status: 503,
+      headers: { 'Content-Type': 'application/javascript; charset=utf-8' }
     });
   }
 }

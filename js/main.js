@@ -4,7 +4,7 @@
 import {
   handleSimulationScoreChange,
   openPlayerDetails
-} from './bundle.js';
+} from './bundle.js?v=20260704-players-pill';
 
 window.handleSimulationScoreChange = handleSimulationScoreChange;
 window.openPlayerDetails = openPlayerDetails;
