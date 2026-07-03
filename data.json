@@ -939,12 +939,12 @@
       "id": 86,
       "home": "ออสเตรเลีย",
       "away": "อียิปต์",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-03",
-      "penaltyWinner": null
+      "penaltyWinner": "away"
     },
     {
       "id": 87,
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783055152403,
-    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 2-0 แอลจีเรีย",
-    "sentAt": "2026-07-03T05:05:52.403Z"
+    "id": 1783112589732,
+    "message": "⚽ อัปเดตสกอร์: ออสเตรเลีย 1-1 อียิปต์ (จุดโทษ: away)",
+    "sentAt": "2026-07-03T21:03:09.732Z"
   },
   "players": [
     {
