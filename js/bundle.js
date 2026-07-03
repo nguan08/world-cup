@@ -1875,31 +1875,33 @@ function parseChartPathPoints(pathD) {
 
 const SOCCER_BALL_BASE_R = 3.6;
 
-function buildSoccerBallMarkerSvg(cx, cy, r, strokeColor, opts = {}) {
+function buildSoccerBallMarkerSvg(cx, cy, r, _strokeColor, opts = {}) {
   const {
     glow = false,
     glowFilterId = 'ball-glow',
     innerOnly = false,
-    opacity = 1
+    opacity = 1,
+    imageUrl = null
   } = opts;
+  const url = imageUrl || getSoccerBallIconUrl();
   const b = SOCCER_BALL_BASE_R;
+  const size = b * 2;
   const scale = r / b;
   const glowFilter = glow ? ` filter="url(#${glowFilterId})"` : '';
-  const transform = innerOnly
-    ? `scale(${scale})`
-    : `translate(${cx}, ${cy}) scale(${scale})`;
+  const ballImage = `<image class="soccer-ball-marker-img" href="${url}" xlink:href="${url}" x="${-b}" y="${-b}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
+
+  if (innerOnly) {
+    return `
+      <g class="soccer-ball-marker" transform="scale(${scale})"${glowFilter} opacity="${opacity}" style="pointer-events: none;">
+        ${ballImage}
+      </g>
+    `;
+  }
 
   return `
-    <g class="soccer-ball-marker" transform="${transform}"${glowFilter} opacity="${opacity}" style="pointer-events: none;">
+    <g class="soccer-ball-marker" transform="translate(${cx}, ${cy}) scale(${scale})"${glowFilter} opacity="${opacity}" style="pointer-events: none;">
       ${glow ? `<circle cx="0" cy="0" r="${b + 1.2}" fill="rgba(245,200,66,0.35)"/>` : ''}
-      <circle cx="0" cy="0" r="${b}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.75"/>
-      <path d="M 0,-${(b * 0.58).toFixed(2)} C ${(b * 0.36).toFixed(2)},-${(b * 0.4).toFixed(2)} ${(b * 0.4).toFixed(2)},-${(b * 0.06).toFixed(2)} ${(b * 0.26).toFixed(2)},${(b * 0.24).toFixed(2)} C ${(b * 0.1).toFixed(2)},${(b * 0.5).toFixed(2)} 0,${(b * 0.54).toFixed(2)} -${(b * 0.26).toFixed(2)},${(b * 0.24).toFixed(2)} C -${(b * 0.4).toFixed(2)},-${(b * 0.06).toFixed(2)} -${(b * 0.36).toFixed(2)},-${(b * 0.4).toFixed(2)} 0,-${(b * 0.58).toFixed(2)} Z" fill="#111827"/>
-      <ellipse cx="-${(b * 0.5).toFixed(2)}" cy="-${(b * 0.04).toFixed(2)}" rx="${(b * 0.27).toFixed(2)}" ry="${(b * 0.36).toFixed(2)}" fill="#111827" transform="rotate(-30)"/>
-      <ellipse cx="${(b * 0.5).toFixed(2)}" cy="-${(b * 0.04).toFixed(2)}" rx="${(b * 0.27).toFixed(2)}" ry="${(b * 0.36).toFixed(2)}" fill="#111827" transform="rotate(30)"/>
-      <ellipse cx="0" cy="${(b * 0.5).toFixed(2)}" rx="${(b * 0.32).toFixed(2)}" ry="${(b * 0.2).toFixed(2)}" fill="#111827"/>
-      <path d="M -${(b * 0.82).toFixed(2)},0 Q 0,-${(b * 0.68).toFixed(2)} ${(b * 0.82).toFixed(2)},0" fill="none" stroke="#94a3b8" stroke-width="0.32"/>
-      <path d="M -${(b * 0.58).toFixed(2)},-${(b * 0.58).toFixed(2)} Q 0,0 ${(b * 0.58).toFixed(2)},-${(b * 0.58).toFixed(2)}" fill="none" stroke="#94a3b8" stroke-width="0.28"/>
-      <path d="M -${(b * 0.58).toFixed(2)},${(b * 0.58).toFixed(2)} Q 0,0 ${(b * 0.58).toFixed(2)},${(b * 0.58).toFixed(2)}" fill="none" stroke="#94a3b8" stroke-width="0.28"/>
+      ${ballImage}
     </g>
   `;
 }
@@ -5759,6 +5761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const appBase = window.__wcAppBase || '/';
     const trophyLogoUrl = `${window.location.origin}${appBase}icons/yec-br-wc-logo.png`;
+    const soccerBallUrl = `${window.location.origin}${appBase}icons/soccer-ball.png`;
 
     const getZoneColor = zone => {
       if (zone === 'blue') return '#60a5fa';
@@ -5925,7 +5928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!isMarker) continue;
         const rankVal = ph.ranks[i] ?? maxRank;
         const showLabel = i === 0 || isLast || (i > 0 && ph.ranks[i] !== ph.ranks[i - 1]);
-        dots += buildSoccerBallMarkerSvg(x, y, isLast ? 3.6 : 2.4, isLast ? '#f5c842' : lineColor, { glow: isLast });
+        dots += buildSoccerBallMarkerSvg(x, y, isLast ? 3.6 : 2.4, null, { glow: isLast, imageUrl: soccerBallUrl });
         if (showLabel) {
           dots += `<text x="${x}" y="${y - (isLast ? 7 : 5.5)}" text-anchor="middle" font-size="6.2" font-weight="800" fill="#fff" font-family="Inter,sans-serif">${rankVal}</text>`;
         }
