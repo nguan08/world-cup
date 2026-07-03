@@ -2875,7 +2875,8 @@ function buildSoccerBallMarkerSvg(cx, cy, r, strokeColor, opts = {}) {
     innerOnly = false,
     opacity = 1
   } = opts;
-  const scale = r / SOCCER_BALL_BASE_R;
+  const b = SOCCER_BALL_BASE_R;
+  const scale = r / b;
   const glowFilter = glow ? ` filter="url(#${glowFilterId})"` : '';
   const transform = innerOnly
     ? `scale(${scale})`
@@ -2883,14 +2884,15 @@ function buildSoccerBallMarkerSvg(cx, cy, r, strokeColor, opts = {}) {
 
   return `
     <g class="soccer-ball-marker" transform="${transform}"${glowFilter} opacity="${opacity}" style="pointer-events: none;">
-      ${glow ? `<circle cx="0" cy="0" r="${SOCCER_BALL_BASE_R + 1.2}" fill="rgba(245,200,66,0.35)"/>` : ''}
-      <circle cx="0" cy="0" r="${SOCCER_BALL_BASE_R}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.85"/>
-      <polygon points="0,-1.05 1.0,-0.32 0.62,0.8 -0.62,0.8 -1.0,-0.32" fill="#1e293b"/>
-      <line x1="0" y1="-1.05" x2="0" y2="-${SOCCER_BALL_BASE_R}" stroke="#475569" stroke-width="0.42"/>
-      <line x1="1.0" y1="-0.32" x2="${SOCCER_BALL_BASE_R * 0.82}" y2="-${SOCCER_BALL_BASE_R * 0.48}" stroke="#475569" stroke-width="0.42"/>
-      <line x1="0.62" y1="0.8" x2="${SOCCER_BALL_BASE_R * 0.48}" y2="${SOCCER_BALL_BASE_R * 0.82}" stroke="#475569" stroke-width="0.42"/>
-      <line x1="-0.62" y1="0.8" x2="-${SOCCER_BALL_BASE_R * 0.48}" y2="${SOCCER_BALL_BASE_R * 0.82}" stroke="#475569" stroke-width="0.42"/>
-      <line x1="-1.0" y1="-0.32" x2="-${SOCCER_BALL_BASE_R * 0.82}" y2="-${SOCCER_BALL_BASE_R * 0.48}" stroke="#475569" stroke-width="0.42"/>
+      ${glow ? `<circle cx="0" cy="0" r="${b + 1.2}" fill="rgba(245,200,66,0.35)"/>` : ''}
+      <circle cx="0" cy="0" r="${b}" fill="#ffffff" stroke="${strokeColor}" stroke-width="0.75"/>
+      <path d="M 0,-${(b * 0.58).toFixed(2)} C ${(b * 0.36).toFixed(2)},-${(b * 0.4).toFixed(2)} ${(b * 0.4).toFixed(2)},-${(b * 0.06).toFixed(2)} ${(b * 0.26).toFixed(2)},${(b * 0.24).toFixed(2)} C ${(b * 0.1).toFixed(2)},${(b * 0.5).toFixed(2)} 0,${(b * 0.54).toFixed(2)} -${(b * 0.26).toFixed(2)},${(b * 0.24).toFixed(2)} C -${(b * 0.4).toFixed(2)},-${(b * 0.06).toFixed(2)} -${(b * 0.36).toFixed(2)},-${(b * 0.4).toFixed(2)} 0,-${(b * 0.58).toFixed(2)} Z" fill="#111827"/>
+      <ellipse cx="-${(b * 0.5).toFixed(2)}" cy="-${(b * 0.04).toFixed(2)}" rx="${(b * 0.27).toFixed(2)}" ry="${(b * 0.36).toFixed(2)}" fill="#111827" transform="rotate(-30)"/>
+      <ellipse cx="${(b * 0.5).toFixed(2)}" cy="-${(b * 0.04).toFixed(2)}" rx="${(b * 0.27).toFixed(2)}" ry="${(b * 0.36).toFixed(2)}" fill="#111827" transform="rotate(30)"/>
+      <ellipse cx="0" cy="${(b * 0.5).toFixed(2)}" rx="${(b * 0.32).toFixed(2)}" ry="${(b * 0.2).toFixed(2)}" fill="#111827"/>
+      <path d="M -${(b * 0.82).toFixed(2)},0 Q 0,-${(b * 0.68).toFixed(2)} ${(b * 0.82).toFixed(2)},0" fill="none" stroke="#94a3b8" stroke-width="0.32"/>
+      <path d="M -${(b * 0.58).toFixed(2)},-${(b * 0.58).toFixed(2)} Q 0,0 ${(b * 0.58).toFixed(2)},-${(b * 0.58).toFixed(2)}" fill="none" stroke="#94a3b8" stroke-width="0.28"/>
+      <path d="M -${(b * 0.58).toFixed(2)},${(b * 0.58).toFixed(2)} Q 0,0 ${(b * 0.58).toFixed(2)},${(b * 0.58).toFixed(2)}" fill="none" stroke="#94a3b8" stroke-width="0.28"/>
     </g>
   `;
 }

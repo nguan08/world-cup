@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wc2026-v78-network-first-shell';
+const CACHE_NAME = 'wc2026-v79-soccer-ball-v2';
 const META_CACHE = 'wc-meta-v1';
 const BROADCAST_META_KEY = '/__last_broadcast_id__';
 const MOBILE_NO_NOTIF_KEY = '/__mobile_no_update_notif__';
