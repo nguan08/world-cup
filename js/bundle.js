@@ -1875,6 +1875,11 @@ function parseChartPathPoints(pathD) {
 
 const SOCCER_BALL_BASE_R = 3.6;
 
+function getSoccerBallIconUrl() {
+  const appBase = window.__wcAppBase || '/';
+  return `${window.location.origin}${appBase}icons/soccer-ball.png`;
+}
+
 function buildSoccerBallMarkerSvg(cx, cy, r, _strokeColor, opts = {}) {
   const {
     glow = false,
