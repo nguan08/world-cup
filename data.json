@@ -928,9 +928,9 @@
       "id": 85,
       "home": "สวิตเซอร์แลนด์",
       "away": "แอลจีเรีย",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-03",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783040177883,
-    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 2-1 โครเอเชีย",
-    "sentAt": "2026-07-03T00:56:17.883Z"
+    "id": 1783055152403,
+    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 2-0 แอลจีเรีย",
+    "sentAt": "2026-07-03T05:05:52.403Z"
   },
   "players": [
     {
