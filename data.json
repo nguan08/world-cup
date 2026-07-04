@@ -950,9 +950,9 @@
       "id": 87,
       "home": "อาร์เจนตินา",
       "away": "เคปเวิร์ด",
-      "homeScore": 0,
-      "awayScore": 0,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-03",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783112589732,
-    "message": "⚽ อัปเดตสกอร์: ออสเตรเลีย 1-1 อียิปต์ (จุดโทษ: away)",
-    "sentAt": "2026-07-03T21:03:09.732Z"
+    "id": 1783131539375,
+    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 3-2 เคปเวิร์ด",
+    "sentAt": "2026-07-04T02:18:59.375Z"
   },
   "players": [
     {
