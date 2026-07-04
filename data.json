@@ -961,9 +961,9 @@
       "id": 88,
       "home": "โคลอมเบีย",
       "away": "กานา",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
-      "status": "pending",
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-04",
       "penaltyWinner": null
@@ -988,9 +988,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783131539375,
-    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 3-2 เคปเวิร์ด",
-    "sentAt": "2026-07-04T02:18:59.375Z"
+    "id": 1783135971210,
+    "message": "⚽ อัปเดตสกอร์: โคลอมเบีย 1-0 กานา",
+    "sentAt": "2026-07-04T03:32:51.210Z"
   },
   "players": [
     {
