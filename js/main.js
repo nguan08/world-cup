@@ -4,7 +4,7 @@
 import {
   handleSimulationScoreChange,
   openPlayerDetails
-} from './bundle.js?v=20260704-mobile-chart';
+} from './bundle.js?v=20260704-scoring-fix';
 
 window.handleSimulationScoreChange = handleSimulationScoreChange;
 window.openPlayerDetails = openPlayerDetails;
