@@ -1146,6 +1146,7 @@ function getScoreChartCacheKey() {
 }
 
 function scheduleScoreChartRender() {
+  if (isMobileViewport()) return;
   if (_scoreChartRenderRaf1) cancelAnimationFrame(_scoreChartRenderRaf1);
   if (_scoreChartRenderRaf2) cancelAnimationFrame(_scoreChartRenderRaf2);
   _scoreChartRenderRaf1 = requestAnimationFrame(() => {
@@ -1741,6 +1742,18 @@ function isChartLiteMode() {
   return isIOSChartDevice();
 }
 
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function requireAdminForPrintCards() {
+  if (app.isAdmin) return true;
+  alert('กรุณาเข้าสู่ระบบ Admin ก่อนพิมพ์การ์ด');
+  const overlay = document.getElementById('admin-login-overlay');
+  if (overlay) overlay.classList.add('active');
+  return false;
+}
+
 function applyChartMatchToTeamScores(match, teamScores) {
   const isSimulated = app.simulationScores[match.id];
   if (match.status !== 'finished' && !isSimulated) return;
@@ -1918,6 +1931,7 @@ function setTrendDotBallScale(dot, multiplier = 1) {
 }
 
 function renderScoreChart() {
+  if (isMobileViewport()) return;
   const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !app.processedPlayers.length) return;
 
@@ -5738,6 +5752,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function exportAllPlayerCards() {
+    if (!requireAdminForPrintCards()) return;
+
     const chartMatches = getChartEligibleMatches();
     const chartDaySteps = buildChartDaySteps(chartMatches);
     const stepsCount = chartDaySteps.length;
@@ -6916,7 +6932,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const exportAllGraphsBtn = document.getElementById('export-all-graphs-btn');
   if (exportAllGraphsBtn) {
+    exportAllGraphsBtn.style.display = app.isAdmin ? 'flex' : 'none';
     exportAllGraphsBtn.addEventListener('click', () => {
+      if (!requireAdminForPrintCards()) return;
       exportAllPlayerCards();
     });
   }
@@ -7108,7 +7126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderDashboard();
 
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('debug_print')) {
+  if (urlParams.has('debug_print') && app.isAdmin) {
     setTimeout(() => {
       exportAllPlayerCards();
     }, 100);
