@@ -4,7 +4,7 @@
 import {
   handleSimulationScoreChange,
   openPlayerDetails
-} from './bundle.js?v=20260704-push-quiet';
+} from './bundle.js?v=20260704-vibrate-fix';
 
 window.handleSimulationScoreChange = handleSimulationScoreChange;
 window.openPlayerDetails = openPlayerDetails;

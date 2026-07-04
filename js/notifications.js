@@ -33,6 +33,26 @@ const DEFAULT_TOAST_MS = 8000;
 const AUTO_PROMPT_KEY = 'worldcup_notifAutoPrompted';
 const AUTO_PROMPT_DELAY_MS = 1200;
 
+let userGestureReady = false;
+
+function initVibrateGestureGate() {
+  if (userGestureReady || typeof window === 'undefined') return;
+  const markReady = () => {
+    userGestureReady = true;
+  };
+  window.addEventListener('pointerdown', markReady, { capture: true, once: true });
+  window.addEventListener('keydown', markReady, { capture: true, once: true });
+}
+
+function safeVibrate(pattern) {
+  if (!userGestureReady || !isMobileDevice() || !navigator.vibrate) return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    // Chrome blocks vibrate until user gesture — ignore silently
+  }
+}
+
 function allowUpdateNotifications() {
   return !isMobileDevice();
 }
@@ -60,6 +80,8 @@ function clearPendingNotificationsSilently() {
 }
 
 export function initNotifications() {
+  initVibrateGestureGate();
+
   if (!localStorage.getItem(SHOWN_BROADCAST_KEY) && localStorage.getItem('worldcup_lastBroadcastId')) {
     localStorage.setItem(SHOWN_BROADCAST_KEY, localStorage.getItem('worldcup_lastBroadcastId'));
   }
@@ -332,9 +354,7 @@ function displayScoreUpdateMessage(message, { changes = [], autoDismiss = false 
       if (changes.length) markScoresNotified(changes);
     }
   });
-  if (isMobileDevice() && navigator.vibrate) {
-    try { navigator.vibrate([80, 40, 80]); } catch { /* ignore */ }
-  }
+  safeVibrate([80, 40, 80]);
 }
 
 export function processScoreUpdates(changes, { onInit = false } = {}) {
@@ -418,9 +438,7 @@ function displayBroadcastMessage(text, {
     }
   });
 
-  if (isMobileDevice() && navigator.vibrate) {
-    try { navigator.vibrate([120, 60, 120]); } catch { /* ignore */ }
-  }
+  safeVibrate([120, 60, 120]);
 
   if (document.hidden) {
     showBrowserNotification(text, browserType);
