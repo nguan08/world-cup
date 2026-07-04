@@ -967,6 +967,94 @@
       "isKnockout": true,
       "date": "2026-07-04",
       "penaltyWinner": null
+    },
+    {
+      "id": 89,
+      "home": "แคนาดา",
+      "away": "โมร็อกโก",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-04",
+      "penaltyWinner": null
+    },
+    {
+      "id": 90,
+      "home": "ปารากวัย",
+      "away": "ฝรั่งเศส",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-04",
+      "penaltyWinner": null
+    },
+    {
+      "id": 91,
+      "home": "บราซิล",
+      "away": "นอร์เวย์",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-05",
+      "penaltyWinner": null
+    },
+    {
+      "id": 92,
+      "home": "เม็กซิโก",
+      "away": "อังกฤษ",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-06",
+      "penaltyWinner": null
+    },
+    {
+      "id": 93,
+      "home": "โปรตุเกส",
+      "away": "สเปน",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-06",
+      "penaltyWinner": null
+    },
+    {
+      "id": 94,
+      "home": "สหรัฐอเมริกา",
+      "away": "เบลเยียม",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-07",
+      "penaltyWinner": null
+    },
+    {
+      "id": 95,
+      "home": "อาร์เจนตินา",
+      "away": "อียิปต์",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-07",
+      "penaltyWinner": null
+    },
+    {
+      "id": 96,
+      "home": "สวิตเซอร์แลนด์",
+      "away": "โคลอมเบีย",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-07",
+      "penaltyWinner": null
     }
   ],
   "eliminatedTeams": [
@@ -2295,5 +2383,9 @@
       ],
       "guess": 3
     }
-  ]
+  ],
+  "roomSettings": {
+    "averagePayoutRules": true
+  },
+  "roomName": "ห้องหลัก"
 }

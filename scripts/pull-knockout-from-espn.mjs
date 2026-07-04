@@ -63,6 +63,8 @@ const ESPN_TO_THAI = {
 
 const ROUND32_START = '2026-06-28';
 const ROUND32_END = '2026-07-04';
+const ROUND16_START = '2026-07-04';
+const ROUND16_END = '2026-07-07';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -105,7 +107,7 @@ async function fetchEspnEventsForDate(dateYmd) {
   return json.events || [];
 }
 
-function extractRound32Fixture(event) {
+function extractKnockoutFixture(event) {
   const competition = event?.competitions?.[0];
   const competitors = competition?.competitors || [];
   const home = competitors.find((c) => c.homeAway === 'home');
@@ -145,15 +147,15 @@ function extractRound32Fixture(event) {
   };
 }
 
-async function fetchRound32Fixtures() {
+async function fetchKnockoutFixtures(startIso, endIso) {
   const fixtures = [];
   const seen = new Set();
 
-  for (const dateYmd of dateRange(ROUND32_START, ROUND32_END)) {
+  for (const dateYmd of dateRange(startIso, endIso)) {
     try {
       const events = await fetchEspnEventsForDate(dateYmd);
       for (const event of events) {
-        const fixture = extractRound32Fixture(event);
+        const fixture = extractKnockoutFixture(event);
         if (!fixture) continue;
         const key = matchKey(fixture.home, fixture.away);
         if (seen.has(key)) continue;
@@ -174,6 +176,25 @@ async function fetchRound32Fixtures() {
   return fixtures;
 }
 
+function mergeFixtures(...fixtureLists) {
+  const merged = [];
+  const seen = new Set();
+  for (const fixtures of fixtureLists) {
+    for (const fixture of fixtures) {
+      const key = matchKey(fixture.home, fixture.away);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(fixture);
+    }
+  }
+  merged.sort((a, b) => {
+    const dateCmp = String(a.date).localeCompare(String(b.date));
+    if (dateCmp !== 0) return dateCmp;
+    return matchKey(a.home, a.away).localeCompare(matchKey(b.home, b.away));
+  });
+  return merged;
+}
+
 function nextMatchId(matches) {
   const ids = matches.filter((m) => m.id < 100).map((m) => Number(m.id)).filter(Number.isFinite);
   return ids.length > 0 ? Math.max(...ids) + 1 : 1;
@@ -184,9 +205,11 @@ const matches = Array.isArray(data.matches) ? data.matches : [];
 const existingKeys = new Set(matches.map((m) => matchKey(m.home, m.away)));
 const knockoutBefore = matches.filter((m) => m.isKnockout).length;
 
-const fixtures = await fetchRound32Fixtures();
+const round32Fixtures = await fetchKnockoutFixtures(ROUND32_START, ROUND32_END);
+const round16Fixtures = await fetchKnockoutFixtures(ROUND16_START, ROUND16_END);
+const fixtures = mergeFixtures(round32Fixtures, round16Fixtures);
 if (fixtures.length === 0) {
-  console.error('[pull-knockout] No round-of-32 fixtures found on ESPN');
+  console.error('[pull-knockout] No knockout fixtures found on ESPN');
   process.exit(1);
 }
 
@@ -215,7 +238,9 @@ for (const fixture of fixtures) {
         existing.status = 'finished';
         existing.homeScore = fixture.homeScore;
         existing.awayScore = fixture.awayScore;
-        existing.penaltyWinner = fixture.penaltyWinner;
+        if (fixture.penaltyWinner != null) {
+          existing.penaltyWinner = fixture.penaltyWinner;
+        }
       }
       updated += 1;
       console.log(`↻ Updated #${existing.id}: ${fixture.home} vs ${fixture.away} (${fixture.date})`);
@@ -244,6 +269,6 @@ data.matches = matches;
 writeJson(DATA_PATH, data);
 
 const knockoutAfter = matches.filter((m) => m.isKnockout).length;
-console.log(`[pull-knockout] Round of 32: ${fixtures.length} fixtures from ESPN`);
+console.log(`[pull-knockout] Round of 32: ${round32Fixtures.length}, Round of 16: ${round16Fixtures.length} fixtures from ESPN`);
 console.log(`  added: ${added}, updated: ${updated}`);
 console.log(`  knockout matches: ${knockoutBefore} → ${knockoutAfter} (total ${matches.length})`);
