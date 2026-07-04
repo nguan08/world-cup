@@ -5779,7 +5779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const safeId = name => String(name).replace(/[^a-zA-Z0-9_-]/g, '_');
 
     const appBase = window.__wcAppBase || '/';
-    const trophyLogoUrl = `${window.location.origin}${appBase}icons/yec-br-wc-logo.png`;
+    const trophyLogoUrl = `${window.location.origin}${appBase}icons/yec-br-wc-challenge-logo.svg`;
     const soccerBallUrl = `${window.location.origin}${appBase}icons/soccer-ball.png`;
 
     const getZoneColor = zone => {
@@ -6003,11 +6003,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="card-spotlight card-spotlight--right"></div>
           <div class="card-top-row">
             <div class="card-title-block">
-              <div class="card-title-gold">YEC-BR WORLD CUP 2026</div>
+              <div class="card-title-gold">YEC-BR WORLD CUP 2026 CHALLENGE</div>
               <div class="card-title-white">MATCH TREND ANALYSIS</div>
             </div>
             <div class="card-trophy-logo-wrap">
-              <img src="${trophyLogoUrl}" alt="YEC-BR World Cup 2026" class="card-trophy-logo" width="50" height="50">
+              <img src="${trophyLogoUrl}" alt="YEC-BR World Cup 2026 Challenge" class="card-trophy-logo" width="42" height="42">
             </div>
           </div>
           <div class="card-meta-row">
@@ -6015,7 +6015,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span class="card-meta-sep">|</span>
             <span class="card-meta-item"><strong>PLAYER</strong> <span class="card-meta-player">${escapeHtml(ph.name)}</span></span>
             <span class="card-meta-sep">|</span>
-            <span class="card-meta-item"><strong>TOURNAMENT</strong> <span class="card-meta-tournament">YEC-BR World Cup 2026™</span></span>
+            <span class="card-meta-item"><strong>TOURNAMENT</strong> <span class="card-meta-tournament">YEC-BR World Cup 2026 Challenge</span></span>
           </div>
           <div class="card-stats-bar">
             <div class="card-stats-inner">
@@ -6060,7 +6060,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   <!DOCTYPE html>
   <html>
   <head>
-    <title>YEC-BR World Cup 2026 Cards</title>
+    <title>YEC-BR World Cup 2026 Challenge Cards</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Sarabun:wght@500;700;800&family=Inter:wght@600;700&display=swap" rel="stylesheet">
@@ -6192,26 +6192,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         position: relative;
         z-index: 1;
         min-height: 34px;
-        padding-right: 54px;
+        padding-right: 48px;
       }
       .card-trophy-logo-wrap {
         position: absolute;
         right: 0;
         top: 0;
-        width: 50px;
-        height: 50px;
+        width: 42px;
+        height: 46px;
+        padding-bottom: 4px;
         border-radius: 4px;
         overflow: hidden;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
         background: #050508;
+        box-sizing: border-box;
       }
       .card-trophy-logo {
-        width: 100%;
-        height: 100%;
+        width: 38px;
+        height: 38px;
         object-fit: contain;
-        object-position: center;
+        object-position: center bottom;
         display: block;
       }
       .card-best-flags {
@@ -6267,10 +6269,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         padding-top: 1px;
       }
       .card-title-gold {
-        font-size: 11px;
+        font-size: 9.5px;
         font-weight: 800;
         color: #f5c842;
-        letter-spacing: 0.6px;
+        letter-spacing: 0.45px;
         text-transform: uppercase;
         text-shadow: 0 0 8px rgba(245,200,66,0.35);
       }
@@ -6483,7 +6485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   </head>
   <body>
     <div class="control-panel">
-      <h2>YEC-BR World Cup 2026 — Match Trend Cards</h2>
+      <h2>YEC-BR World Cup 2026 Challenge — Match Trend Cards</h2>
       <p>กำลังแสดงตัวอย่างหน้าพิมพ์ A4 (8 การ์ดต่อหน้า) จำนวนผู้เล่นทั้งหมด: ${totalCards} คน (${pagesCount} หน้า A4)</p>
       <button class="btn-print" onclick="window.print()">พิมพ์การ์ดทั้งหมด (Print)</button>
       <button class="btn-close" onclick="window.close()">ปิดหน้าต่างนี้ (Close)</button>
@@ -6550,9 +6552,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           .card-spotlight { position: absolute; top: -20px; width: 120px; height: 80px; border-radius: 50%; pointer-events: none; opacity: 0.35; }
           .card-spotlight--left { left: -30px; background: radial-gradient(circle, rgba(255,255,200,0.25) 0%, transparent 70%); }
           .card-spotlight--right { right: -30px; background: radial-gradient(circle, rgba(255,255,200,0.2) 0%, transparent 70%); }
-          .card-top-row { display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; min-height: 34px; padding-right: 54px; }
-          .card-trophy-logo-wrap { position: absolute; right: 0; top: 0; width: 50px; height: 50px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #050508; }
-          .card-trophy-logo { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+          .card-top-row { display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; min-height: 34px; padding-right: 48px; }
+          .card-trophy-logo-wrap { position: absolute; right: 0; top: 0; width: 42px; height: 46px; padding-bottom: 4px; border-radius: 4px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; background: #050508; box-sizing: border-box; }
+          .card-trophy-logo { width: 38px; height: 38px; object-fit: contain; object-position: center bottom; display: block; }
           .card-best-flags { display: inline-flex; align-items: center; gap: 3px; }
           .card-best-flag { border-radius: 2px; border: 1px solid rgba(255,255,255,0.15); }
           .card-best-flag-fallback { display: inline-flex; width: 14px; height: 10px; font-size: 5px; font-weight: 700; background: rgba(255,255,255,0.1); border-radius: 2px; color: #fff; align-items: center; justify-content: center; }
@@ -6565,7 +6567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           .stat-pill--zone-green .stat-pill-val--zone { color: #34d399 !important; }
           .stat-pill--zone-red .stat-pill-val--zone { color: #f43f5e !important; }
           .card-title-block { text-align: center; line-height: 1.05; padding-top: 1px; }
-          .card-title-gold { font-size: 11px; font-weight: 800; color: #f5c842; letter-spacing: 0.6px; text-transform: uppercase; }
+          .card-title-gold { font-size: 9.5px; font-weight: 800; color: #f5c842; letter-spacing: 0.45px; text-transform: uppercase; }
           .card-title-white { font-size: 8.5px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
           .stat-pill-val--gold { color: #f5c842 !important; }
           .card-meta-row { display: flex; align-items: center; gap: 5px; font-size: 5.5px; font-weight: 700; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 2px; position: relative; z-index: 1; overflow: hidden; white-space: nowrap; }
