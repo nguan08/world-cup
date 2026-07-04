@@ -152,11 +152,7 @@ function buildScoreUpdateBroadcast(matches, { cleared = false } = {}) {
 async function dispatchScoreNotificationAfterSave() {
   if (!app.broadcast?.id) return;
   localStorage.setItem('worldcup_shownBroadcastId', String(app.broadcast.id));
-  try {
-    await import('./push.js').then((m) => m.triggerPushWorkflow());
-  } catch {
-    // Push is best-effort; data.json update still triggers the workflow on GitHub.
-  }
+  // send-push.yml runs automatically when data.json is committed to main (no workflow_dispatch needed).
   import('./sync.js').then((m) => m.requestPollNow());
 }
 
@@ -193,11 +189,7 @@ export async function sendBroadcastNotification(message) {
   const ok = await saveToServer({ quiet: true });
   if (ok) {
     localStorage.setItem('worldcup_shownBroadcastId', String(app.broadcast.id));
-    const pushTriggered = await import('./push.js').then((m) => m.triggerPushWorkflow());
-    const pushHint = pushTriggered
-      ? ' + ส่ง Push นอกแอปแล้ว'
-      : ' (Push นอกแอปภายใน ~5 นาที)';
-    notifyAdminSave(`ส่งถึงทุกคนแล้ว: "${text}" (เครื่องอื่นเห็นภายใน ~30 วินาที${pushHint})`);
+    notifyAdminSave(`ส่งถึงทุกคนแล้ว: "${text}" (เครื่องอื่นเห็นภายใน ~30 วินาที · Push นอกแอปภายใน ~1–2 นาที)`);
     import('./sync.js').then((m) => m.requestPollNow());
   } else {
     notifyAdminSave('ส่งแจ้งเตือนล้มเหลว — ตรวจสอบสิทธิ์ repo world-cup', true);

@@ -110,6 +110,7 @@ export async function savePushSubscription(subscription) {
   }
 }
 
+/** Optional manual trigger — needs PAT with actions:write. Normal saves use data.json push → workflow. */
 export async function triggerPushWorkflow() {
   const token = getGitHubWriteToken({ allowPushRegister: false });
   if (!token || !app?.isAdmin) return false;
@@ -125,8 +126,15 @@ export async function triggerPushWorkflow() {
         body: JSON.stringify({ ref: 'main' })
       }
     );
-    return res.ok || res.status === 204;
-  } catch {
+    if (res.ok || res.status === 204) return true;
+    if (res.status === 403 || res.status === 404) {
+      console.debug('[Push] workflow dispatch skipped (token lacks actions:write or workflow missing)');
+      return false;
+    }
+    console.warn('[Push] workflow dispatch failed', res.status);
+    return false;
+  } catch (e) {
+    console.debug('[Push] workflow dispatch error', e);
     return false;
   }
 }
