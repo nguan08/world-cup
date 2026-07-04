@@ -1146,7 +1146,6 @@ function getScoreChartCacheKey() {
 }
 
 function scheduleScoreChartRender() {
-  if (isMobileViewport()) return;
   if (_scoreChartRenderRaf1) cancelAnimationFrame(_scoreChartRenderRaf1);
   if (_scoreChartRenderRaf2) cancelAnimationFrame(_scoreChartRenderRaf2);
   _scoreChartRenderRaf1 = requestAnimationFrame(() => {
@@ -1742,10 +1741,6 @@ function isChartLiteMode() {
   return isIOSChartDevice();
 }
 
-function isMobileViewport() {
-  return window.matchMedia('(max-width: 768px)').matches;
-}
-
 function requireAdminForPrintCards() {
   if (app.isAdmin) return true;
   alert('กรุณาเข้าสู่ระบบ Admin ก่อนพิมพ์การ์ด');
@@ -1931,7 +1926,6 @@ function setTrendDotBallScale(dot, multiplier = 1) {
 }
 
 function renderScoreChart() {
-  if (isMobileViewport()) return;
   const svgEl = getCachedEl('score-chart-svg');
   if (!svgEl || !app.processedPlayers.length) return;
 
@@ -1954,16 +1948,20 @@ function renderScoreChart() {
 
   // 3. Setup Layout Dimensions dynamically for responsive scaling
   const container = document.getElementById('chart-svg-container');
+  const chartCard = document.getElementById('chart-card');
+  const isMobile = window.innerWidth <= 768;
   const containerW = (() => {
     if (!container) return 0;
     const cs = getComputedStyle(container);
     const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
     const innerW = Math.floor(container.getBoundingClientRect().width - padX);
-    return innerW > 0 ? innerW : container.clientWidth || 0;
+    if (innerW > 0) return innerW;
+    if (container.clientWidth > 0) return container.clientWidth;
+    const cardW = chartCard?.getBoundingClientRect().width || chartCard?.clientWidth || 0;
+    return cardW > 0 ? Math.floor(cardW - padX) : 0;
   })();
 
-  const isMobile = window.innerWidth <= 768;
-  if (isMobile && container && containerW === 0) {
+  if (!isMobile && container && containerW === 0) {
     requestAnimationFrame(() => renderScoreChart());
     return;
   }

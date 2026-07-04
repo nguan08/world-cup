@@ -702,12 +702,6 @@ h1 {
   box-sizing: border-box;
 }
 
-@media (max-width: 768px) {
-  #chart-card {
-    display: none !important;
-  }
-}
-
 /* Heart monitor — cardiogram neon pulse loop (highlight / hover) */
 #score-chart-svg .chart-monitor-overlay {
   pointer-events: none;
