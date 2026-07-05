@@ -983,9 +983,9 @@
       "id": 90,
       "home": "ปารากวัย",
       "away": "ฝรั่งเศส",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-04",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783196331518,
-    "message": "⚽ อัปเดตสกอร์: แคนาดา 0-3 โมร็อกโก",
-    "sentAt": "2026-07-04T20:18:51.518Z"
+    "id": 1783211516905,
+    "message": "⚽ อัปเดตสกอร์: ปารากวัย 0-1 ฝรั่งเศส",
+    "sentAt": "2026-07-05T00:31:56.905Z"
   },
   "players": [
     {
