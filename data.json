@@ -1016,9 +1016,9 @@
       "id": 93,
       "home": "โปรตุเกส",
       "away": "สเปน",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-06",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783306161156,
-    "message": "⚽ อัปเดตสกอร์: เม็กซิโก 2-3 อังกฤษ",
-    "sentAt": "2026-07-06T02:49:21.156Z"
+    "id": 1783371767889,
+    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 0-1 สเปน",
+    "sentAt": "2026-07-06T21:02:47.889Z"
   },
   "players": [
     {
