@@ -1005,9 +1005,9 @@
       "id": 92,
       "home": "เม็กซิโก",
       "away": "อังกฤษ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 3,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-06",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783297666820,
-    "message": "⚽ อัปเดตสกอร์: บราซิล 1-2 นอร์เวย์",
-    "sentAt": "2026-07-06T00:27:46.820Z"
+    "id": 1783306161156,
+    "message": "⚽ อัปเดตสกอร์: เม็กซิโก 2-3 อังกฤษ",
+    "sentAt": "2026-07-06T02:49:21.156Z"
   },
   "players": [
     {
