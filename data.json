@@ -994,9 +994,9 @@
       "id": 91,
       "home": "บราซิล",
       "away": "นอร์เวย์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-05",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783211516905,
-    "message": "⚽ อัปเดตสกอร์: ปารากวัย 0-1 ฝรั่งเศส",
-    "sentAt": "2026-07-05T00:31:56.905Z"
+    "id": 1783297666820,
+    "message": "⚽ อัปเดตสกอร์: บราซิล 1-2 นอร์เวย์",
+    "sentAt": "2026-07-06T00:27:46.820Z"
   },
   "players": [
     {
