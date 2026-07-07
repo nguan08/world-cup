@@ -1027,9 +1027,9 @@
       "id": 94,
       "home": "สหรัฐอเมริกา",
       "away": "เบลเยียม",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-07",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783371767889,
-    "message": "⚽ อัปเดตสกอร์: โปรตุเกส 0-1 สเปน",
-    "sentAt": "2026-07-06T21:02:47.889Z"
+    "id": 1783386326009,
+    "message": "⚽ อัปเดตสกอร์: สหรัฐอเมริกา 2-1 เบลเยียม",
+    "sentAt": "2026-07-07T01:05:26.009Z"
   },
   "players": [
     {
