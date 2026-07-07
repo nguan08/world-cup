@@ -1038,9 +1038,9 @@
       "id": 95,
       "home": "อาร์เจนตินา",
       "away": "อียิปต์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 3,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-07",
       "penaltyWinner": null
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783392595276,
-    "message": "⚽ อัปเดตสกอร์: สหรัฐอเมริกา 1-4 เบลเยียม",
-    "sentAt": "2026-07-07T02:49:55.276Z"
+    "id": 1783450647913,
+    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 3-2 อียิปต์",
+    "sentAt": "2026-07-07T18:57:27.913Z"
   },
   "players": [
     {
