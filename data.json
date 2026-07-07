@@ -1049,12 +1049,12 @@
       "id": 96,
       "home": "สวิตเซอร์แลนด์",
       "away": "โคลอมเบีย",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-07",
-      "penaltyWinner": null
+      "penaltyWinner": "home"
     }
   ],
   "eliminatedTeams": [
@@ -1076,9 +1076,9 @@
     "เกาหลีใต้"
   ],
   "broadcast": {
-    "id": 1783450647913,
-    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 3-2 อียิปต์",
-    "sentAt": "2026-07-07T18:57:27.913Z"
+    "id": 1783464690492,
+    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 0-0 โคลอมเบีย (จุดโทษ: home)",
+    "sentAt": "2026-07-07T22:51:30.492Z"
   },
   "players": [
     {
