@@ -1055,6 +1055,50 @@
       "isKnockout": true,
       "date": "2026-07-07",
       "penaltyWinner": "home"
+    },
+    {
+      "id": 97,
+      "home": "ฝรั่งเศส",
+      "away": "โมร็อกโก",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-09",
+      "penaltyWinner": null
+    },
+    {
+      "id": 98,
+      "home": "สเปน",
+      "away": "เบลเยียม",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-10",
+      "penaltyWinner": null
+    },
+    {
+      "id": 99,
+      "home": "นอร์เวย์",
+      "away": "อังกฤษ",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-11",
+      "penaltyWinner": null
+    },
+    {
+      "id": 100,
+      "home": "อาร์เจนตินา",
+      "away": "สวิตเซอร์แลนด์",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-12",
+      "penaltyWinner": null
     }
   ],
   "eliminatedTeams": [
@@ -1073,12 +1117,20 @@
     "สาธารณรัฐเช็ก",
     "อิหร่าน",
     "อุซเบกิสถาน",
-    "เกาหลีใต้"
+    "เกาหลีใต้",
+    "แคนาดา",
+    "ปารากวัย",
+    "บราซิล",
+    "เม็กซิโก",
+    "โปรตุเกส",
+    "สหรัฐอเมริกา",
+    "อียิปต์",
+    "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783464690492,
-    "message": "⚽ อัปเดตสกอร์: สวิตเซอร์แลนด์ 0-0 โคลอมเบีย (จุดโทษ: home)",
-    "sentAt": "2026-07-07T22:51:30.492Z"
+    "id": 1783156573000,
+    "message": "⚽ อัปเดตสกอร์รอบ 16 ทีม + ตารางรอบ 8 ทีมพร้อมแล้ว",
+    "sentAt": "2026-07-08T06:36:13.000Z"
   },
   "players": [
     {
@@ -1964,7 +2016,7 @@
       "guess": 5
     },
     {
-      "name": "ง้วน จองหงวน",
+      "name": "ง้วน จอหงวน",
       "teams": [
         "สเปน",
         "ฝรั่งเศส",
