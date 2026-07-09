@@ -1060,9 +1060,9 @@
       "id": 97,
       "home": "ฝรั่งเศส",
       "away": "โมร็อกโก",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-09",
       "penaltyWinner": null
@@ -1128,9 +1128,9 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783156573000,
-    "message": "⚽ อัปเดตสกอร์รอบ 16 ทีม + ตารางรอบ 8 ทีมพร้อมแล้ว",
-    "sentAt": "2026-07-08T06:36:13.000Z"
+    "id": 1783634880016,
+    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 2-0 โมร็อกโก",
+    "sentAt": "2026-07-09T22:08:00.016Z"
   },
   "players": [
     {
@@ -2016,7 +2016,7 @@
       "guess": 5
     },
     {
-      "name": "ง้วน จอหงวน",
+      "name": "ง้วน จองหงวน",
       "teams": [
         "สเปน",
         "ฝรั่งเศส",
