@@ -972,9 +972,9 @@
       "id": 89,
       "home": "แคนาดา",
       "away": "โมร็อกโก",
-      "homeScore": 0,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-04",
       "penaltyWinner": null
@@ -1071,9 +1071,9 @@
       "id": 98,
       "home": "สเปน",
       "away": "เบลเยียม",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 0,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-10",
       "penaltyWinner": null
@@ -1128,8 +1128,8 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783687212524,
-    "message": "🔄 ล้างผล: สเปน vs เบลเยียม",
-    "sentAt": "2026-07-10T12:40:12.524Z"
+    "id": 1783687231409,
+    "message": "🔄 ล้างผล: แคนาดา vs โมร็อกโก",
+    "sentAt": "2026-07-10T12:40:31.409Z"
   }
 }
