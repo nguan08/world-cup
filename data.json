@@ -1071,9 +1071,9 @@
       "id": 98,
       "home": "สเปน",
       "away": "เบลเยียม",
-      "homeScore": 1,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-10",
       "penaltyWinner": null
@@ -1082,9 +1082,9 @@
       "id": 99,
       "home": "นอร์เวย์",
       "away": "อังกฤษ",
-      "homeScore": 1,
-      "awayScore": 2,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-11",
       "penaltyWinner": null
@@ -1128,8 +1128,8 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783687198423,
-    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 1-2 อังกฤษ",
-    "sentAt": "2026-07-10T12:39:58.423Z"
+    "id": 1783687212524,
+    "message": "🔄 ล้างผล: สเปน vs เบลเยียม",
+    "sentAt": "2026-07-10T12:40:12.524Z"
   }
 }
