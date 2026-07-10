@@ -972,9 +972,9 @@
       "id": 89,
       "home": "แคนาดา",
       "away": "โมร็อกโก",
-      "homeScore": 0,
-      "awayScore": 3,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-04",
       "penaltyWinner": null
@@ -1128,8 +1128,8 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783687269967,
+    "id": 1783687287311,
     "message": "🔄 ล้างผล: สเปน vs เบลเยียม",
-    "sentAt": "2026-07-10T12:41:09.967Z"
+    "sentAt": "2026-07-10T12:41:27.311Z"
   }
 }
