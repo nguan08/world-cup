@@ -1071,9 +1071,9 @@
       "id": 98,
       "home": "สเปน",
       "away": "เบลเยียม",
-      "homeScore": 1,
-      "awayScore": 0,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-10",
       "penaltyWinner": null
@@ -1093,9 +1093,9 @@
       "id": 100,
       "home": "อาร์เจนตินา",
       "away": "สวิตเซอร์แลนด์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-12",
       "penaltyWinner": null
@@ -1128,8 +1128,8 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783687131340,
-    "message": "⚽ อัปเดตสกอร์: สเปน 1-0 เบลเยียม",
-    "sentAt": "2026-07-10T12:38:51.340Z"
+    "id": 1783687173105,
+    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 2-1 สวิตเซอร์แลนด์",
+    "sentAt": "2026-07-10T12:39:33.105Z"
   }
 }
