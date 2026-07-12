@@ -1082,9 +1082,9 @@
       "id": 99,
       "home": "นอร์เวย์",
       "away": "อังกฤษ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-11",
       "penaltyWinner": null
@@ -1128,9 +1128,9 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783716758458,
-    "message": "⚽ อัปเดตสกอร์: สเปน 2-1 เบลเยียม",
-    "sentAt": "2026-07-10T20:52:38.458Z"
+    "id": 1783819837489,
+    "message": "⚽ อัปเดตสกอร์: นอร์เวย์ 1-2 อังกฤษ",
+    "sentAt": "2026-07-12T01:30:37.489Z"
   },
   "players": [
     {
