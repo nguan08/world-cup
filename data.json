@@ -1093,9 +1093,9 @@
       "id": 100,
       "home": "อาร์เจนตินา",
       "away": "สวิตเซอร์แลนด์",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-12",
       "penaltyWinner": null
@@ -1128,9 +1128,9 @@
     "โคลอมเบีย"
   ],
   "broadcast": {
-    "id": 1783823575458,
-    "message": "🔄 ล้างผล: อาร์เจนตินา vs สวิตเซอร์แลนด์",
-    "sentAt": "2026-07-12T02:32:55.458Z"
+    "id": 1783827182946,
+    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 2-1 สวิตเซอร์แลนด์",
+    "sentAt": "2026-07-12T03:33:02.946Z"
   },
   "players": [
     {
