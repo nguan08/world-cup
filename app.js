@@ -7624,82 +7624,130 @@ document.addEventListener('DOMContentLoaded', async () => {
       return (base || 'p') + '_' + idx;
     };
 
-    /** Rarity label for header badge only — visual tier stays gold/cosmic for all */
-    const getRarityLabel = (rank) => {
-      if (rank <= 2) return 'LEGENDARY';
-      if (rank <= 5) return 'ULTRA RARE';
-      if (rank <= Math.ceil(totalPlayers * 0.2)) return 'RARE';
-      if (rank >= totalPlayers - 1) return 'COMMON';
-      return 'RARE';
+    /** Theme: #1-2 gold · zone blue/green/red · last-2 black */
+    const getCardThemeKey = (rank, zone) => {
+      if (rank <= 2) return 'gold';
+      if (rank >= totalPlayers - 1) return 'black';
+      if (zone === 'blue' || zone === 'green' || zone === 'red') return zone;
+      return 'red';
+    };
+
+    const THEMES = {
+      gold: {
+        key: 'gold', rarity: 'LEGENDARY',
+        accent: '#F0C94A', accentSoft: '#FFF4C2', accentDeep: '#8B5A00', mid: '#C9A227',
+        line: '#E8B923', text: '#FFF4C2', muted: '#D4B86A', ink: '#3B1F00',
+        border: '#C9A227', borderDeep: '#6B4200', jewel: '#8B5A00',
+        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#6B4A12 0%,transparent 55%),radial-gradient(circle at 15% 80%,#3A2808 0%,transparent 42%),radial-gradient(circle at 88% 20%,#8B6914 0%,transparent 40%),linear-gradient(165deg,#2A1C06 0%,#1A1208 48%,#120E06 100%)',
+        panelBg: 'rgba(36,24,6,0.88)', chartBg: 'rgba(22,14,4,0.82)'
+      },
+      blue: {
+        key: 'blue', rarity: 'RARE',
+        accent: '#5EC8FF', accentSoft: '#D6F0FF', accentDeep: '#0C4A8A', mid: '#2B8FD4',
+        line: '#3BA4FF', text: '#E8F6FF', muted: '#8EC8E8', ink: '#041830',
+        border: '#3BA4FF', borderDeep: '#0C3A6E', jewel: '#1E6FBF',
+        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#1A5AAA 0%,transparent 55%),radial-gradient(circle at 15% 80%,#0A2A60 0%,transparent 42%),radial-gradient(circle at 88% 20%,#0E6ABA 0%,transparent 40%),linear-gradient(165deg,#061E3A 0%,#041428 48%,#030C1C 100%)',
+        panelBg: 'rgba(4,20,44,0.88)', chartBg: 'rgba(3,14,34,0.84)'
+      },
+      green: {
+        key: 'green', rarity: 'RARE',
+        accent: '#4AE89A', accentSoft: '#D4FFE8', accentDeep: '#0F5A32', mid: '#22B86A',
+        line: '#3DDB8A', text: '#E8FFF2', muted: '#8AD4A8', ink: '#042016',
+        border: '#3DDB8A', borderDeep: '#0F4A2A', jewel: '#1B8A54',
+        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#128A52 0%,transparent 55%),radial-gradient(circle at 15% 80%,#0A3A24 0%,transparent 42%),radial-gradient(circle at 88% 20%,#16A060 0%,transparent 40%),linear-gradient(165deg,#042418 0%,#031610 48%,#020E0A 100%)',
+        panelBg: 'rgba(4,28,18,0.88)', chartBg: 'rgba(3,20,12,0.84)'
+      },
+      red: {
+        key: 'red', rarity: 'RARE',
+        accent: '#FF6B88', accentSoft: '#FFE0E8', accentDeep: '#8A1028', mid: '#E03A58',
+        line: '#FF4D6D', text: '#FFE8EE', muted: '#E8A0B0', ink: '#2A0810',
+        border: '#FF4D6D', borderDeep: '#7A1228', jewel: '#B01E3A',
+        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#8A1838 0%,transparent 55%),radial-gradient(circle at 15% 80%,#4A0C1C 0%,transparent 42%),radial-gradient(circle at 88% 20%,#A02040 0%,transparent 40%),linear-gradient(165deg,#240810 0%,#16060C 48%,#0E0408 100%)',
+        panelBg: 'rgba(32,8,14,0.88)', chartBg: 'rgba(22,6,10,0.84)'
+      },
+      black: {
+        key: 'black', rarity: 'COMMON',
+        accent: '#C8CCD4', accentSoft: '#F0F2F5', accentDeep: '#2A2E36', mid: '#6A7080',
+        line: '#9AA0AC', text: '#E8EAEE', muted: '#9AA0AC', ink: '#0A0C10',
+        border: '#6A7080', borderDeep: '#1A1C22', jewel: '#3A3E48',
+        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#3A3E48 0%,transparent 55%),radial-gradient(circle at 15% 80%,#1A1C24 0%,transparent 42%),radial-gradient(circle at 88% 20%,#4A4E58 0%,transparent 40%),linear-gradient(165deg,#12141A 0%,#0A0C10 48%,#06070A 100%)',
+        panelBg: 'rgba(14,16,20,0.92)', chartBg: 'rgba(8,10,14,0.9)'
+      }
     };
 
     const zoneMeta = {
-      blue: { label: 'BLUE', color: '#3BA4FF', glow: '#1E6FBF' },
-      green: { label: 'GREEN', color: '#3DDB8A', glow: '#1B8A54' },
-      red: { label: 'RED', color: '#FF4D6D', glow: '#B01E3A' },
+      blue: { label: 'BLUE', color: '#3BA4FF' },
+      green: { label: 'GREEN', color: '#3DDB8A' },
+      red: { label: 'RED', color: '#FF4D6D' }
     };
 
+
     /** Solid gold crown — no foil shimmer (CMYK-friendly) */
-    const buildCrownSvg = (rank, cid) => {
+    const buildCrownSvg = (rank, cid, th) => {
+      const t = th || THEMES.gold;
       const g = 'cg_' + cid;
       const g2 = 'cb_' + cid;
+      const textFill = t.key === 'gold' ? '#3B1F00' : (t.key === 'black' ? '#F0F2F5' : '#FFFFFF');
       return (
         '<svg class="rc-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
         + '<defs>'
         + '<linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1">'
-        + '<stop offset="0%" stop-color="#FFF4C2"/><stop offset="35%" stop-color="#F0C94A"/>'
-        + '<stop offset="70%" stop-color="#C48A12"/><stop offset="100%" stop-color="#8B5A00"/>'
+        + '<stop offset="0%" stop-color="' + t.accentSoft + '"/><stop offset="35%" stop-color="' + t.accent + '"/>'
+        + '<stop offset="70%" stop-color="' + t.mid + '"/><stop offset="100%" stop-color="' + t.accentDeep + '"/>'
         + '</linearGradient>'
         + '<linearGradient id="' + g2 + '" x1="0" y1="0" x2="1" y2="0">'
-        + '<stop offset="0%" stop-color="#8B5A00"/><stop offset="50%" stop-color="#FFE08A"/>'
-        + '<stop offset="100%" stop-color="#8B5A00"/>'
+        + '<stop offset="0%" stop-color="' + t.accentDeep + '"/><stop offset="50%" stop-color="' + t.accentSoft + '"/>'
+        + '<stop offset="100%" stop-color="' + t.accentDeep + '"/>'
         + '</linearGradient>'
         + '</defs>'
-        + '<ellipse cx="70" cy="62" rx="52" ry="28" fill="#C48A12" opacity="0.25"/>'
-        + '<path d="M14 82 L22 34 L40 58 L56 24 L70 12 L84 24 L100 58 L118 34 L126 82 Z" fill="url(#' + g + ')" stroke="#FFE9A0" stroke-width="2.4" stroke-linejoin="round"/>'
-        + '<rect x="12" y="80" width="116" height="18" rx="4" fill="url(#' + g2 + ')" stroke="#FFE9A0" stroke-width="1.5"/>'
-        + '<rect x="16" y="83" width="108" height="4" rx="1" fill="#FFF8DC" opacity="0.35"/>'
-        + '<circle cx="70" cy="30" r="7" fill="#E11D48" stroke="#FFF4C2" stroke-width="1.4"/>'
-        + '<circle cx="24" cy="52" r="5" fill="#2563EB" stroke="#FFF4C2" stroke-width="1.1"/>'
-        + '<circle cx="116" cy="52" r="5" fill="#16A34A" stroke="#FFF4C2" stroke-width="1.1"/>'
-        + '<circle cx="42" cy="66" r="3.5" fill="#F59E0B" stroke="#FFF4C2" stroke-width="0.8"/>'
-        + '<circle cx="98" cy="66" r="3.5" fill="#8B5CF6" stroke="#FFF4C2" stroke-width="0.8"/>'
-        + '<text x="70" y="72" text-anchor="middle" font-size="22" font-weight="900" fill="#3B1F00" font-family="Inter,Arial,sans-serif" dominant-baseline="middle">#' + rank + '</text>'
+        + '<ellipse cx="70" cy="62" rx="52" ry="28" fill="' + t.mid + '" opacity="0.28"/>'
+        + '<path d="M14 82 L22 34 L40 58 L56 24 L70 12 L84 24 L100 58 L118 34 L126 82 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="2.4" stroke-linejoin="round"/>'
+        + '<rect x="12" y="80" width="116" height="18" rx="4" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.5"/>'
+        + '<rect x="16" y="83" width="108" height="4" rx="1" fill="' + t.accentSoft + '" opacity="0.35"/>'
+        + '<circle cx="70" cy="30" r="7" fill="#E11D48" stroke="' + t.accentSoft + '" stroke-width="1.4"/>'
+        + '<circle cx="24" cy="52" r="5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+        + '<circle cx="116" cy="52" r="5" fill="#16A34A" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+        + '<circle cx="42" cy="66" r="3.5" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.8"/>'
+        + '<circle cx="98" cy="66" r="3.5" fill="#8B5CF6" stroke="' + t.accentSoft + '" stroke-width="0.8"/>'
+        + '<text x="70" y="72" text-anchor="middle" font-size="22" font-weight="900" fill="' + textFill + '" font-family="Inter,Arial,sans-serif" dominant-baseline="middle">#' + rank + '</text>'
         + '</svg>'
       );
     };
 
     /** FIFA-style WC 2026 badge — solid colors, no foil */
-    const buildWcBadge = (cid) => {
+    const buildWcBadge = (cid, th) => {
+      const t = th || THEMES.gold;
       const g = 'wcb_' + cid;
       return (
         '<div class="rc-wc-badge" aria-label="FIFA World Cup 2026">'
         + '<svg viewBox="0 0 56 64" xmlns="http://www.w3.org/2000/svg">'
         + '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1">'
-        + '<stop stop-color="#FFF0B0"/><stop offset=".45" stop-color="#E0A820"/><stop offset="1" stop-color="#8B5A00"/>'
+        + '<stop stop-color="' + t.accentSoft + '"/><stop offset=".45" stop-color="' + t.mid + '"/><stop offset="1" stop-color="' + t.accentDeep + '"/>'
         + '</linearGradient></defs>'
         + '<rect x="2" y="2" width="52" height="60" rx="6" fill="#0A0A12" stroke="url(#' + g + ')" stroke-width="2.5"/>'
-        + '<rect x="6" y="6" width="44" height="52" rx="3.5" fill="none" stroke="#C9A227" stroke-width="0.8" opacity="0.7"/>'
+        + '<rect x="6" y="6" width="44" height="52" rx="3.5" fill="none" stroke="' + t.border + '" stroke-width="0.8" opacity="0.75"/>'
         + '<path d="M28 12c5 2 9 7 9 13 0 6-3 10-6 14l3 14H22l3-14c-4-4-7-9-6-15 1-5 3-9 9-12z" fill="url(#' + g + ')"/>'
-        + '<text x="28" y="52" text-anchor="middle" font-size="6.5" font-weight="800" fill="#F5D060" font-family="Inter,Arial,sans-serif">WC 2026</text>'
+        + '<text x="28" y="52" text-anchor="middle" font-size="6.5" font-weight="800" fill="' + t.accent + '" font-family="Inter,Arial,sans-serif">WC 2026</text>'
         + '</svg></div>'
       );
     };
 
-    const buildStarRow = () => {
+    const buildStarRow = (th) => {
+      const t = th || THEMES.gold;
       let html = '';
       for (let i = 0; i < 5; i++) {
         const scale = i === 2 ? 1.25 : 1;
         html +=
           '<svg class="rc-star" viewBox="0 0 20 20" width="' + (9 * scale).toFixed(1) + '" height="' + (9 * scale).toFixed(1) + '" aria-hidden="true">'
-          + '<polygon points="10,1.5 12.6,7.2 18.8,7.8 14,12.1 15.4,18.2 10,15.1 4.6,18.2 6,12.1 1.2,7.8 7.4,7.2" fill="#E8B923" stroke="#8B5A00" stroke-width="0.6"/>'
+          + '<polygon points="10,1.5 12.6,7.2 18.8,7.8 14,12.1 15.4,18.2 10,15.1 4.6,18.2 6,12.1 1.2,7.8 7.4,7.2" fill="' + t.accent + '" stroke="' + t.accentDeep + '" stroke-width="0.6"/>'
           + '</svg>';
       }
       return html;
     };
 
     /** Score trend — dark glass panel, solid gold line (print-safe) */
-    const buildRareChartSvg = (ph, cid) => {
+    const buildRareChartSvg = (ph, cid, th) => {
+      const t = th || THEMES.gold;
       const vbW = 240;
       const padL = 10;
       const padR = 10;
@@ -7707,7 +7755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const cTop = 14;
       const cH = 48;
       const cBot = cTop + cH;
-      const line = '#E8B923';
+      const line = t.line;
 
       const yOfRank = (r) => {
         const rr = Math.max(1, Math.min(r, totalPlayers));
@@ -7744,26 +7792,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const r = isLast ? 3.8 : 2.8;
         dots +=
           '<circle cx="' + xd.toFixed(1) + '" cy="' + yd.toFixed(1) + '" r="' + r
-          + '" fill="' + line + '" stroke="#1A1200" stroke-width="1"/>';
+          + '" fill="' + line + '" stroke="' + t.ink + '" stroke-width="1"/>';
         if (isLast) {
           dots +=
             '<text x="' + (xd - 1).toFixed(1) + '" y="' + (yd - 6).toFixed(1)
-            + '" text-anchor="end" font-size="7" font-weight="900" fill="#FFF4C2" font-family="Inter,Arial,sans-serif">'
-            + rv + '</text>';
+            + '" text-anchor="end" font-size="7" font-weight="900" fill="' + t.accentSoft
+            + '" font-family="Inter,Arial,sans-serif">' + rv + '</text>';
         }
       });
 
-      // Stage labels MD1…F evenly along axis
       const stages = ['MD1', 'MD2', 'MD3', 'R32', 'R16', 'QF', 'SF', 'F'];
       let xLbls = '';
       stages.forEach((lab, si) => {
-        const t = stages.length <= 1 ? 0 : si / (stages.length - 1);
-        const xL = padL + t * cW;
+        const frac = stages.length <= 1 ? 0 : si / (stages.length - 1);
+        const xL = padL + frac * cW;
         const isFin = lab === 'F';
         xLbls +=
           '<text x="' + xL.toFixed(1) + '" y="' + (cBot + 11)
           + '" text-anchor="middle" font-size="5.5" font-weight="700" fill="'
-          + (isFin ? '#FF6B6B' : 'rgba(255,244,194,0.72)')
+          + (isFin ? '#FF6B6B' : t.muted)
           + '" font-family="Inter,Arial,sans-serif">' + lab + '</text>';
       });
 
@@ -7774,7 +7821,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         '<svg class="rc-chart-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vbW + ' 78" preserveAspectRatio="xMidYMid meet">'
         + '<defs>'
         + '<pattern id="' + gridId + '" width="12" height="12" patternUnits="userSpaceOnUse" x="' + padL + '" y="' + cTop + '">'
-        + '<path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(255,230,150,0.12)" stroke-width="0.5"/>'
+        + '<path d="M 12 0 L 0 0 0 12" fill="none" stroke="' + t.border + '" stroke-opacity="0.18" stroke-width="0.5"/>'
         + '</pattern>'
         + '<linearGradient id="' + areaId + '" x1="0" y1="0" x2="0" y2="1">'
         + '<stop offset="0%" stop-color="' + line + '" stop-opacity="0.35"/>'
@@ -7782,13 +7829,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '</linearGradient>'
         + '</defs>'
         + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH
-        + '" rx="4" fill="rgba(5,12,32,0.72)" stroke="#C9A227" stroke-width="1"/>'
+        + '" rx="4" fill="' + t.chartBg + '" stroke="' + t.border + '" stroke-width="1"/>'
         + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH
         + '" rx="4" fill="url(#' + gridId + ')"/>'
         + '<polygon points="' + areaPts + '" fill="url(#' + areaId + ')"/>'
-        + segs
-        + dots
-        + xLbls
+        + segs + dots + xLbls
         + '</svg>'
       );
     };
@@ -7807,7 +7852,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         ph.ranks[ph.ranks.length - 1] !== undefined ? ph.ranks[ph.ranks.length - 1] : totalPlayers;
       const finalScore =
         ph.scores[ph.scores.length - 1] !== undefined ? ph.scores[ph.scores.length - 1] : 0;
-      const rarity = getRarityLabel(finalRank);
+
+      const themeKey = getCardThemeKey(finalRank, ph.zone);
+      const th = THEMES[themeKey] || THEMES.red;
+      const rarity = th.rarity;
 
       const pData =
         processedPlayers.find((p) => p.name === ph.name) ||
@@ -7829,13 +7877,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .map((n) => {
           const fu = getTeamFlagUrl(n);
           return fu
-            ? '<span class="rc-flag-chip"><img src="' +
-                fu +
-                '" alt="' +
-                escapeHtml(n) +
-                '" title="' +
-                escapeHtml(n) +
-                '" width="28" height="18"></span>'
+            ? '<span class="rc-flag-chip"><img src="' + fu + '" alt="' + escapeHtml(n) + '" title="' + escapeHtml(n) + '" width="28" height="18"></span>'
             : '<span class="rc-flag-fallback">' + escapeHtml(n).slice(0, 3) + '</span>';
         })
         .join('');
@@ -7844,16 +7886,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         .map((n) => {
           const fu = getTeamFlagUrl(n);
           return fu
-            ? '<img src="' +
-                fu +
-                '" alt="' +
-                escapeHtml(n) +
-                '" title="' +
-                escapeHtml(n) +
-                '" width="14" height="9">'
-            : '<span class="rc-flag-fallback rc-flag-fallback--sm">' +
-                escapeHtml(n).slice(0, 2) +
-                '</span>';
+            ? '<img src="' + fu + '" alt="' + escapeHtml(n) + '" title="' + escapeHtml(n) + '" width="14" height="9">'
+            : '<span class="rc-flag-fallback rc-flag-fallback--sm">' + escapeHtml(n).slice(0, 2) + '</span>';
         })
         .join('');
 
@@ -7862,72 +7896,52 @@ document.addEventListener('DOMContentLoaded', async () => {
       const hpVal = Math.max(10, Math.min(999, Math.round((pData.teamsScore || finalScore || 0) / 3.65)));
       const serial =
         String(finalRank).padStart(3, '0') + '/' + String(totalPlayers).padStart(3, '0');
-
-      // Exact Thai player name — never translate
       const playerName = escapeHtml(ph.name);
 
       const cardHtml =
-        '<article class="rc-card">' +
-        '<div class="rc-border" aria-hidden="true"></div>' +
-        '<div class="rc-inner">' +
-        '<header class="rc-head">' +
-        '<span class="rc-rare-badge">' +
-        rarity +
-        ' ★</span>' +
-        '<div class="rc-titles">' +
-        '<h1>YEC-BR WORLD CUP 2026</h1>' +
-        '<p>MATCH TREND ANALYSIS</p>' +
-        '</div>' +
-        '<div class="rc-hp"><span class="rc-hp-lab">HP</span><span class="rc-hp-val">' +
-        hpVal +
-        '</span><span class="rc-hp-star" aria-hidden="true">★</span></div>' +
-        '</header>' +
-        '<section class="rc-hero">' +
-        '<div class="rc-hero-flags">' +
-        (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') +
-        '</div>' +
-        '<div class="rc-hero-crown">' +
-        buildCrownSvg(finalRank, cid) +
-        '</div>' +
-        '<div class="rc-hero-badge">' +
-        buildWcBadge(cid) +
-        '</div>' +
-        '<h2 class="rc-player-name">' +
-        playerName +
-        '</h2>' +
-        '</section>' +
-        '<section class="rc-graph-panel">' +
-        '<div class="rc-graph-title"><span>SCORE TREND</span></div>' +
-        buildRareChartSvg(ph, cid) +
-        '</section>' +
-        '<section class="rc-stats">' +
-        '<div class="rc-stat"><small>POINT</small><b>' +
-        ptVal +
-        '</b></div>' +
-        '<div class="rc-stat"><small>ZONE</small><b class="rc-zone" style="color:' +
-        z.color +
-        '">' +
-        z.label +
-        '</b></div>' +
-        '<div class="rc-stat"><small>TOTAL</small><b>' +
-        finalRank +
-        '<i>/' +
-        totalPlayers +
-        '</i></b></div>' +
-        '</section>' +
-        '<div class="rc-all-flags">' +
-        allFlagsHtml +
-        '</div>' +
-        '<footer class="rc-foot">' +
-        '<span class="rc-foot-left">YEC-BR 2026</span>' +
-        '<span class="rc-foot-stars">' +
-        buildStarRow() +
-        '</span>' +
-        '<span class="rc-foot-serial">' +
-        serial +
-        ' ★</span>' +
-        '</footer>' +
-        '</div></article>';
+        '<article class="rc-card rc-theme-' + th.key + '" style="--rc-accent:' + th.accent
+        + ';--rc-accent-soft:' + th.accentSoft + ';--rc-accent-deep:' + th.accentDeep
+        + ';--rc-mid:' + th.mid + ';--rc-line:' + th.line + ';--rc-text:' + th.text
+        + ';--rc-muted:' + th.muted + ';--rc-ink:' + th.ink + ';--rc-border:' + th.border
+        + ';--rc-border-deep:' + th.borderDeep + ';--rc-jewel:' + th.jewel
+        + ';--rc-panel:' + th.panelBg + ';">'
+        + '<div class="rc-border" aria-hidden="true"></div>'
+        + '<div class="rc-inner" style="background:' + th.bg + ';color:' + th.text + ';">'
+        + '<header class="rc-head">'
+        + '<span class="rc-rare-badge" style="color:' + th.accent + ';">' + rarity + ' ★</span>'
+        + '<div class="rc-titles">'
+        + '<h1 style="color:' + th.accent + ';">YEC-BR WORLD CUP 2026</h1>'
+        + '<p style="color:' + th.muted + ';">MATCH TREND ANALYSIS</p>'
+        + '</div>'
+        + '<div class="rc-hp"><span class="rc-hp-lab" style="color:' + th.accent + ';">HP</span>'
+        + '<span class="rc-hp-val" style="color:' + th.text + ';">' + hpVal + '</span>'
+        + '<span class="rc-hp-star" style="color:' + th.accent + ';" aria-hidden="true">★</span></div>'
+        + '</header>'
+        + '<section class="rc-hero">'
+        + '<div class="rc-hero-flags">' + (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') + '</div>'
+        + '<div class="rc-hero-crown">' + buildCrownSvg(finalRank, cid, th) + '</div>'
+        + '<div class="rc-hero-badge">' + buildWcBadge(cid, th) + '</div>'
+        + '<h2 class="rc-player-name" style="color:' + th.accent + ';">' + playerName + '</h2>'
+        + '</section>'
+        + '<section class="rc-graph-panel" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
+        + '<div class="rc-graph-title" style="color:' + th.accent + ';"><span>SCORE TREND</span></div>'
+        + buildRareChartSvg(ph, cid, th)
+        + '</section>'
+        + '<section class="rc-stats" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
+        + '<div class="rc-stat" style="border-color:' + th.border + '44;"><small style="color:' + th.muted + ';">POINT</small>'
+        + '<b style="color:' + th.accent + ';">' + ptVal + '</b></div>'
+        + '<div class="rc-stat" style="border-color:' + th.border + '44;"><small style="color:' + th.muted + ';">ZONE</small>'
+        + '<b class="rc-zone" style="color:' + z.color + ';">' + z.label + '</b></div>'
+        + '<div class="rc-stat"><small style="color:' + th.muted + ';">TOTAL</small>'
+        + '<b style="color:' + th.accent + ';">' + finalRank + '<i style="color:' + th.muted + ';">/' + totalPlayers + '</i></b></div>'
+        + '</section>'
+        + '<div class="rc-all-flags">' + allFlagsHtml + '</div>'
+        + '<footer class="rc-foot" style="border-color:' + th.border + '88;">'
+        + '<span class="rc-foot-left" style="color:' + th.muted + ';">YEC-BR 2026</span>'
+        + '<span class="rc-foot-stars">' + buildStarRow(th) + '</span>'
+        + '<span class="rc-foot-serial" style="color:' + th.accent + ';">' + serial + ' ★</span>'
+        + '</footer>'
+        + '</div></article>';
 
       rareCards.push(cardHtml);
     });
@@ -7962,10 +7976,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       'background:#070B18;isolation:isolate;}' +
       /* Ornate gold border — solid metal look, NO foil/holo */
       '.rc-border{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:3.2mm;' +
-      'border:2.1mm solid #C9A227;' +
-      'box-shadow:inset 0 0 0 0.55mm #8B5A00,inset 0 0 0 0.95mm #F0C94A,inset 0 0 0 1.15mm #6B4200;' +
+      'border:2.1mm solid var(--rc-border,#C9A227);' +
+      'box-shadow:inset 0 0 0 0.55mm var(--rc-jewel,#8B5A00),inset 0 0 0 0.95mm var(--rc-accent,#F0C94A),inset 0 0 0 1.15mm var(--rc-border-deep,#6B4200);' +
       'background:transparent;}' +
-      '.rc-border:before,.rc-border:after{content:"";position:absolute;width:4.5mm;height:4.5mm;border:0.7mm solid #F0C94A;border-radius:50%;background:#8B5A00;}' +
+      '.rc-border:before,.rc-border:after{content:"";position:absolute;width:4.5mm;height:4.5mm;border:0.7mm solid var(--rc-accent,#F0C94A);border-radius:50%;background:var(--rc-jewel,#8B5A00);}' +
       '.rc-border:before{top:1.4mm;left:1.4mm;}' +
       '.rc-border:after{top:1.4mm;right:1.4mm;}' +
       '.rc-inner{position:absolute;inset:2.4mm;z-index:1;border-radius:1.8mm;overflow:hidden;' +
@@ -7995,7 +8009,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       /* Hero */
       '.rc-hero{position:relative;display:grid;grid-template-columns:11mm 1fr 11mm;align-items:center;min-height:0;}' +
       '.rc-hero-flags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4px;}' +
-      '.rc-flag-chip{display:block;padding:0.5px;border-radius:1.5px;background:#8B5A00;border:0.5px solid #F0C94A;}' +
+      '.rc-flag-chip{display:block;padding:0.5px;border-radius:1.5px;background:var(--rc-jewel,#8B5A00);border:0.5px solid var(--rc-accent,#F0C94A);}' +
       '.rc-flag-chip img,.rc-hero-flags img{display:block;width:24px;height:15px;object-fit:cover;border-radius:1px;}' +
       '.rc-flag-fallback{font-size:5.5px;font-weight:800;color:#A8B4D0;}' +
       '.rc-flag-fallback--sm{font-size:4px;}' +
@@ -8022,7 +8036,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       '.rc-zone{font-weight:900!important;}' +
       /* All flags */
       '.rc-all-flags{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;align-items:center;gap:1.3px;overflow:hidden;padding:0 0.3mm;}' +
-      '.rc-all-flags img{width:12px;height:8px;object-fit:cover;border-radius:1px;border:0.4px solid rgba(240,201,74,0.55);display:block;}' +
+      '.rc-all-flags img{width:12px;height:8px;object-fit:cover;border-radius:1px;border:0.4px solid var(--rc-accent,#F0C94A);display:block;opacity:0.95;}' +
       /* Footer */
       '.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:0.6mm;border-top:0.7px solid rgba(201,162,39,0.55);padding-top:0.6mm;}' +
       '.rc-foot-left{font:700 5px/1 Cinzel,serif;letter-spacing:0.35px;color:#D4B86A;white-space:nowrap;}' +
@@ -8044,7 +8058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       '<h2>YEC-BR Rare Cards — ' +
       rareCards.length +
       ' การ์ด</h2>' +
-      '<p>63×88mm (อัตราส่วนการ์ดสะสม) · 9 ใบ/หน้า A4 · สไตล์ Premium Cosmic Gold · <strong>ไม่มีฟอยล์</strong> · พิมพ์สี CMYK (print-color-adjust: exact)<br>' +
+      '<p>63×88mm (อัตราส่วนการ์ดสะสม) · 9 ใบ/หน้า A4 · สีตามอันดับ: <strong>#1–2 ทอง</strong> · โซน <strong>Blue/Green/Red</strong> · <strong>ท้ายสุด 2 อันดับ ดำ</strong> · ไม่มีฟอยล์ · พิมพ์สี CMYK (print-color-adjust: exact)<br>' +
       'แนะนำ: ตั้งค่าเครื่องพิมพ์เป็น <strong>Color · Best quality · Actual size 100%</strong> · กระดาษอาร์ต 200–300 gsm</p>' +
       '<button class="rc-btn" onclick="window.print()">พิมพ์ (CMYK)</button>' +
       '<button class="rc-btn rc-btn--ghost" onclick="window.close()">ปิด</button>' +

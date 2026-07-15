@@ -4,7 +4,7 @@
 import {
   handleSimulationScoreChange,
   openPlayerDetails
-} from './bundle.js?v=20260715-rarecard-cosmic';
+} from './bundle.js?v=20260715-rarecard-themes';
 
 window.handleSimulationScoreChange = handleSimulationScoreChange;
 window.openPlayerDetails = openPlayerDetails;
