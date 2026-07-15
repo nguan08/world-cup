@@ -7619,344 +7619,102 @@ document.addEventListener('DOMContentLoaded', async () => {
     const totalPlayers = playerRankHistory.length;
     const appBase = window.__wcAppBase || '/';
     const origin = window.location.origin;
-    const trophyUrl = origin + appBase + 'icons/yec-br-wc-challenge-logo.svg';
     const safeId = (n, idx) => {
       const base = String(n).replace(/[^a-zA-Z0-9_-]/g, '');
       return (base || 'p') + '_' + idx;
     };
 
-    /* ── Tier system (Pokémon rarity ladder) ── */
-    const getRareTier = (rank, zone) => {
-      if (rank <= 2) return 'gold';
-      if (rank >= totalPlayers - 1) return 'poor';
-      if (zone === 'blue') return 'blue';
-      if (zone === 'green') return 'green';
-      return 'red';
+    /** Rarity label for header badge only — visual tier stays gold/cosmic for all */
+    const getRarityLabel = (rank) => {
+      if (rank <= 2) return 'LEGENDARY';
+      if (rank <= 5) return 'ULTRA RARE';
+      if (rank <= Math.ceil(totalPlayers * 0.2)) return 'RARE';
+      if (rank >= totalPlayers - 1) return 'COMMON';
+      return 'RARE';
     };
 
-    const tierMeta = {
-      gold: {
-        rarity: 'LEGENDARY',
-        stage: '★ FULL ART',
-        stars: 5,
-        accent: '#e8a317',
-        accentSoft: '#fff3b0',
-        accentDeep: '#7a4a00',
-        line: '#d4920a',
-        foilA: '#fff8dc',
-        foilB: '#f5c842',
-        foilC: '#b8860b',
-        foilD: '#8b6914',
-        faceTop: '#111938',
-        faceMid: '#101c42',
-        faceBot: '#080e29',
-        artTop: '#5b2d9e',
-        artMid: '#1a5fd4',
-        artBot: '#0a2a6e',
-        nameColor: '#ffe59b',
-        ink: '#fff0b5',
-        muted: '#e5bf58',
-        hpRing: '#e11d48',
-        energy: '#f5c842',
-        holo: true,
-      },
-      blue: {
-        rarity: 'ULTRA RARE',
-        stage: '◆ ELITE',
-        stars: 4,
-        accent: '#1d7dd8',
-        accentSoft: '#dbeafe',
-        accentDeep: '#0c4a8a',
-        line: '#2563eb',
-        foilA: '#e0f2fe',
-        foilB: '#38bdf8',
-        foilC: '#0284c7',
-        foilD: '#075985',
-        faceTop: '#f8fcff',
-        faceMid: '#e8f4fe',
-        faceBot: '#cfe8fc',
-        artTop: '#312e81',
-        artMid: '#1d4ed8',
-        artBot: '#0c2d6b',
-        nameColor: '#0c3d6e',
-        ink: '#0f2744',
-        muted: '#3b6a96',
-        hpRing: '#2563eb',
-        energy: '#38bdf8',
-        holo: true,
-      },
-      green: {
-        rarity: 'RARE',
-        stage: '● SOLID',
-        stars: 3,
-        accent: '#16a34a',
-        accentSoft: '#dcfce7',
-        accentDeep: '#14532d',
-        line: '#22c55e',
-        foilA: '#ecfdf5',
-        foilB: '#4ade80',
-        foilC: '#16a34a',
-        foilD: '#166534',
-        faceTop: '#f7fef9',
-        faceMid: '#e8fbeb',
-        faceBot: '#c8f0d0',
-        artTop: '#064e3b',
-        artMid: '#059669',
-        artBot: '#022c22',
-        nameColor: '#14532d',
-        ink: '#0f2e1c',
-        muted: '#3d7a52',
-        hpRing: '#16a34a',
-        energy: '#4ade80',
-        holo: false,
-      },
-      red: {
-        rarity: 'UNCOMMON',
-        stage: '▲ HOT',
-        stars: 2,
-        accent: '#e11d48',
-        accentSoft: '#ffe4e6',
-        accentDeep: '#9f1239',
-        line: '#f43f5e',
-        foilA: '#fff1f2',
-        foilB: '#fb7185',
-        foilC: '#e11d48',
-        foilD: '#9f1239',
-        faceTop: '#fffafa',
-        faceMid: '#fff0f1',
-        faceBot: '#fecdd3',
-        artTop: '#7f1d1d',
-        artMid: '#dc2626',
-        artBot: '#450a0a',
-        nameColor: '#9f1239',
-        ink: '#4c0519',
-        muted: '#a34a5c',
-        hpRing: '#e11d48',
-        energy: '#fb7185',
-        holo: false,
-      },
-      poor: {
-        rarity: 'COMMON',
-        stage: '○ BASIC',
-        stars: 1,
-        accent: '#64748b',
-        accentSoft: '#f1f5f9',
-        accentDeep: '#334155',
-        line: '#94a3b8',
-        foilA: '#f8fafc',
-        foilB: '#cbd5e1',
-        foilC: '#94a3b8',
-        foilD: '#64748b',
-        faceTop: '#fafbfc',
-        faceMid: '#f1f5f9',
-        faceBot: '#e2e8f0',
-        artTop: '#475569',
-        artMid: '#64748b',
-        artBot: '#1e293b',
-        nameColor: '#334155',
-        ink: '#1e293b',
-        muted: '#64748b',
-        hpRing: '#64748b',
-        energy: '#94a3b8',
-        holo: false,
-      },
+    const zoneMeta = {
+      blue: { label: 'BLUE', color: '#3BA4FF', glow: '#1E6FBF' },
+      green: { label: 'GREEN', color: '#3DDB8A', glow: '#1B8A54' },
+      red: { label: 'RED', color: '#FF4D6D', glow: '#B01E3A' },
     };
 
-    /* ── Multi-layer foil frame (Pokémon-style rim) ── */
-    const buildFrameSvg = (tier, cid) => {
-      const m = tierMeta[tier];
-      const g1 = 'rcf1_' + cid;
-      const g2 = 'rcf2_' + cid;
-      const g3 = 'rcf3_' + cid;
-      const glow = 'rcfg_' + cid;
-      const isPoor = tier === 'poor';
-      const isGold = tier === 'gold';
-      const sw = isPoor ? 3.2 : (isGold ? 7.5 : 5.8);
-
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 252 354" preserveAspectRatio="none" class="rc-frame-svg">'
+    /** Solid gold crown — no foil shimmer (CMYK-friendly) */
+    const buildCrownSvg = (rank, cid) => {
+      const g = 'cg_' + cid;
+      const g2 = 'cb_' + cid;
+      return (
+        '<svg class="rc-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
         + '<defs>'
-        + '<linearGradient id="' + g1 + '" x1="0%" y1="0%" x2="100%" y2="100%">'
-        + '<stop offset="0%" stop-color="#ffffff"/>'
-        + '<stop offset="10%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="28%" stop-color="' + m.foilB + '"/>'
-        + '<stop offset="48%" stop-color="' + m.foilC + '"/>'
-        + '<stop offset="62%" stop-color="' + m.foilD + '"/>'
-        + '<stop offset="78%" stop-color="' + m.foilB + '"/>'
-        + '<stop offset="92%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="100%" stop-color="#ffffff"/>'
+        + '<linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0%" stop-color="#FFF4C2"/><stop offset="35%" stop-color="#F0C94A"/>'
+        + '<stop offset="70%" stop-color="#C48A12"/><stop offset="100%" stop-color="#8B5A00"/>'
         + '</linearGradient>'
-        + '<linearGradient id="' + g2 + '" x1="100%" y1="0%" x2="0%" y2="100%">'
-        + '<stop offset="0%" stop-color="' + m.foilD + '"/>'
-        + '<stop offset="35%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="65%" stop-color="#fff"/>'
-        + '<stop offset="100%" stop-color="' + m.foilB + '"/>'
+        + '<linearGradient id="' + g2 + '" x1="0" y1="0" x2="1" y2="0">'
+        + '<stop offset="0%" stop-color="#8B5A00"/><stop offset="50%" stop-color="#FFE08A"/>'
+        + '<stop offset="100%" stop-color="#8B5A00"/>'
         + '</linearGradient>'
-        + '<linearGradient id="' + g3 + '" x1="0%" y1="0%" x2="100%" y2="0%">'
-        + '<stop offset="0%" stop-color="' + m.foilB + '"/>'
-        + '<stop offset="50%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="100%" stop-color="' + m.foilB + '"/>'
-        + '</linearGradient>'
-        + (!isPoor
-          ? '<filter id="' + glow + '" x="-12%" y="-12%" width="124%" height="124%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-          : '')
         + '</defs>'
-        /* outer foil rim */
-        + '<rect x="1.8" y="1.8" width="248.4" height="350.4" rx="14" ry="14" fill="none" stroke="url(#' + g1 + ')" stroke-width="' + sw + '" ' + (!isPoor ? 'filter="url(#' + glow + ')"' : '') + '/>'
-        + '<rect x="6.8" y="6.8" width="238.4" height="340.4" rx="11.5" ry="11.5" fill="none" stroke="url(#' + g2 + ')" stroke-width="2"/>'
-        + '<rect x="10.2" y="10.2" width="231.6" height="333.6" rx="9.5" ry="9.5" fill="none" stroke="url(#' + g3 + ')" stroke-width="1" opacity="0.85"/>'
-        + '<rect x="12.8" y="12.8" width="226.4" height="328.4" rx="8" ry="8" fill="none" stroke="#fff" stroke-width="0.55" opacity="0.5"/>'
-        /* corner jewels */
-        + (isPoor ? '' : (
-            '<circle cx="15.5" cy="15.5" r="4.4" fill="url(#' + g1 + ')" stroke="#fff" stroke-width="0.7"/>'
-          + '<circle cx="236.5" cy="15.5" r="4.4" fill="url(#' + g1 + ')" stroke="#fff" stroke-width="0.7"/>'
-          + '<circle cx="15.5" cy="338.5" r="4.4" fill="url(#' + g1 + ')" stroke="#fff" stroke-width="0.7"/>'
-          + '<circle cx="236.5" cy="338.5" r="4.4" fill="url(#' + g1 + ')" stroke="#fff" stroke-width="0.7"/>'
-          + '<circle cx="15.5" cy="15.5" r="1.5" fill="#fff" opacity="0.75"/>'
-          + '<circle cx="236.5" cy="15.5" r="1.5" fill="#fff" opacity="0.75"/>'
-          + '<path d="M22 34 L22 18 Q22 14 26 14 L42 14" fill="none" stroke="url(#' + g1 + ')" stroke-width="1.9" stroke-linecap="round"/>'
-          + '<path d="M230 34 L230 18 Q230 14 226 14 L210 14" fill="none" stroke="url(#' + g1 + ')" stroke-width="1.9" stroke-linecap="round"/>'
-          + '<path d="M22 320 L22 336 Q22 340 26 340 L42 340" fill="none" stroke="url(#' + g1 + ')" stroke-width="1.9" stroke-linecap="round"/>'
-          + '<path d="M230 320 L230 336 Q230 340 226 340 L210 340" fill="none" stroke="url(#' + g1 + ')" stroke-width="1.9" stroke-linecap="round"/>'
-        ))
-        + '</svg>';
+        + '<ellipse cx="70" cy="62" rx="52" ry="28" fill="#C48A12" opacity="0.25"/>'
+        + '<path d="M14 82 L22 34 L40 58 L56 24 L70 12 L84 24 L100 58 L118 34 L126 82 Z" fill="url(#' + g + ')" stroke="#FFE9A0" stroke-width="2.4" stroke-linejoin="round"/>'
+        + '<rect x="12" y="80" width="116" height="18" rx="4" fill="url(#' + g2 + ')" stroke="#FFE9A0" stroke-width="1.5"/>'
+        + '<rect x="16" y="83" width="108" height="4" rx="1" fill="#FFF8DC" opacity="0.35"/>'
+        + '<circle cx="70" cy="30" r="7" fill="#E11D48" stroke="#FFF4C2" stroke-width="1.4"/>'
+        + '<circle cx="24" cy="52" r="5" fill="#2563EB" stroke="#FFF4C2" stroke-width="1.1"/>'
+        + '<circle cx="116" cy="52" r="5" fill="#16A34A" stroke="#FFF4C2" stroke-width="1.1"/>'
+        + '<circle cx="42" cy="66" r="3.5" fill="#F59E0B" stroke="#FFF4C2" stroke-width="0.8"/>'
+        + '<circle cx="98" cy="66" r="3.5" fill="#8B5CF6" stroke="#FFF4C2" stroke-width="0.8"/>'
+        + '<text x="70" y="72" text-anchor="middle" font-size="22" font-weight="900" fill="#3B1F00" font-family="Inter,Arial,sans-serif" dominant-baseline="middle">#' + rank + '</text>'
+        + '</svg>'
+      );
     };
 
-    /* ── Crown with multi-gem sparkle (center art piece) ── */
-    const buildCrownSvg = (tier, rank, cid) => {
-      const m = tierMeta[tier];
-      if (tier === 'poor') {
-        return '<div class="rc-crown rc-crown--poor"><span class="rc-crown-emoji">🗑️</span><span class="rc-crown-rank">#' + rank + '</span></div>';
-      }
-      const isGold = tier === 'gold';
-      const gId = 'crg_' + cid;
-      const gId2 = 'crb_' + cid;
-      const gems = isGold
-        ? ['#ff2d55', '#00d4ff', '#34d399', '#ff9f0a', '#bf5af2']
-        : [m.accentSoft, m.foilB, m.foilA, m.accentSoft, m.foilB];
-      const textFill = isGold ? '#3b1f00' : '#ffffff';
-      const strokeC = isGold ? '#fff4b0' : m.foilA;
-      const glow = isGold
-        ? 'drop-shadow(0 0 10px rgba(255,200,50,0.95)) drop-shadow(0 2px 4px rgba(0,0,0,0.45))'
-        : 'drop-shadow(0 0 9px ' + m.accent + 'bb) drop-shadow(0 2px 3px rgba(0,0,0,0.4))';
-
-      return '<svg class="rc-crown-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 108" style="filter:' + glow + '">'
-        + '<defs>'
-        + '<linearGradient id="' + gId + '" x1="0%" y1="0%" x2="0%" y2="100%">'
-        + '<stop offset="0%" stop-color="#ffffff"/>'
-        + '<stop offset="16%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="48%" stop-color="' + m.foilB + '"/>'
-        + '<stop offset="100%" stop-color="' + m.foilD + '"/>'
-        + '</linearGradient>'
-        + '<linearGradient id="' + gId2 + '" x1="0%" y1="0%" x2="100%" y2="0%">'
-        + '<stop offset="0%" stop-color="' + m.foilD + '"/>'
-        + '<stop offset="50%" stop-color="' + m.foilA + '"/>'
-        + '<stop offset="100%" stop-color="' + m.foilD + '"/>'
-        + '</linearGradient>'
-        + '<radialGradient id="crshine_' + cid + '" cx="38%" cy="28%" r="55%"><stop offset="0%" stop-color="#fff" stop-opacity="0.8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>'
-        + '<radialGradient id="crhalo_' + cid + '" cx="50%" cy="45%" r="50%"><stop offset="0%" stop-color="' + m.accent + '" stop-opacity="0.55"/><stop offset="100%" stop-color="' + m.accent + '" stop-opacity="0"/></radialGradient>'
-        + '</defs>'
-        + '<ellipse cx="65" cy="58" rx="50" ry="30" fill="url(#crhalo_' + cid + ')"/>'
-        + '<g opacity="0.75"><line x1="65" y1="10" x2="65" y2="0" stroke="#fff" stroke-width="2"/><line x1="44" y1="14" x2="34" y2="2" stroke="#fff" stroke-width="1.5"/><line x1="86" y1="14" x2="96" y2="2" stroke="#fff" stroke-width="1.5"/><line x1="28" y1="26" x2="14" y2="16" stroke="' + m.foilA + '" stroke-width="1.2"/><line x1="102" y1="26" x2="116" y2="16" stroke="' + m.foilA + '" stroke-width="1.2"/></g>'
-        + '<path d="M12 76 L18 30 L36 52 L52 22 L65 12 L78 22 L94 52 L112 30 L118 76 Z" fill="url(#' + gId + ')" stroke="' + strokeC + '" stroke-width="2.6" stroke-linejoin="round"/>'
-        + '<path d="M12 76 L18 30 L36 52 L52 22 L65 12 L78 22 L94 52 L112 30 L118 76 Z" fill="url(#crshine_' + cid + ')"/>'
-        + '<rect x="10" y="74" width="110" height="16" rx="4" fill="url(#' + gId2 + ')" stroke="' + strokeC + '" stroke-width="1.6"/>'
-        + '<rect x="14" y="77" width="102" height="3.5" rx="1" fill="#fff" opacity="0.35"/>'
-        + '<circle cx="65" cy="30" r="7.2" fill="' + gems[0] + '" stroke="#fff" stroke-width="1.3"/>'
-        + '<circle cx="65" cy="27.5" r="2.6" fill="#fff" opacity="0.72"/>'
-        + '<circle cx="22" cy="50" r="5.2" fill="' + gems[1] + '" stroke="#fff" stroke-width="1"/>'
-        + '<circle cx="108" cy="50" r="5.2" fill="' + gems[2] + '" stroke="#fff" stroke-width="1"/>'
-        + '<circle cx="40" cy="62" r="3.6" fill="' + gems[3] + '" stroke="#fff" stroke-width="0.7"/>'
-        + '<circle cx="90" cy="62" r="3.6" fill="' + gems[4] + '" stroke="#fff" stroke-width="0.7"/>'
-        + '<text x="65" y="68" text-anchor="middle" font-size="20" font-weight="900" fill="' + textFill + '" font-family="Inter,Plus Jakarta Sans,sans-serif" dominant-baseline="middle" stroke="' + (isGold ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.18)') + '" stroke-width="0.4">#' + rank + '</text>'
-        + '</svg>';
+    /** FIFA-style WC 2026 badge — solid colors, no foil */
+    const buildWcBadge = (cid) => {
+      const g = 'wcb_' + cid;
+      return (
+        '<div class="rc-wc-badge" aria-label="FIFA World Cup 2026">'
+        + '<svg viewBox="0 0 56 64" xmlns="http://www.w3.org/2000/svg">'
+        + '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1">'
+        + '<stop stop-color="#FFF0B0"/><stop offset=".45" stop-color="#E0A820"/><stop offset="1" stop-color="#8B5A00"/>'
+        + '</linearGradient></defs>'
+        + '<rect x="2" y="2" width="52" height="60" rx="6" fill="#0A0A12" stroke="url(#' + g + ')" stroke-width="2.5"/>'
+        + '<rect x="6" y="6" width="44" height="52" rx="3.5" fill="none" stroke="#C9A227" stroke-width="0.8" opacity="0.7"/>'
+        + '<path d="M28 12c5 2 9 7 9 13 0 6-3 10-6 14l3 14H22l3-14c-4-4-7-9-6-15 1-5 3-9 9-12z" fill="url(#' + g + ')"/>'
+        + '<text x="28" y="52" text-anchor="middle" font-size="6.5" font-weight="800" fill="#F5D060" font-family="Inter,Arial,sans-serif">WC 2026</text>'
+        + '</svg></div>'
+      );
     };
 
-    /* ── Energy-type icon (zone) ── */
-    const buildEnergyIcon = (zone, cid) => {
-      const colors = {
-        blue: { a: '#60a5fa', b: '#1d4ed8', c: '#93c5fd' },
-        green: { a: '#4ade80', b: '#15803d', c: '#86efac' },
-        red: { a: '#fb7185', b: '#be123c', c: '#fecdd3' },
-      };
-      const c = colors[zone] || colors.red;
-      const gid = 'en_' + cid;
-      return '<svg class="rc-energy" viewBox="0 0 20 20" width="14" height="14">'
-        + '<defs><radialGradient id="' + gid + '" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="' + c.c + '"/><stop offset="55%" stop-color="' + c.a + '"/><stop offset="100%" stop-color="' + c.b + '"/></radialGradient></defs>'
-        + '<circle cx="10" cy="10" r="9" fill="url(#' + gid + ')" stroke="#fff" stroke-width="1.2"/>'
-        + '<circle cx="7.5" cy="7.5" r="2.4" fill="#fff" opacity="0.45"/>'
-        + '</svg>';
-    };
-
-    /* Original World Cup-style trophy mark for the Circuit card (no external logo dependency). */
-    const buildWorldCupTrophyMark = (cid) => {
-      const g = 'wct_' + cid;
-      return '<svg class="rc-wc-mark" viewBox="0 0 64 84" xmlns="http://www.w3.org/2000/svg" aria-label="World Cup trophy">'
-        + '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5bc"/><stop offset=".28" stop-color="#f6c94c"/><stop offset=".7" stop-color="#a7620d"/><stop offset="1" stop-color="#ffe38a"/></linearGradient></defs>'
-        + '<path d="M31 4c7 3 12 9 13 17 1 8-4 13-8 18l4 25H24l5-25c-6-5-10-11-8-19 1-7 4-12 10-16Z" fill="url(#' + g + ')" stroke="#fff0a2" stroke-width="1.5"/>'
-        + '<path d="M24 16c6 3 10 3 16 0M22 25c6 4 13 4 20 0M28 43h8M22 66h20l4 8H18Z" fill="none" stroke="#ffe99c" stroke-width="2" stroke-linecap="round"/>'
-        + '<circle cx="32" cy="12" r="3" fill="#fff7d4"/><path d="M18 74h28" stroke="#c57a17" stroke-width="4" stroke-linecap="round"/>'
-        + '</svg>';
-    };
-
-    const buildRoyalCrownSvg = (tier, rank, cid) => {
-      const m = tierMeta[tier];
-      const gold = tier === 'poor' ? '#a8adb4' : (tier === 'blue' ? '#91e8ff' : (tier === 'green' ? '#8bf2bd' : (tier === 'red' ? '#ff9fb1' : '#ffd75a')));
-      const dark = tier === 'poor' ? '#464b52' : (tier === 'blue' ? '#167bb8' : (tier === 'green' ? '#14734b' : (tier === 'red' ? '#a3264b' : '#8b4c05')));
-      const gid = 'royal_' + cid;
-      return '<svg class="rc-royal-crown" viewBox="0 0 180 130" xmlns="http://www.w3.org/2000/svg" aria-label="Champion crown">'
-        + '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff9d1"/><stop offset=".18" stop-color="' + gold + '"/><stop offset=".58" stop-color="' + dark + '"/><stop offset="1" stop-color="#fff0a6"/></linearGradient><linearGradient id="' + gid + 'b" x1="0" y1="0" x2="1" y2="0"><stop stop-color="' + dark + '"/><stop offset=".5" stop-color="#fff6bd"/><stop offset="1" stop-color="' + dark + '"/></linearGradient><filter id="' + gid + 'g"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
-        + '<ellipse cx="90" cy="99" rx="65" ry="16" fill="' + gold + '" opacity=".2" filter="url(#' + gid + 'g)"/>'
-        + '<path d="M24 88 31 29 58 57 78 17 90 5 102 17 122 57 149 29 156 88Z" fill="url(#' + gid + ')" stroke="#fff2aa" stroke-width="3" stroke-linejoin="round"/>'
-        + '<path d="M30 83 36 42 60 67 80 29 90 18 100 29 120 67 144 42 150 83" fill="none" stroke="#fff7d6" stroke-width="1.5" opacity=".8"/>'
-        + '<path d="M32 86h116l-6 27H38Z" fill="url(#' + gid + 'b)" stroke="#fff2aa" stroke-width="3" stroke-linejoin="round"/>'
-        + '<path d="M40 95h100" stroke="#fff7d6" stroke-width="2" opacity=".72"/>'
-        + '<g fill="#fff" stroke="' + dark + '" stroke-width="2"><path d="M90 23l7 8-7 8-7-8Z"/><path d="M55 59l5 6-5 6-5-6Z"/><path d="M125 59l5 6-5 6-5-6Z"/><path d="M63 99l5 5-5 5-5-5Z"/><path d="M90 99l6 6-6 6-6-6Z"/><path d="M117 99l5 5-5 5-5-5Z"/></g>'
-        + '<circle cx="90" cy="55" r="13" fill="#172453" stroke="#fff2a8" stroke-width="3"/><text x="90" y="61" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" font-weight="900" fill="#fff8c8">#' + rank + '</text>'
-        + '</svg>';
-    };
-
-    /* ── Star row (rarity rating) — metallic premium ── */
-    const buildStarRow = (count, tier) => {
-      const onFills = {
-        gold: ['#fff6c8', '#ffe066', '#f5c842', '#e8a317', '#c9890a'],
-        blue: ['#e0f2fe', '#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7'],
-        green: ['#dcfce7', '#86efac', '#4ade80', '#22c55e', '#16a34a'],
-        red: ['#ffe4e6', '#fda4af', '#fb7185', '#f43f5e', '#e11d48'],
-        poor: ['#f1f5f9', '#cbd5e1', '#94a3b8', '#64748b', '#475569'],
-      };
-      const fills = onFills[tier] || onFills.blue;
+    const buildStarRow = () => {
       let html = '';
       for (let i = 0; i < 5; i++) {
-        const on = i < count;
-        const fill = on ? fills[i] : 'rgba(255,255,255,0.1)';
-        const stroke = on ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.12)';
-        const glow = on ? 'filter:drop-shadow(0 0 2.5px ' + fills[Math.min(i, 2)] + ') drop-shadow(0 1px 1px rgba(0,0,0,.55));' : 'opacity:.45;';
-        html += '<svg class="rc-star-svg' + (on ? ' rc-star-on' : '') + '" viewBox="0 0 20 20" width="11" height="11" style="' + glow + '">'
-          + '<defs><linearGradient id="st_' + tier + i + '" x1="0" y1="0" x2="0" y2="1">'
-          + '<stop offset="0%" stop-color="#fff"/><stop offset="35%" stop-color="' + fill + '"/><stop offset="100%" stop-color="' + (on ? fills[Math.min(i + 1, 4)] : fill) + '"/>'
-          + '</linearGradient></defs>'
-          + '<polygon points="10,1.5 12.6,7.2 18.8,7.8 14,12.1 15.4,18.2 10,15.1 4.6,18.2 6,12.1 1.2,7.8 7.4,7.2" fill="' + (on ? 'url(#st_' + tier + i + ')' : fill) + '" stroke="' + stroke + '" stroke-width="0.75"/>'
+        const scale = i === 2 ? 1.25 : 1;
+        html +=
+          '<svg class="rc-star" viewBox="0 0 20 20" width="' + (9 * scale).toFixed(1) + '" height="' + (9 * scale).toFixed(1) + '" aria-hidden="true">'
+          + '<polygon points="10,1.5 12.6,7.2 18.8,7.8 14,12.1 15.4,18.2 10,15.1 4.6,18.2 6,12.1 1.2,7.8 7.4,7.2" fill="#E8B923" stroke="#8B5A00" stroke-width="0.6"/>'
           + '</svg>';
       }
       return html;
     };
 
-    /* ── Score trend chart (attack-box content) ── */
-    const buildRareChartSvg = (ph, tier, cid) => {
-      const m = tierMeta[tier];
-      const vbW = 220;
-      const cW = 198;
-      const padL = (vbW - cW) / 2;
-      const cTop = 4;
-      const cH = 52;
+    /** Score trend — dark glass panel, solid gold line (print-safe) */
+    const buildRareChartSvg = (ph, cid) => {
+      const vbW = 240;
+      const padL = 10;
+      const padR = 10;
+      const cW = vbW - padL - padR;
+      const cTop = 14;
+      const cH = 48;
       const cBot = cTop + cH;
+      const line = '#E8B923';
 
-      const yOfRank = r => {
+      const yOfRank = (r) => {
         const rr = Math.max(1, Math.min(r, totalPlayers));
         if (totalPlayers <= 1) return cTop + cH / 2;
         return cTop + ((rr - 1) / (totalPlayers - 1)) * cH;
       };
-      const xOf = i => stepsCount > 0 ? padL + (i / stepsCount) * cW : padL;
+      const xOf = (i) => (stepsCount > 0 ? padL + (i / stepsCount) * cW : padL);
 
       let areaPts = padL.toFixed(1) + ',' + cBot.toFixed(1);
       let segs = '';
@@ -7967,59 +7725,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (i < stepsCount) {
           const x2 = xOf(i + 1);
           const y2 = yOfRank(ph.ranks[i + 1] !== undefined ? ph.ranks[i + 1] : totalPlayers);
-          segs += '<line x1="' + x.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + m.line + '" stroke-width="2.3" stroke-linecap="round"/>';
+          segs +=
+            '<line x1="' + x.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1)
+            + '" stroke="' + line + '" stroke-width="2.4" stroke-linecap="round"/>';
         }
       }
       areaPts += ' ' + xOf(stepsCount).toFixed(1) + ',' + cBot.toFixed(1);
 
-      const markerIdxSet = new Set([0, stepsCount]);
-      for (let s = 1; s <= 7; s++) markerIdxSet.add(Math.round((s / 8) * stepsCount));
+      const markerIdx = new Set([0, stepsCount]);
+      for (let s = 1; s <= 7; s++) markerIdx.add(Math.round((s / 8) * stepsCount));
 
-      let dotsHtml = '';
-      markerIdxSet.forEach(i => {
+      let dots = '';
+      markerIdx.forEach((i) => {
         const xd = xOf(i);
         const rv = ph.ranks[i] !== undefined ? ph.ranks[i] : totalPlayers;
         const yd = yOfRank(rv);
         const isLast = i === stepsCount;
-        const r = isLast ? 4 : 3;
-        dotsHtml += '<circle cx="' + xd.toFixed(1) + '" cy="' + yd.toFixed(1) + '" r="' + (r + 1.4) + '" fill="' + m.line + '" opacity="0.2"/>';
-        dotsHtml += '<circle cx="' + xd.toFixed(1) + '" cy="' + yd.toFixed(1) + '" r="' + r + '" fill="' + m.line + '" stroke="#fff" stroke-width="1.05"/>';
-        const showRankLabel = i === 0 || i === stepsCount || i === Math.round(stepsCount / 2);
-        if (showRankLabel) {
-          const labelY = yd < 17 ? yd + 11 : yd - 6;
-          const anchor = i === stepsCount ? 'end' : (i === 0 ? 'start' : 'middle');
-          dotsHtml += '<text x="' + xd.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="' + anchor + '" font-size="6.4" font-weight="900" fill="#eafaff" stroke="rgba(0,22,65,.8)" stroke-width="1.8" paint-order="stroke" font-family="Inter,sans-serif">#' + rv + '</text>';
+        const r = isLast ? 3.8 : 2.8;
+        dots +=
+          '<circle cx="' + xd.toFixed(1) + '" cy="' + yd.toFixed(1) + '" r="' + r
+          + '" fill="' + line + '" stroke="#1A1200" stroke-width="1"/>';
+        if (isLast) {
+          dots +=
+            '<text x="' + (xd - 1).toFixed(1) + '" y="' + (yd - 6).toFixed(1)
+            + '" text-anchor="end" font-size="7" font-weight="900" fill="#FFF4C2" font-family="Inter,Arial,sans-serif">'
+            + rv + '</text>';
         }
       });
 
-      const gridId = 'rgrd_' + cid;
-      const areaId = 'rarea_' + cid;
-      const glowId = 'rline_' + cid;
-      const lblMuted = 'rgba(255,245,210,0.45)';
-      const lblFin = tier === 'gold' ? '#ffb4c0' : (tier === 'red' ? '#fda4af' : '#fca5a5');
+      // Stage labels MD1…F evenly along axis
+      const stages = ['MD1', 'MD2', 'MD3', 'R32', 'R16', 'QF', 'SF', 'F'];
       let xLbls = '';
-      markerIdxSet.forEach(i => {
-        const xL = xOf(i);
-        const lname = buildPrintCardXLabel(i, stepsCount);
-        if (!lname) return;
-        const isFin = lname === 'F';
-        xLbls += '<text x="' + xL.toFixed(1) + '" y="' + (cBot + 10) + '" text-anchor="middle" font-size="5.4" font-weight="700" fill="' + (isFin ? lblFin : lblMuted) + '" font-family="Inter,sans-serif">' + lname + '</text>';
+      stages.forEach((lab, si) => {
+        const t = stages.length <= 1 ? 0 : si / (stages.length - 1);
+        const xL = padL + t * cW;
+        const isFin = lab === 'F';
+        xLbls +=
+          '<text x="' + xL.toFixed(1) + '" y="' + (cBot + 11)
+          + '" text-anchor="middle" font-size="5.5" font-weight="700" fill="'
+          + (isFin ? '#FF6B6B' : 'rgba(255,244,194,0.72)')
+          + '" font-family="Inter,Arial,sans-serif">' + lab + '</text>';
       });
 
-      return '<svg class="rc-chart-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vbW + ' 70" preserveAspectRatio="xMidYMid meet">'
+      const gridId = 'rg_' + cid;
+      const areaId = 'ra_' + cid;
+
+      return (
+        '<svg class="rc-chart-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vbW + ' 78" preserveAspectRatio="xMidYMid meet">'
         + '<defs>'
-        + '<pattern id="' + gridId + '" width="10" height="10" patternUnits="userSpaceOnUse" x="' + padL + '" y="' + cTop + '"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/></pattern>'
-        + '<linearGradient id="' + areaId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + m.line + '" stop-opacity="0.42"/><stop offset="100%" stop-color="' + m.line + '" stop-opacity="0.02"/></linearGradient>'
-        + '<linearGradient id="rchbg_' + cid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(0,0,0,0.35)"/><stop offset="100%" stop-color="rgba(0,0,0,0.18)"/></linearGradient>'
-        + '<filter id="' + glowId + '" x="-15%" y="-40%" width="130%" height="180%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+        + '<pattern id="' + gridId + '" width="12" height="12" patternUnits="userSpaceOnUse" x="' + padL + '" y="' + cTop + '">'
+        + '<path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(255,230,150,0.12)" stroke-width="0.5"/>'
+        + '</pattern>'
+        + '<linearGradient id="' + areaId + '" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0%" stop-color="' + line + '" stop-opacity="0.35"/>'
+        + '<stop offset="100%" stop-color="' + line + '" stop-opacity="0.02"/>'
+        + '</linearGradient>'
         + '</defs>'
-        + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH + '" fill="url(#rchbg_' + cid + ')" stroke="' + m.foilB + '" stroke-width="0.65" rx="3.5" opacity="0.92"/>'
-        + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH + '" fill="url(#' + gridId + ')" rx="3.5"/>'
+        + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH
+        + '" rx="4" fill="rgba(5,12,32,0.72)" stroke="#C9A227" stroke-width="1"/>'
+        + '<rect x="' + padL + '" y="' + cTop + '" width="' + cW + '" height="' + cH
+        + '" rx="4" fill="url(#' + gridId + ')"/>'
         + '<polygon points="' + areaPts + '" fill="url(#' + areaId + ')"/>'
-        + '<g filter="url(#' + glowId + ')">' + segs + '</g>'
-        + dotsHtml
+        + segs
+        + dots
         + xLbls
-        + '</svg>';
+        + '</svg>'
+      );
     };
 
     const sortedPh = [...playerRankHistory].sort((a, b) => {
@@ -8032,156 +7803,131 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     sortedPh.forEach((ph, idx) => {
       const cid = safeId(ph.name, idx);
-      const finalRank = ph.ranks[ph.ranks.length - 1] !== undefined ? ph.ranks[ph.ranks.length - 1] : totalPlayers;
-      const finalScore = ph.scores[ph.scores.length - 1] !== undefined ? ph.scores[ph.scores.length - 1] : 0;
-      const tier = getRareTier(finalRank, ph.zone);
-      const m = tierMeta[tier];
+      const finalRank =
+        ph.ranks[ph.ranks.length - 1] !== undefined ? ph.ranks[ph.ranks.length - 1] : totalPlayers;
+      const finalScore =
+        ph.scores[ph.scores.length - 1] !== undefined ? ph.scores[ph.scores.length - 1] : 0;
+      const rarity = getRarityLabel(finalRank);
 
-      const pData = processedPlayers.find(p => p.name === ph.name) || players.find(p => p.name === ph.name) || { teamsScore: 0, teams: [], teamBreakdown: [] };
-      const topTeamNames = Array.isArray(pData.teamBreakdown) && pData.teamBreakdown.length
-        ? [...pData.teamBreakdown].sort((a, b) => b.points - a.points).slice(0, 3).map(t => t.name)
-        : (Array.isArray(pData.teams) ? pData.teams.slice(0, 3) : []);
+      const pData =
+        processedPlayers.find((p) => p.name === ph.name) ||
+        players.find((p) => p.name === ph.name) ||
+        { teamsScore: 0, teams: [], teamBreakdown: [] };
+
+      const topTeamNames =
+        Array.isArray(pData.teamBreakdown) && pData.teamBreakdown.length
+          ? [...pData.teamBreakdown]
+              .sort((a, b) => b.points - a.points)
+              .slice(0, 3)
+              .map((t) => t.name)
+          : Array.isArray(pData.teams)
+            ? pData.teams.slice(0, 3)
+            : [];
       const allPTeams = Array.isArray(pData.teams) ? pData.teams : [];
 
-      const topFlagsHtml = topTeamNames.map(n => {
-        const fu = getTeamFlagUrl(n);
-        return fu
-          ? '<span class="rc-flag-chip"><img src="' + fu + '" alt="' + escapeHtml(n) + '" title="' + escapeHtml(n) + '"></span>'
-          : '<span class="rc-flag-fallback">' + escapeHtml(n).slice(0, 3) + '</span>';
-      }).join('');
+      const topFlagsHtml = topTeamNames
+        .map((n) => {
+          const fu = getTeamFlagUrl(n);
+          return fu
+            ? '<span class="rc-flag-chip"><img src="' +
+                fu +
+                '" alt="' +
+                escapeHtml(n) +
+                '" title="' +
+                escapeHtml(n) +
+                '" width="28" height="18"></span>'
+            : '<span class="rc-flag-fallback">' + escapeHtml(n).slice(0, 3) + '</span>';
+        })
+        .join('');
 
-      const allFlagsHtml = allPTeams.map(n => {
-        const fu = getTeamFlagUrl(n);
-        return fu
-          ? '<img src="' + fu + '" alt="' + escapeHtml(n) + '" title="' + escapeHtml(n) + '">'
-          : '<span class="rc-flag-fallback rc-flag-fallback--sm">' + escapeHtml(n).slice(0, 2) + '</span>';
-      }).join('');
+      const allFlagsHtml = allPTeams
+        .map((n) => {
+          const fu = getTeamFlagUrl(n);
+          return fu
+            ? '<img src="' +
+                fu +
+                '" alt="' +
+                escapeHtml(n) +
+                '" title="' +
+                escapeHtml(n) +
+                '" width="14" height="9">'
+            : '<span class="rc-flag-fallback rc-flag-fallback--sm">' +
+                escapeHtml(n).slice(0, 2) +
+                '</span>';
+        })
+        .join('');
 
-      const zoneLbl = ph.zone === 'blue' ? 'BLUE' : (ph.zone === 'green' ? 'GREEN' : 'RED');
-      const zoneClass = ph.zone === 'blue' ? 'rc-zone-blue' : (ph.zone === 'green' ? 'rc-zone-green' : 'rc-zone-red');
-      const ptVal = (pData.teamsScore || finalScore || 0).toFixed(2);
+      const z = zoneMeta[ph.zone] || zoneMeta.red;
+      const ptVal = Number(pData.teamsScore || finalScore || 0).toFixed(2);
       const hpVal = Math.max(10, Math.min(999, Math.round((pData.teamsScore || finalScore || 0) / 3.65)));
-      const serial = String(finalRank).padStart(3, '0') + '/' + String(totalPlayers).padStart(3, '0');
+      const serial =
+        String(finalRank).padStart(3, '0') + '/' + String(totalPlayers).padStart(3, '0');
 
-      const faceBg = tier === 'gold'
-        ? 'radial-gradient(circle at 14% 14%,rgba(255,79,183,.34),transparent 25%),radial-gradient(circle at 92% 15%,rgba(51,231,255,.35),transparent 27%),radial-gradient(circle at 48% 64%,rgba(255,201,60,.2),transparent 42%),linear-gradient(155deg,#33115d 0%,#142d70 48%,#170b43 100%)'
-        : 'linear-gradient(180deg,' + m.faceTop + ' 0%,' + m.faceMid + ' 48%,' + m.faceBot + ' 100%)';
-      const artBg = tier === 'gold'
-        ? 'radial-gradient(circle at 49% 38%,rgba(255,222,96,.34),transparent 25%),radial-gradient(circle at 8% 82%,rgba(255,47,161,.42),transparent 36%),radial-gradient(circle at 96% 42%,rgba(48,220,255,.4),transparent 37%),linear-gradient(145deg,#351267,#214ca4 52%,#251054)'
-        : 'linear-gradient(165deg,' + m.artTop + ' 0%,' + m.artMid + ' 45%,' + m.artBot + ' 100%)';
+      // Exact Thai player name — never translate
+      const playerName = escapeHtml(ph.name);
 
-      let cardHtml = ''
-        + '<article class="rc-card rc-tier-' + tier + (m.holo ? ' rc-holo' : '') + '">'
-        + '<div class="rc-card-sparkles" aria-hidden="true"></div>'
-        + '<div class="rc-card-frame" aria-hidden="true">' + buildFrameSvg(tier, cid) + '</div>'
-        + '<div class="rc-card-face" style="background:' + faceBg + '">'
-        /* holofoil shimmer overlay for rare tiers */
-        + (m.holo ? '<div class="rc-holo-shine" aria-hidden="true"></div>' : '')
-        + '<div class="rc-card-body">'
-        /* TOP BAR — stage + HP (Pokémon style) */
-        + '<div class="rc-topbar">'
-        + '<span class="rc-stage">' + m.stage + '</span>'
-        + '<div class="rc-hp-block">'
-        + '<span class="rc-hp-label">HP</span>'
-        + '<span class="rc-hp-val">' + hpVal + '</span>'
-        + buildEnergyIcon(ph.zone, cid)
-        + '</div>'
-        + '</div>'
-        /* NAME (like Pokémon name) */
-        + '<div class="rc-name-row">'
-        + '<div class="rc-name" style="color:' + m.nameColor + '">' + escapeHtml(ph.name) + '</div>'
-        + '<div class="rc-rarity-pill" style="background:linear-gradient(135deg,' + m.foilB + ',' + m.foilD + ');color:#fff;">' + m.rarity + '</div>'
-        + '</div>'
-        /* ILLUSTRATION WINDOW */
-        + '<div class="rc-art" style="background:' + artBg + '">'
-        + '<div class="rc-art-prism" aria-hidden="true"></div>'
-        + '<div class="rc-art-stars" aria-hidden="true"></div>'
-        + '<div class="rc-art-orbit rc-art-orbit--one" aria-hidden="true"></div><div class="rc-art-orbit rc-art-orbit--two" aria-hidden="true"></div>'
-        + '<span class="rc-rank-stamp">RANK&nbsp; #' + finalRank + '</span>'
-        + '<div class="rc-art-inner">'
-        + '<div class="rc-hero-flags">' + (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') + '</div>'
-        + '<div class="rc-hero-crown">' + buildCrownSvg(tier, finalRank, cid) + '</div>'
-        + '<div class="rc-hero-trophy">'
-        + '<img src="' + trophyUrl + '" alt="WC" class="rc-trophy-img">'
-        + '<span class="rc-trophy-label">WC 2026</span>'
-        + '</div>'
-        + '</div>'
-        + '<div class="rc-art-caption">YEC-BR WORLD CUP 2026 · MATCH TREND</div>'
-        + '</div>'
-        /* ATTACK BOX 1 — Score Trend */
-        + '<div class="rc-atk">'
-        + '<div class="rc-atk-head">'
-        + '<span class="rc-atk-energy" style="background:radial-gradient(circle at 35% 30%,' + m.foilA + ',' + m.foilB + ' 55%,' + m.foilD + ')"></span>'
-        + '<span class="rc-atk-name" style="color:' + m.ink + '">Score Trend</span>'
-        + '<span class="rc-atk-cost" style="color:' + m.muted + '">RANK GRAPH</span>'
-        + '</div>'
-        + '<div class="rc-chart">' + buildRareChartSvg(ph, tier, cid) + '</div>'
-        + '<div class="rc-chart-note">SEASON PERFORMANCE · FINAL STANDING #' + finalRank + '</div>'
-        + '</div>'
-        /* ATTACK BOX 2 — Stats as dual moves */
-        + '<div class="rc-moves">'
-        + '<div class="rc-move">'
-        + '<span class="rc-move-energy" style="background:radial-gradient(circle at 35% 30%,' + m.foilA + ',' + m.energy + ')"></span>'
-        + '<div class="rc-move-body"><span class="rc-move-name" style="color:' + m.ink + '">Power Points</span><span class="rc-move-desc" style="color:' + m.muted + '">Total score</span></div>'
-        + '<span class="rc-move-dmg" style="color:' + m.accentDeep + '">' + ptVal + '</span>'
-        + '</div>'
-        + '<div class="rc-move">'
-        + '<span class="rc-move-energy ' + zoneClass + '-dot"></span>'
-        + '<div class="rc-move-body"><span class="rc-move-name" style="color:' + m.ink + '">Zone Strike</span><span class="rc-move-desc" style="color:' + m.muted + '">' + zoneLbl + ' zone · rank</span></div>'
-        + '<span class="rc-move-dmg rc-move-dmg--sm ' + zoneClass + '">' + finalRank + '<span class="rc-move-of">/' + totalPlayers + '</span></span>'
-        + '</div>'
-        + '</div>'
-        /* TEAM FLAGS */
-        + (allFlagsHtml ? '<div class="rc-flags">' + allFlagsHtml + '</div>' : '<div class="rc-flags rc-flags--empty"></div>')
-        /* FOOTER */
-        + '<footer class="rc-footer" style="color:' + m.muted + '">'
-        + '<span class="rc-footer-left">YEC-BR 2026</span>'
-        + '<span class="rc-footer-stars">' + buildStarRow(m.stars) + '</span>'
-        + '<span class="rc-footer-serial" style="color:' + m.ink + '">' + serial
-        + '<svg class="rc-serial-star" viewBox="0 0 20 20" width="7" height="7"><polygon points="10,1.5 12.6,7.2 18.8,7.8 14,12.1 15.4,18.2 10,15.1 4.6,18.2 6,12.1 1.2,7.8 7.4,7.2" fill="' + m.foilB + '"/></svg></span>'
-        + '</footer>'
-        + '</div>' /* body */
-        + '</div>' /* face */
-        + '</article>';
-
-      /* Premium rare trading card edition */
-      cardHtml = ''
-        + '<article class="rc-card rc-v2 rc-tier-' + tier + (m.holo ? ' rc-holo' : '') + '">'
-        + '<div class="rc-v2-sheen" aria-hidden="true"></div>'
-        + '<div class="rc-v2-frame" aria-hidden="true">'
-        + '<span class="rc-v2-rim"></span><span class="rc-v2-rim-inner"></span>'
-        + '<span class="rc-v2-corner rc-v2-c-tl"></span><span class="rc-v2-corner rc-v2-c-tr"></span>'
-        + '<span class="rc-v2-corner rc-v2-c-bl"></span><span class="rc-v2-corner rc-v2-c-br"></span>'
-        + '</div>'
-        + '<div class="rc-v2-body">'
-        + '<header class="rc-v2-head">'
-        + '<span class="rc-v2-rare">' + m.rarity + '</span>'
-        + '<span class="rc-v2-hp">HP ' + hpVal + '</span>'
-        + '<h3>YEC-BR WORLD CUP<br>2026 CHALLENGE</h3>'
-        + '<p>MATCH TREND ANALYSIS</p>'
-        + '</header>'
-        + '<section class="rc-v2-hero">'
-        + '<div class="rc-v2-flags">' + (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') + '</div>'
-        + '<div class="rc-v2-crown">' + buildRoyalCrownSvg(tier, finalRank, cid) + '</div>'
-        + '<div class="rc-v2-trophy">' + buildWorldCupTrophyMark(cid) + '<small>WORLD CUP<br>2026</small></div>'
-        + '<strong class="rc-v2-name">' + escapeHtml(ph.name) + '</strong>'
-        + '</section>'
-        + '<section class="rc-v2-graph">'
-        + '<div class="rc-v2-graph-title"><span>SCORE TREND</span><em>FINAL #' + finalRank + '</em></div>'
-        + buildRareChartSvg(ph, tier, cid)
-        + '</section>'
-        + '<section class="rc-v2-stats">'
-        + '<div><small>POINT</small><b>' + ptVal + '</b></div>'
-        + '<div><small>ZONE</small><b class="' + zoneClass + '">' + zoneLbl + '</b></div>'
-        + '<div><small>TOTAL</small><b>' + finalRank + '<i>/' + totalPlayers + '</i></b></div>'
-        + '</section>'
-        + '<div class="rc-v2-flags-all">' + allFlagsHtml + '</div>'
-        + '<footer class="rc-v2-footer">'
-        + '<span class="rc-v2-foot-l">YEC-BR 2026</span>'
-        + '<span class="rc-v2-stars">' + buildStarRow(m.stars, tier) + '</span>'
-        + '<b class="rc-v2-foot-r">' + serial + '</b>'
-        + '</footer>'
-        + '</div></article>';
+      const cardHtml =
+        '<article class="rc-card">' +
+        '<div class="rc-border" aria-hidden="true"></div>' +
+        '<div class="rc-inner">' +
+        '<header class="rc-head">' +
+        '<span class="rc-rare-badge">' +
+        rarity +
+        ' ★</span>' +
+        '<div class="rc-titles">' +
+        '<h1>YEC-BR WORLD CUP 2026</h1>' +
+        '<p>MATCH TREND ANALYSIS</p>' +
+        '</div>' +
+        '<div class="rc-hp"><span class="rc-hp-lab">HP</span><span class="rc-hp-val">' +
+        hpVal +
+        '</span><span class="rc-hp-star" aria-hidden="true">★</span></div>' +
+        '</header>' +
+        '<section class="rc-hero">' +
+        '<div class="rc-hero-flags">' +
+        (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') +
+        '</div>' +
+        '<div class="rc-hero-crown">' +
+        buildCrownSvg(finalRank, cid) +
+        '</div>' +
+        '<div class="rc-hero-badge">' +
+        buildWcBadge(cid) +
+        '</div>' +
+        '<h2 class="rc-player-name">' +
+        playerName +
+        '</h2>' +
+        '</section>' +
+        '<section class="rc-graph-panel">' +
+        '<div class="rc-graph-title"><span>SCORE TREND</span></div>' +
+        buildRareChartSvg(ph, cid) +
+        '</section>' +
+        '<section class="rc-stats">' +
+        '<div class="rc-stat"><small>POINT</small><b>' +
+        ptVal +
+        '</b></div>' +
+        '<div class="rc-stat"><small>ZONE</small><b class="rc-zone" style="color:' +
+        z.color +
+        '">' +
+        z.label +
+        '</b></div>' +
+        '<div class="rc-stat"><small>TOTAL</small><b>' +
+        finalRank +
+        '<i>/' +
+        totalPlayers +
+        '</i></b></div>' +
+        '</section>' +
+        '<div class="rc-all-flags">' +
+        allFlagsHtml +
+        '</div>' +
+        '<footer class="rc-foot">' +
+        '<span class="rc-foot-left">YEC-BR 2026</span>' +
+        '<span class="rc-foot-stars">' +
+        buildStarRow() +
+        '</span>' +
+        '<span class="rc-foot-serial">' +
+        serial +
+        ' ★</span>' +
+        '</footer>' +
+        '</div></article>';
 
       rareCards.push(cardHtml);
     });
@@ -8193,240 +7939,128 @@ document.addEventListener('DOMContentLoaded', async () => {
       pagesHtml += '<section class="rc-print-page">' + slice.join('') + '</section>';
     }
 
-    const printDoc = '<!DOCTYPE html>'
-      + '<html lang="th"><head><meta charset="UTF-8"><title>YEC-BR World Cup 2026 - Rare Cards</title>'
-      + '<link rel="preconnect" href="https://fonts.googleapis.com">'
-      + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-      + '<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Sarabun:wght@600;700;800&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">'
-      + '<style>'
-      + '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'
-      + 'body{background:#1a1520;font-family:Sarabun,"Plus Jakarta Sans",sans-serif;color:#1e293b;}'
-      + '.rc-pages{display:flex;flex-direction:column;align-items:center;gap:24px;padding:24px 0;}'
-      + '.rc-control{max-width:860px;margin:20px auto;padding:18px 24px;background:linear-gradient(165deg,#2a2210 0%,#121018 100%);border:1px solid rgba(245,200,66,0.35);border-radius:14px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.45);}'
-      + '.rc-control h2{color:#f5d060;font-size:18px;margin-bottom:6px;font-family:Cinzel,"Plus Jakarta Sans",serif;letter-spacing:0.4px;}'
-      + '.rc-control p{color:#94a3b8;font-size:13px;margin-bottom:16px;line-height:1.55;}'
-      + '.rc-btn{padding:10px 24px;font-weight:700;background:linear-gradient(135deg,#c9a227,#f5c842);color:#1a1200;border:none;border-radius:8px;cursor:pointer;font-size:14px;margin:4px 8px;box-shadow:0 4px 16px rgba(245,200,66,0.3);font-family:"Plus Jakarta Sans",sans-serif;}'
-      + '.rc-btn--ghost{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);box-shadow:none;color:#e2e8f0;}'
-      + '.rc-print-page{width:210mm;height:297mm;display:grid;grid-template-columns:repeat(3,70mm);grid-template-rows:repeat(3,99mm);place-items:center;background:#1a1520;box-shadow:0 12px 36px rgba(0,0,0,0.5);page-break-after:always;break-after:page;}'
-      /* ── Card shell 63×88mm ── */
-      + '.rc-card{width:63mm;height:88mm;position:relative;overflow:hidden;border-radius:10px;page-break-inside:avoid;break-inside:avoid;background:#0a0812;box-shadow:0 4px 18px rgba(0,0,0,0.45);isolation:isolate;}'
-      + '.rc-card-sparkles{position:absolute;inset:0;z-index:0;opacity:.38;pointer-events:none;background:radial-gradient(circle at 18% 8%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 84% 14%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 8% 76%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 90% 87%,#fff 0 1px,transparent 1.5px);}'
-      + '.rc-card-frame{position:absolute;inset:0;z-index:5;pointer-events:none;}'
-      + '.rc-card-frame svg,.rc-frame-svg{width:100%;height:100%;display:block;}'
-      + '.rc-card-face{position:absolute;inset:2.6mm;border-radius:7px;overflow:hidden;z-index:1;}'
-      + '.rc-holo-shine{position:absolute;inset:0;z-index:2;pointer-events:none;'
-      + 'background:repeating-linear-gradient(118deg,rgba(255,255,255,.17) 0 1px,transparent 1px 8px),linear-gradient(125deg,rgba(255,255,255,0.28) 0%,transparent 28%,transparent 42%,rgba(255,200,80,0.16) 55%,transparent 68%,rgba(180,120,255,0.15) 82%,transparent 100%);mix-blend-mode:soft-light;}'
-      + '.rc-card-body{position:relative;z-index:3;width:100%;height:100%;padding:1.6mm 2mm 1.4mm;display:grid;'
-      + 'grid-template-rows:4.2mm 7.2mm 20mm 22.5mm 13.5mm 7.5mm 4.5mm;gap:0.35mm;overflow:hidden;}'
-      /* Top bar */
-      + '.rc-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0.4mm;overflow:hidden;}'
-      + '.rc-stage{font-size:6px;font-weight:800;letter-spacing:0.6px;font-family:Cinzel,"Plus Jakarta Sans",serif;color:rgba(30,20,0,0.55);text-transform:uppercase;}'
-      + '.rc-hp-block{display:flex;align-items:center;gap:1.2px;}'
-      + '.rc-hp-label{font-size:7px;font-weight:900;font-family:Cinzel,serif;color:#c41e3a;letter-spacing:0.3px;}'
-      + '.rc-hp-val{font-size:13px;font-weight:900;font-family:Inter,sans-serif;color:#1a1a1a;line-height:1;margin-right:1px;}'
-      + '.rc-energy{display:block;flex-shrink:0;filter:drop-shadow(0 0.5px 1px rgba(0,0,0,0.25));}'
-      /* Name row */
-      + '.rc-name-row{display:flex;align-items:center;justify-content:space-between;gap:1.5mm;padding:0 0.3mm;overflow:hidden;min-height:0;}'
-      + '.rc-name{flex:1;min-width:0;font-size:12.5px;font-weight:800;line-height:1.05;font-family:Sarabun,"Plus Jakarta Sans",sans-serif;'
-      + 'display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:break-word;letter-spacing:0.05px;}'
-      + '.rc-rarity-pill{flex-shrink:0;font-size:5.2px;font-weight:800;letter-spacing:0.5px;padding:1.2px 4px;border-radius:20px;'
-      + 'font-family:Cinzel,"Plus Jakarta Sans",serif;text-transform:uppercase;box-shadow:0 1px 3px rgba(0,0,0,0.25);white-space:nowrap;}'
-      /* Art window — the star of the card */
-      + '.rc-art{position:relative;border-radius:5px;overflow:hidden;border:1.6px solid rgba(0,0,0,0.22);'
-      + 'box-shadow:inset 0 0 0 0.7px rgba(255,255,255,0.25),0 1.5px 4px rgba(0,0,0,0.2);display:flex;flex-direction:column;min-height:0;}'
-      + '.rc-art-prism{position:absolute;inset:-35% -15%;pointer-events:none;opacity:.6;background:linear-gradient(116deg,transparent 38%,rgba(255,255,255,.26) 41%,transparent 45%),linear-gradient(160deg,transparent 45%,rgba(119,240,255,.32) 47%,transparent 50%),linear-gradient(42deg,transparent 53%,rgba(255,95,197,.3) 55%,transparent 59%);transform:rotate(-4deg);}'
-      + '.rc-art-orbit{position:absolute;z-index:0;border:1px solid rgba(255,235,148,.38);border-radius:50%;pointer-events:none;box-shadow:0 0 8px rgba(255,223,125,.18),inset 0 0 12px rgba(255,255,255,.08);}'
-      + '.rc-art-orbit--one{width:47mm;height:16mm;left:7mm;top:3mm;transform:rotate(-22deg);}'
-      + '.rc-art-orbit--two{width:42mm;height:13mm;left:10mm;top:5.5mm;transform:rotate(20deg);border-color:rgba(107,235,255,.4);}'
-      + '.rc-art-stars{position:absolute;inset:0;pointer-events:none;opacity:0.5;'
-      + 'background-image:radial-gradient(1px 1px at 12% 20%,#fff 0%,transparent 100%),radial-gradient(1.2px 1.2px at 40% 15%,#fff 0%,transparent 100%),radial-gradient(1px 1px at 70% 30%,#fff 0%,transparent 100%),radial-gradient(1px 1px at 85% 60%,#fff 0%,transparent 100%),radial-gradient(1.3px 1.3px at 25% 70%,#fff 0%,transparent 100%),radial-gradient(1px 1px at 55% 85%,#fff 0%,transparent 100%);}'
-      + '.rc-art-inner{flex:1;display:grid;grid-template-columns:11mm 1fr 11mm;align-items:center;gap:0.4mm;padding:1.2mm 1.5mm 0.4mm;min-height:0;position:relative;z-index:1;}'
-      + '.rc-hero-flags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5px;overflow:hidden;}'
-      + '.rc-flag-chip{display:block;padding:0.6px;border-radius:2px;background:linear-gradient(135deg,#ffe680,rgba(180,140,30,0.7));box-shadow:0 1px 3px rgba(0,0,0,0.4);}'
-      + '.rc-flag-chip img,.rc-hero-flags img{width:22px;height:15px;object-fit:cover;border-radius:1px;display:block;border:0.5px solid rgba(0,0,0,0.25);}'
-      + '.rc-hero-crown{display:flex;align-items:center;justify-content:center;overflow:visible;}'
-      + '.rc-crown-svg{width:78px;height:64px;display:block;}'
-      + '.rc-crown--poor{display:flex;flex-direction:column;align-items:center;gap:1px;}'
-      + '.rc-crown-emoji{font-size:26px;line-height:1;opacity:0.85;}'
-      + '.rc-crown-rank{font-size:11px;font-weight:800;color:#cbd5e1;font-family:Inter,sans-serif;}'
-      + '.rc-hero-trophy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 2.5px;border-radius:6px;'
-      + 'background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.28) 100%);border:1.2px solid rgba(255,220,100,0.55);'
-      + 'box-shadow:0 0 8px rgba(245,200,66,0.2),inset 0 1px 0 rgba(255,255,255,0.12);}'
-      + '.rc-trophy-img{width:18px;height:18px;object-fit:contain;display:block;}'
-      + '.rc-trophy-label{font-size:3.8px;font-weight:800;color:#f5d060;text-align:center;line-height:1.05;font-family:Cinzel,serif;letter-spacing:0.15px;}'
-      + '.rc-art-caption{position:relative;z-index:1;text-align:center;font-size:4.6px;font-weight:700;letter-spacing:0.6px;'
-      + 'color:rgba(255,240,180,0.85);font-family:Cinzel,serif;padding:0.6mm 0 0.9mm;text-transform:uppercase;'
-      + 'background:linear-gradient(180deg,transparent,rgba(0,0,0,0.35));}'
-      + '.rc-rank-stamp{position:absolute;z-index:2;right:1.4mm;top:1.3mm;padding:.45mm 1.1mm;border:1px solid rgba(255,244,180,.85);border-radius:10px;color:#fff8d5;background:rgba(3,11,42,.48);font:800 4.4px/1 Inter,sans-serif;letter-spacing:.45px;box-shadow:0 1px 3px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18);}'
-      /* Attack box — Score Trend */
-      + '.rc-atk{border:1.3px solid rgba(0,0,0,0.14);border-radius:5px;background:linear-gradient(180deg,rgba(255,255,255,0.72) 0%,rgba(255,255,255,0.38) 100%);'
-      + 'box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 0.5px 2px rgba(0,0,0,0.08);padding:0.8mm 1.2mm 0.5mm;display:flex;flex-direction:column;min-height:0;overflow:hidden;}'
-      + '.rc-atk-head{display:flex;align-items:center;gap:1.5mm;margin-bottom:0.3mm;}'
-      + '.rc-atk-energy{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,0.7);box-shadow:0 0.5px 1.5px rgba(0,0,0,0.25);}'
-      + '.rc-atk-name{font-size:7.5px;font-weight:800;font-family:"Plus Jakarta Sans",Sarabun,sans-serif;letter-spacing:0.2px;}'
-      + '.rc-atk-cost{margin-left:auto;font-size:5px;font-weight:700;letter-spacing:0.5px;font-family:Cinzel,serif;}'
-      + '.rc-chart{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden;}'
-      + '.rc-chart-svg{width:100%;height:auto;display:block;}'
-      + '.rc-chart-note{padding-top:.1mm;text-align:right;color:rgba(35,29,12,.48);font:700 3.7px/1 Inter,sans-serif;letter-spacing:.2px;white-space:nowrap;}'
-      /* Move rows */
-      + '.rc-moves{display:flex;flex-direction:column;gap:0.5mm;min-height:0;overflow:hidden;}'
-      + '.rc-move{display:flex;align-items:center;gap:1.2mm;padding:0.7mm 1.2mm;border-radius:4px;'
-      + 'background:linear-gradient(180deg,rgba(255,255,255,0.65) 0%,rgba(255,255,255,0.3) 100%);'
-      + 'border:1.1px solid rgba(0,0,0,0.12);box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);min-height:0;}'
-      + '.rc-move-energy{width:7.5px;height:7.5px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,0.75);box-shadow:0 0.5px 1.5px rgba(0,0,0,0.22);}'
-      + '.rc-zone-blue-dot{background:radial-gradient(circle at 35% 30%,#93c5fd,#2563eb 60%,#1e3a8a)!important;}'
-      + '.rc-zone-green-dot{background:radial-gradient(circle at 35% 30%,#86efac,#16a34a 60%,#14532d)!important;}'
-      + '.rc-zone-red-dot{background:radial-gradient(circle at 35% 30%,#fecdd3,#e11d48 60%,#9f1239)!important;}'
-      + '.rc-move-body{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.05;}'
-      + '.rc-move-name{font-size:7px;font-weight:800;font-family:"Plus Jakarta Sans",sans-serif;}'
-      + '.rc-move-desc{font-size:5px;font-weight:600;opacity:0.85;}'
-      + '.rc-move-dmg{font-size:12px;font-weight:900;font-family:Inter,sans-serif;line-height:1;flex-shrink:0;letter-spacing:-0.3px;}'
-      + '.rc-move-dmg--sm{font-size:11px;}'
-      + '.rc-move-of{font-size:7px;font-weight:700;opacity:0.65;}'
-      + '.rc-zone-blue{color:#1d4ed8!important;}'
-      + '.rc-zone-green{color:#15803d!important;}'
-      + '.rc-zone-red{color:#be123c!important;}'
-      /* Flags */
-      + '.rc-flags{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:1.5px;padding:0 0.3mm;overflow:hidden;align-content:center;}'
-      + '.rc-flags--empty{min-height:0;}'
-      + '.rc-flags img{width:12.5px;height:8.5px;object-fit:cover;border-radius:1px;display:block;border:0.4px solid rgba(0,0,0,0.15);box-shadow:0 0.4px 1px rgba(0,0,0,0.2);}'
-      + '.rc-flag-fallback{font-size:6px;color:#64748b;font-weight:700;line-height:1;}'
-      + '.rc-flag-fallback--sm{font-size:4.5px;}'
+    const printDoc =
+      '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">' +
+      '<title>YEC-BR World Cup 2026 — Rare Cards (CMYK Print)</title>' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@600;700;800;900&family=Sarabun:wght@600;700;800&display=swap" rel="stylesheet">' +
+      '<style>' +
+      /* CMYK / print-safe: solid colors, no foil, no mix-blend, exact color adjust */
+      '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}' +
+      'html,body{background:#0B1020;font-family:Sarabun,Inter,Arial,sans-serif;color:#FFF4C2;}' +
+      '.rc-control{max-width:880px;margin:18px auto;padding:16px 22px;background:#12182A;border:1.5px solid #C9A227;border-radius:12px;text-align:center;}' +
+      '.rc-control h2{color:#F0C94A;font-size:17px;font-family:Cinzel,serif;margin-bottom:6px;}' +
+      '.rc-control p{color:#A8B4D0;font-size:12.5px;line-height:1.5;margin-bottom:14px;}' +
+      '.rc-btn{padding:10px 22px;font-weight:800;background:#C9A227;color:#1A1200;border:none;border-radius:8px;cursor:pointer;font-size:14px;margin:4px;font-family:Inter,sans-serif;}' +
+      '.rc-btn--ghost{background:transparent;border:1px solid #5A6480;color:#D0D8F0;}' +
+      '.rc-pages{display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0 40px;}' +
+      /* A4 · 3×3 · 63×88mm Pokemon ratio with bleed-friendly margins */
+      '.rc-print-page{width:210mm;height:297mm;display:grid;grid-template-columns:repeat(3,70mm);grid-template-rows:repeat(3,99mm);place-items:center;background:#0B1020;page-break-after:always;break-after:page;}' +
+      /* Card shell 63×88mm */
+      '.rc-card{width:63mm;height:88mm;position:relative;overflow:hidden;border-radius:3.2mm;page-break-inside:avoid;break-inside:avoid;' +
+      'background:#070B18;isolation:isolate;}' +
+      /* Ornate gold border — solid metal look, NO foil/holo */
+      '.rc-border{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:3.2mm;' +
+      'border:2.1mm solid #C9A227;' +
+      'box-shadow:inset 0 0 0 0.55mm #8B5A00,inset 0 0 0 0.95mm #F0C94A,inset 0 0 0 1.15mm #6B4200;' +
+      'background:transparent;}' +
+      '.rc-border:before,.rc-border:after{content:"";position:absolute;width:4.5mm;height:4.5mm;border:0.7mm solid #F0C94A;border-radius:50%;background:#8B5A00;}' +
+      '.rc-border:before{top:1.4mm;left:1.4mm;}' +
+      '.rc-border:after{top:1.4mm;right:1.4mm;}' +
+      '.rc-inner{position:absolute;inset:2.4mm;z-index:1;border-radius:1.8mm;overflow:hidden;' +
+      /* Cosmic galaxy — solid layered gradients (print-safe) */
+      'background:' +
+      'radial-gradient(ellipse 90% 55% at 50% 0%,#1A3A7A 0%,transparent 55%),' +
+      'radial-gradient(circle at 12% 78%,#3A1570 0%,transparent 40%),' +
+      'radial-gradient(circle at 90% 22%,#0E4A8A 0%,transparent 38%),' +
+      'radial-gradient(circle at 70% 90%,#5A2040 0%,transparent 35%),' +
+      'linear-gradient(165deg,#0A1638 0%,#0C0E28 45%,#12081F 100%);' +
+      'display:grid;grid-template-rows:9.2mm 24mm 24mm 9.5mm 6.5mm 5mm;gap:0.55mm;padding:1.6mm 1.8mm 1.4mm;' +
+      'color:#FFF4C2;}' +
+      /* subtle stars (static dots, no animation) */
+      '.rc-inner:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.55;z-index:0;' +
+      'background-image:radial-gradient(1px 1px at 10% 12%,#FFF 0%,transparent 100%),radial-gradient(1.2px 1.2px at 88% 18%,#FFE9A0 0%,transparent 100%),radial-gradient(1px 1px at 22% 48%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 76% 62%,#B8E0FF 0%,transparent 100%),radial-gradient(1.1px 1.1px at 40% 88%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 60% 30%,#FFE9A0 0%,transparent 100%);}' +
+      '.rc-head,.rc-hero,.rc-graph-panel,.rc-stats,.rc-all-flags,.rc-foot{position:relative;z-index:1;}' +
+      /* Header */
+      '.rc-head{display:grid;grid-template-columns:14mm 1fr 12mm;align-items:start;gap:0.6mm;min-height:0;}' +
+      '.rc-rare-badge{font:800 5.2px/1.1 Cinzel,Inter,serif;letter-spacing:0.4px;color:#F0C94A;padding-top:0.4mm;text-transform:uppercase;}' +
+      '.rc-titles{text-align:center;min-width:0;}' +
+      '.rc-titles h1{margin:0;font:800 8.8px/1.05 Cinzel,Inter,serif;color:#F0C94A;letter-spacing:0.15px;text-shadow:0 1px 0 #3B1F00;}' +
+      '.rc-titles p{margin:0.6px 0 0;font:700 5px/1 Inter,sans-serif;letter-spacing:0.7px;color:#D4B86A;text-transform:uppercase;}' +
+      '.rc-hp{display:flex;align-items:center;justify-content:flex-end;gap:0.8px;padding-top:0.2mm;}' +
+      '.rc-hp-lab{font:900 6px/1 Cinzel,serif;color:#F0C94A;}' +
+      '.rc-hp-val{font:900 12px/1 Inter,sans-serif;color:#FFF4C2;}' +
+      '.rc-hp-star{font-size:8px;color:#E8B923;line-height:1;}' +
+      /* Hero */
+      '.rc-hero{position:relative;display:grid;grid-template-columns:11mm 1fr 11mm;align-items:center;min-height:0;}' +
+      '.rc-hero-flags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4px;}' +
+      '.rc-flag-chip{display:block;padding:0.5px;border-radius:1.5px;background:#8B5A00;border:0.5px solid #F0C94A;}' +
+      '.rc-flag-chip img,.rc-hero-flags img{display:block;width:24px;height:15px;object-fit:cover;border-radius:1px;}' +
+      '.rc-flag-fallback{font-size:5.5px;font-weight:800;color:#A8B4D0;}' +
+      '.rc-flag-fallback--sm{font-size:4px;}' +
+      '.rc-hero-crown{display:flex;align-items:center;justify-content:center;}' +
+      '.rc-crown{width:30mm;height:24mm;display:block;}' +
+      '.rc-hero-badge{display:flex;align-items:center;justify-content:center;}' +
+      '.rc-wc-badge{width:11mm;}' +
+      '.rc-wc-badge svg{width:100%;height:auto;display:block;}' +
+      '.rc-player-name{position:absolute;left:0;right:0;bottom:0;margin:0;text-align:center;' +
+      'font:800 11.5px/1.05 Sarabun,"Plus Jakarta Sans",sans-serif;color:#F0C94A;' +
+      'text-shadow:0 1.5px 0 #1A0E00,0 0 1px #000;letter-spacing:0.1px;' +
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1mm;}' +
+      /* Graph panel */
+      '.rc-graph-panel{border:1px solid #C9A227;border-radius:2mm;background:rgba(4,10,28,0.78);padding:0.8mm 1mm 0.4mm;min-height:0;overflow:hidden;display:flex;flex-direction:column;}' +
+      '.rc-graph-title{text-align:center;font:800 6px/1 Cinzel,Inter,serif;letter-spacing:0.9px;color:#F0C94A;margin-bottom:0.3mm;}' +
+      '.rc-chart-svg{width:100%;height:auto;flex:1;min-height:0;display:block;}' +
+      /* Stats */
+      '.rc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid #C9A227;border-radius:1.6mm;overflow:hidden;background:rgba(6,12,30,0.85);}' +
+      '.rc-stat{text-align:center;padding:0.7mm 0.4mm;border-right:1px solid rgba(201,162,39,0.55);min-width:0;}' +
+      '.rc-stat:last-child{border-right:0;}' +
+      '.rc-stat small{display:block;font:800 4.8px/1 Inter,sans-serif;letter-spacing:0.5px;color:#D4B86A;margin-bottom:0.4mm;}' +
+      '.rc-stat b{display:block;font:900 11px/1.05 Inter,sans-serif;color:#F0C94A;letter-spacing:-0.3px;}' +
+      '.rc-stat b i{font-style:normal;font-size:6.5px;color:#D4B86A;font-weight:700;}' +
+      '.rc-zone{font-weight:900!important;}' +
+      /* All flags */
+      '.rc-all-flags{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;align-items:center;gap:1.3px;overflow:hidden;padding:0 0.3mm;}' +
+      '.rc-all-flags img{width:12px;height:8px;object-fit:cover;border-radius:1px;border:0.4px solid rgba(240,201,74,0.55);display:block;}' +
       /* Footer */
-      + '.rc-footer{display:flex;align-items:center;justify-content:space-between;padding:0 0.6mm;overflow:visible;gap:0.6mm;border-top:0.7px solid rgba(0,0,0,0.1);padding-top:0.5mm;}'
-      + '.rc-footer-left{font-size:5.2px;font-weight:700;letter-spacing:0.35px;font-family:Cinzel,serif;white-space:nowrap;}'
-      + '.rc-footer-stars{display:flex;align-items:center;justify-content:center;gap:0.8px;flex:1;}'
-      + '.rc-star-svg{display:block;flex-shrink:0;}'
-      + '.rc-footer-serial{display:flex;align-items:center;gap:1px;font-size:5.8px;font-weight:800;font-family:Inter,sans-serif;white-space:nowrap;letter-spacing:0.25px;}'
-      + '.rc-serial-star{display:block;flex-shrink:0;}'
-      /* Tier-specific face tints already in inline styles; add small polish */
-      + '.rc-tier-gold .rc-stage{color:#8a6a10;}'
-      + '.rc-tier-gold .rc-hp-label{color:#c41e3a;}'
-      + '.rc-tier-gold .rc-art{border-color:rgba(180,130,20,0.55);box-shadow:inset 0 0 0 0.8px rgba(255,230,120,0.4),0 0 10px rgba(245,200,66,0.2),0 1.5px 4px rgba(0,0,0,0.2);}'
-      + '.rc-tier-gold .rc-rank-stamp{background:linear-gradient(135deg,rgba(90,48,0,.78),rgba(199,137,10,.62));border-color:#fff0a3;}'
-      + '.rc-tier-gold .rc-card-face:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.56;background-image:radial-gradient(1px 1px at 8% 10%,#fff 0%,transparent 100%),radial-gradient(1.3px 1.3px at 90% 7%,#fff 0%,transparent 100%),radial-gradient(1px 1px at 82% 29%,#ffe99a 0%,transparent 100%),radial-gradient(1.1px 1.1px at 14% 55%,#fff 0%,transparent 100%),radial-gradient(1px 1px at 92% 76%,#b7f3ff 0%,transparent 100%),radial-gradient(1.2px 1.2px at 20% 92%,#ffe99a 0%,transparent 100%);}'
-      + '.rc-tier-gold .rc-card-body{position:relative;z-index:3;}'
-      + '.rc-tier-gold .rc-stage{color:#fff0a8;text-shadow:0 0 7px rgba(255,202,59,.8);}'
-      + '.rc-tier-gold .rc-hp-label{color:#ff719c;text-shadow:0 0 6px rgba(255,70,140,.6);}'
-      + '.rc-tier-gold .rc-hp-val{color:#fff5c7;text-shadow:0 1px 3px #16052d;}'
-      + '.rc-tier-gold .rc-name-row{border-top:1px solid rgba(255,226,131,.36);border-bottom:1px solid rgba(255,226,131,.36);background:linear-gradient(90deg,transparent,rgba(255,218,96,.12),transparent);}'
-      + '.rc-tier-gold .rc-name{font-size:13.5px;text-shadow:0 2px 5px rgba(0,0,0,.56);}'
-      + '.rc-tier-gold .rc-rarity-pill{background:linear-gradient(135deg,#ff5da9,#9b4dff 45%,#23d9ff)!important;border:1px solid rgba(255,255,255,.58);box-shadow:0 0 9px rgba(255,92,190,.55),inset 0 1px 0 rgba(255,255,255,.55);}'
-      + '.rc-tier-gold .rc-art{border-color:#ffe084;box-shadow:inset 0 0 0 1px rgba(255,255,255,.46),0 0 13px rgba(255,181,42,.42),0 0 22px rgba(112,72,255,.28);}'
-      + '.rc-tier-gold .rc-hero-crown{position:relative;z-index:2;transform:scale(1.08);}'
-      + '.rc-tier-gold .rc-hero-trophy{position:relative;z-index:2;background:linear-gradient(160deg,rgba(19,9,57,.78),rgba(15,62,114,.68));border-color:#ffe18a;}'
-      + '.rc-tier-gold .rc-atk,.rc-tier-gold .rc-move{background:linear-gradient(135deg,rgba(46,17,82,.88),rgba(16,52,111,.86));border-color:rgba(255,220,111,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 9px rgba(255,147,55,.22);}'
-      + '.rc-tier-gold .rc-atk-name,.rc-tier-gold .rc-move-name{color:#fff3b7!important;text-shadow:0 1px 2px rgba(0,0,0,.45);}'
-      + '.rc-tier-gold .rc-move-desc{color:#cfeaff!important;}'
-      + '.rc-tier-gold .rc-chart-note{color:rgba(255,226,137,.7);}'
-      + '.rc-tier-gold .rc-footer{border-color:rgba(255,222,120,.55);background:linear-gradient(90deg,transparent,rgba(255,213,91,.12),transparent);}'
-      + '.rc-tier-gold .rc-art-stars{opacity:.82;}'
-      /* ── Premium rare trading card ── */
-      + '.rc-v2{border-radius:3.2mm;background:#0a1228;box-shadow:0 6px 22px rgba(0,0,0,.62),0 1px 0 rgba(255,255,255,.08) inset;font-family:Inter,"Plus Jakarta Sans",Sarabun,sans-serif;overflow:hidden;}'
-      + '.rc-v2-sheen{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(125deg,rgba(255,255,255,.18) 0%,transparent 18%,transparent 42%,rgba(255,220,120,.1) 52%,transparent 62%,rgba(140,200,255,.1) 78%,transparent 100%),repeating-linear-gradient(118deg,rgba(255,255,255,.05) 0 1px,transparent 1px 7px);mix-blend-mode:soft-light;opacity:.85;}'
-      + '.rc-v2-frame{position:absolute;inset:0;z-index:5;pointer-events:none;}'
-      + '.rc-v2-rim{position:absolute;inset:1.1mm;border-radius:2.4mm;border:2.1px solid transparent;background:linear-gradient(145deg,#fff8dc 0%,#f5c842 18%,#b8860b 38%,#ffe9a0 50%,#c9a227 68%,#8b6914 85%,#fff3c4 100%) border-box;background-clip:padding-box,border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 12px rgba(245,200,66,.28);}'
-      + '.rc-v2-rim-inner{position:absolute;inset:2.35mm;border-radius:1.9mm;border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 0 0 .7px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12),0 0 0 .5px rgba(255,230,140,.18);}'
-      + '.rc-v2-corner{position:absolute;width:4.2mm;height:4.2mm;z-index:6;background:radial-gradient(circle at 40% 35%,#fff8dc 0%,#f5c842 40%,#a16207 100%);border-radius:50%;box-shadow:0 0 5px rgba(245,200,66,.55),inset 0 1px 1px rgba(255,255,255,.65),inset 0 -1px 1px rgba(0,0,0,.3);border:.5px solid rgba(255,255,255,.55);}'
-      + '.rc-v2-c-tl{top:1.6mm;left:1.6mm;}.rc-v2-c-tr{top:1.6mm;right:1.6mm;}.rc-v2-c-bl{bottom:1.6mm;left:1.6mm;}.rc-v2-c-br{bottom:1.6mm;right:1.6mm;}'
-      + '.rc-v2-body{position:relative;z-index:2;height:100%;padding:3.6mm 3.8mm 3.2mm;display:grid;grid-template-rows:11.5mm 23mm 22mm 10mm 5.2mm 5.5mm;gap:.7mm;color:#f5f0e6;background:radial-gradient(ellipse at 70% 12%,rgba(255,220,120,.16),transparent 32%),radial-gradient(ellipse at 18% 88%,rgba(80,140,255,.1),transparent 34%),linear-gradient(160deg,#0c2348 0%,#071a38 48%,#050f24 100%);box-shadow:inset 0 0 32px rgba(0,0,0,.38);}'
-      /* glass panels shared look */
-      + '.rc-v2-panel{border-radius:1.6mm;background:linear-gradient(165deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.03) 45%,rgba(0,0,0,.14) 100%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.22);}'
-      + '.rc-v2-head{position:relative;padding:1.3mm 1.2mm .8mm;border-radius:1.4mm;background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,.03) 100%);border:1px solid rgba(255,230,160,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 5px rgba(0,0,0,.18);}'
-      + '.rc-v2-head h3{margin:0;padding-right:14mm;color:#f8e7a8;font:800 11.5px/.95 Cinzel,Inter,sans-serif;letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.55),0 0 10px rgba(255,210,80,.2);}'
-      + '.rc-v2-head p{margin:1.5px 0 0;color:rgba(255,240,200,.62);font-size:5.2px;letter-spacing:.9px;font-weight:800;}'
-      + '.rc-v2-rare,.rc-v2-hp{position:absolute;right:1.4mm;font:800 5px/1 Inter,sans-serif;letter-spacing:.4px;}'
-      + '.rc-v2-rare{top:1.3mm;color:#ffe79a;text-shadow:0 0 6px rgba(255,200,60,.45);padding:.4mm 1.2mm;border-radius:8px;background:linear-gradient(135deg,rgba(0,0,0,.28),rgba(255,200,60,.12));border:.5px solid rgba(255,220,120,.35);}'
-      + '.rc-v2-hp{top:5.2mm;color:rgba(255,245,220,.88);}'
-      + '.rc-v2-hero{position:relative;display:grid;grid-template-columns:11.5mm 1fr 11.5mm;align-items:center;min-height:0;border-radius:1.6mm;background:linear-gradient(165deg,rgba(255,255,255,.07) 0%,rgba(0,0,0,.12) 100%);border:1px solid rgba(255,230,160,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -8px 16px rgba(0,0,0,.18);overflow:hidden;}'
-      + '.rc-v2-hero:before{content:"";position:absolute;left:12mm;right:12mm;top:0;bottom:2mm;border-radius:50%;background:radial-gradient(ellipse,rgba(255,230,140,.28),rgba(80,160,255,.08) 40%,transparent 70%);filter:blur(1.5px);pointer-events:none;}'
-      + '.rc-v2-flags{display:flex;flex-direction:column;gap:1.2mm;align-items:center;z-index:2;padding-left:.6mm;}.rc-v2-flags .rc-flag-chip{background:transparent;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.4),0 0 4px rgba(255,220,120,.25);}.rc-v2-flags img{width:22px;height:13.5px;border:1px solid rgba(255,230,160,.55);border-radius:2.5px;}'
-      + '.rc-v2-crown{display:flex;justify-content:center;align-items:center;position:relative;z-index:2;filter:drop-shadow(0 5px 4px rgba(0,0,0,.4)) drop-shadow(0 0 9px rgba(255,210,90,.4));}.rc-royal-crown{width:94px;height:74px;display:block;}'
-      + '.rc-v2-trophy{position:relative;z-index:2;border:1px solid rgba(255,230,160,.4);border-radius:5px;padding:1px 2px 2px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(160deg,rgba(0,0,0,.35),rgba(255,200,60,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 6px rgba(0,0,0,.3);}.rc-wc-mark{width:18px;height:23px;display:block;filter:drop-shadow(0 0 3px rgba(255,209,78,.65));}.rc-v2-trophy small{font:800 3.4px/1.1 Inter,sans-serif;text-align:center;color:#ffe69b;margin-top:0;}'
-      + '.rc-v2-name{position:absolute;left:0;right:0;bottom:.6mm;text-align:center;color:#fff4c8;font:800 12px/1 Sarabun,"Plus Jakarta Sans",sans-serif;text-shadow:0 2px 3px rgba(0,0,0,.7),0 0 8px rgba(255,210,100,.35);z-index:3;letter-spacing:.2px;}'
-      + '.rc-v2-graph{position:relative;padding:1.1mm 1.3mm .4mm;border-radius:1.6mm;overflow:hidden;background:linear-gradient(165deg,rgba(0,0,0,.28) 0%,rgba(255,255,255,.05) 50%,rgba(0,0,0,.18) 100%);border:1px solid rgba(255,230,160,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(0,0,0,.22),0 2px 7px rgba(0,0,0,.22);}'
-      + '.rc-v2-graph:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.07) 50%,transparent 60%);}'
-      + '.rc-v2-graph-title{display:flex;justify-content:space-between;align-items:center;font-size:5.8px;font-weight:900;letter-spacing:.5px;color:rgba(255,236,170,.9);position:relative;z-index:1;}.rc-v2-graph-title em{font-style:normal;color:rgba(255,245,220,.55);font-size:4.2px;}'
-      + '.rc-v2-graph .rc-chart-svg{height:16.5mm;width:100%;position:relative;z-index:1;}'
-      + '.rc-v2-stats{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch;border-radius:1.5mm;overflow:hidden;background:linear-gradient(165deg,rgba(0,0,0,.22) 0%,rgba(255,255,255,.05) 100%);border:1px solid rgba(255,230,160,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.18);}'
-      + '.rc-v2-stats div{min-width:0;text-align:center;padding:.75mm .4mm;border-right:1px solid rgba(255,255,255,.1);}'
-      + '.rc-v2-stats div:last-child{border:0;}'
-      + '.rc-v2-stats small{display:block;color:rgba(255,240,200,.55);font-size:4.4px;font-weight:800;letter-spacing:.45px;}'
-      + '.rc-v2-stats b{display:block;color:#ffe9a8;font-size:11.5px;line-height:1.15;letter-spacing:-.3px;text-shadow:0 1px 2px rgba(0,0,0,.4);}'
-      + '.rc-v2-stats b.rc-zone-blue{color:#7dd3fc!important;text-shadow:0 0 6px rgba(56,189,248,.45);}'
-      + '.rc-v2-stats b.rc-zone-green{color:#86efac!important;text-shadow:0 0 6px rgba(74,222,128,.4);}'
-      + '.rc-v2-stats b.rc-zone-red{color:#fda4af!important;text-shadow:0 0 6px rgba(251,113,133,.4);}'
-      + '.rc-v2-stats i{font-size:6px;font-style:normal;color:rgba(255,245,220,.55);}'
-      + '.rc-v2-flags-all{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:1.1px;overflow:hidden;padding:.3mm;border-radius:1.2mm;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}'
-      + '.rc-v2-flags-all img{width:11.5px;height:7.5px;border-radius:1px;border:.4px solid rgba(255,230,160,.35);box-shadow:0 .5px 1px rgba(0,0,0,.3);}'
-      /* footer: serial left/right, stars dead-center bottom */
-      + '.rc-v2-footer{position:relative;display:flex;justify-content:space-between;align-items:center;min-height:5mm;padding:0 .4mm;color:rgba(255,240,200,.55);font:800 4.6px/1 Cinzel,Inter,sans-serif;letter-spacing:.2px;}'
-      + '.rc-v2-foot-l,.rc-v2-foot-r{position:relative;z-index:1;white-space:nowrap;}'
-      + '.rc-v2-foot-r{color:#ffe9a0;font-family:Inter,sans-serif;font-weight:800;}'
-      + '.rc-v2-stars{position:absolute;left:50%;bottom:.2mm;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:1.6px;z-index:2;padding:.5mm 3.5mm;border-radius:10px;background:linear-gradient(90deg,transparent,rgba(0,0,0,.28) 18%,rgba(0,0,0,.28) 82%,transparent);box-shadow:0 0 8px rgba(255,200,60,.12);}'
-      + '.rc-v2-footer .rc-star-svg{width:11px;height:11px;display:block;}'
-      /* ── Tier skins ── */
-      + '.rc-tier-gold .rc-v2-body{background:radial-gradient(ellipse at 78% 10%,rgba(255,236,160,.35),transparent 28%),radial-gradient(ellipse at 12% 90%,rgba(180,100,20,.28),transparent 34%),linear-gradient(155deg,#6b3d08 0%,#c4921a 42%,#3d2104 100%);}'
-      + '.rc-tier-gold .rc-v2-rim{background:linear-gradient(145deg,#fffef0 0%,#ffe066 15%,#d4a017 35%,#fff3b0 50%,#c9890a 70%,#8b5a00 88%,#ffe9a0 100%) border-box;box-shadow:0 0 0 1px rgba(40,20,0,.7),0 0 14px rgba(255,190,40,.55),0 0 28px rgba(255,160,20,.2);}'
-      + '.rc-tier-gold .rc-v2-rim-inner{border-color:rgba(255,236,160,.35);box-shadow:inset 0 0 0 .7px rgba(60,30,0,.4),inset 0 1px 0 rgba(255,255,255,.2);}'
-      + '.rc-tier-gold .rc-v2-corner{background:radial-gradient(circle at 38% 32%,#fffef0,#ffd54a 42%,#a16207 100%);box-shadow:0 0 7px rgba(255,200,50,.7),inset 0 1px 1px rgba(255,255,255,.7);}'
-      + '.rc-tier-gold .rc-v2-head,.rc-tier-gold .rc-v2-hero,.rc-tier-gold .rc-v2-graph,.rc-tier-gold .rc-v2-stats,.rc-tier-gold .rc-v2-flags-all{background:linear-gradient(165deg,rgba(255,240,180,.12) 0%,rgba(80,40,0,.22) 55%,rgba(0,0,0,.2) 100%);border-color:rgba(255,220,120,.32);}'
-      + '.rc-tier-gold .rc-v2-head h3,.rc-tier-gold .rc-v2-name{color:#fff6c8;}'
-      + '.rc-tier-gold .rc-v2-stats b{color:#fff0b0;}'
-      + '.rc-tier-gold .rc-v2-graph-title{color:rgba(255,240,180,.92);}'
-      + '.rc-tier-gold .rc-v2-stars{background:linear-gradient(90deg,transparent,rgba(40,20,0,.4) 18%,rgba(40,20,0,.4) 82%,transparent);box-shadow:0 0 10px rgba(255,200,50,.2);}'
-      + '.rc-tier-blue .rc-v2-body{background:radial-gradient(ellipse at 80% 12%,rgba(80,200,255,.28),transparent 30%),linear-gradient(155deg,#0a4a7a 0%,#0a2f5c 50%,#061a38 100%);}'
-      + '.rc-tier-blue .rc-v2-rim{background:linear-gradient(145deg,#e0f2fe 0%,#7dd3fc 18%,#0284c7 40%,#bae6fd 52%,#0369a1 72%,#0c4a6e 90%,#e0f2fe 100%) border-box;box-shadow:0 0 0 1px rgba(0,20,50,.7),0 0 14px rgba(56,189,248,.45);}'
-      + '.rc-tier-blue .rc-v2-corner{background:radial-gradient(circle at 38% 32%,#e0f2fe,#38bdf8 45%,#0369a1 100%);box-shadow:0 0 6px rgba(56,189,248,.6),inset 0 1px 1px rgba(255,255,255,.65);}'
-      + '.rc-tier-blue .rc-v2-head,.rc-tier-blue .rc-v2-hero,.rc-tier-blue .rc-v2-graph,.rc-tier-blue .rc-v2-stats,.rc-tier-blue .rc-v2-flags-all{background:linear-gradient(165deg,rgba(120,210,255,.1) 0%,rgba(0,30,70,.28) 55%,rgba(0,0,0,.2) 100%);border-color:rgba(125,210,250,.28);}'
-      + '.rc-tier-blue .rc-v2-head h3,.rc-tier-blue .rc-v2-name,.rc-tier-blue .rc-v2-stats b{color:#e0f2fe;}'
-      + '.rc-tier-blue .rc-v2-rare{color:#bae6fd;border-color:rgba(125,210,250,.4);background:linear-gradient(135deg,rgba(0,20,50,.4),rgba(56,189,248,.12));}'
-      + '.rc-tier-green .rc-v2-body{background:radial-gradient(ellipse at 80% 12%,rgba(90,255,170,.22),transparent 30%),linear-gradient(155deg,#0a4a38 0%,#0a332c 50%,#061f1a 100%);}'
-      + '.rc-tier-green .rc-v2-rim{background:linear-gradient(145deg,#ecfdf5 0%,#6ee7b7 18%,#10b981 40%,#a7f3d0 52%,#059669 72%,#064e3b 90%,#ecfdf5 100%) border-box;box-shadow:0 0 0 1px rgba(0,30,20,.7),0 0 14px rgba(52,211,153,.4);}'
-      + '.rc-tier-green .rc-v2-corner{background:radial-gradient(circle at 38% 32%,#ecfdf5,#34d399 45%,#047857 100%);}'
-      + '.rc-tier-green .rc-v2-head,.rc-tier-green .rc-v2-hero,.rc-tier-green .rc-v2-graph,.rc-tier-green .rc-v2-stats,.rc-tier-green .rc-v2-flags-all{background:linear-gradient(165deg,rgba(110,240,180,.1) 0%,rgba(0,40,30,.28) 55%,rgba(0,0,0,.2) 100%);border-color:rgba(110,230,170,.28);}'
-      + '.rc-tier-green .rc-v2-head h3,.rc-tier-green .rc-v2-name,.rc-tier-green .rc-v2-stats b{color:#d1fae5;}'
-      + '.rc-tier-red .rc-v2-body{background:radial-gradient(ellipse at 80% 12%,rgba(255,100,130,.2),transparent 30%),linear-gradient(155deg,#6b1a32 0%,#4a1528 50%,#240c18 100%);}'
-      + '.rc-tier-red .rc-v2-rim{background:linear-gradient(145deg,#fff1f2 0%,#fda4af 18%,#e11d48 40%,#fecdd3 52%,#be123c 72%,#881337 90%,#fff1f2 100%) border-box;box-shadow:0 0 0 1px rgba(40,0,15,.7),0 0 14px rgba(244,63,94,.4);}'
-      + '.rc-tier-red .rc-v2-corner{background:radial-gradient(circle at 38% 32%,#fff1f2,#fb7185 45%,#be123c 100%);}'
-      + '.rc-tier-red .rc-v2-head,.rc-tier-red .rc-v2-hero,.rc-tier-red .rc-v2-graph,.rc-tier-red .rc-v2-stats,.rc-tier-red .rc-v2-flags-all{background:linear-gradient(165deg,rgba(255,150,170,.1) 0%,rgba(60,10,25,.3) 55%,rgba(0,0,0,.22) 100%);border-color:rgba(255,150,170,.28);}'
-      + '.rc-tier-red .rc-v2-head h3,.rc-tier-red .rc-v2-name,.rc-tier-red .rc-v2-stats b{color:#ffe4e6;}'
-      + '.rc-tier-poor .rc-v2-body{background:radial-gradient(ellipse at 80% 12%,rgba(180,190,200,.1),transparent 28%),linear-gradient(155deg,#3a3f46 0%,#23272d 50%,#121418 100%);color:#d0d4d8;}'
-      + '.rc-tier-poor .rc-v2-rim{background:linear-gradient(145deg,#f8fafc 0%,#cbd5e1 20%,#94a3b8 45%,#e2e8f0 55%,#64748b 80%,#475569 100%) border-box;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 8px rgba(148,163,184,.2);}'
-      + '.rc-tier-poor .rc-v2-corner{background:radial-gradient(circle at 38% 32%,#f1f5f9,#94a3b8 50%,#475569 100%);box-shadow:0 0 3px rgba(148,163,184,.3),inset 0 1px 1px rgba(255,255,255,.4);}'
-      + '.rc-tier-poor .rc-v2-head,.rc-tier-poor .rc-v2-hero,.rc-tier-poor .rc-v2-graph,.rc-tier-poor .rc-v2-stats,.rc-tier-poor .rc-v2-flags-all{background:linear-gradient(165deg,rgba(255,255,255,.06) 0%,rgba(0,0,0,.25) 100%);border-color:rgba(200,210,220,.18);}'
-      + '.rc-tier-poor .rc-v2-head h3,.rc-tier-poor .rc-v2-name,.rc-tier-poor .rc-v2-stats b{color:#c8c4b4;}'
-      + '.rc-tier-poor .rc-v2-rare{color:#cbd5e1;border-color:rgba(148,163,184,.35);}'
-      + '.rc-tier-blue .rc-art{border-color:rgba(30,100,200,0.4);}'
-      + '.rc-tier-green .rc-art{border-color:rgba(20,120,60,0.35);}'
-      + '.rc-tier-red .rc-art{border-color:rgba(180,30,50,0.35);}'
-      + '.rc-tier-poor .rc-name{font-family:"Courier New",Consolas,monospace;font-weight:600;font-size:11px;}'
-      + '.rc-tier-poor .rc-art{filter:saturate(0.55);}'
-      + '@page{size:A4 portrait;margin:0;}'
-      + '@media print{'
-      + 'body{background:#fff!important;}'
-      + '.rc-control{display:none!important;}'
-      + '.rc-pages{gap:0;padding:0;}'
-      + '.rc-print-page{box-shadow:none;margin:0;background:#fff!important;}'
-      + '.rc-card,.rc-card-face,.rc-card-body,.rc-holo-shine,.rc-art,.rc-atk,.rc-move,.rc-rarity-pill,.rc-zone-blue,.rc-zone-green,.rc-zone-red,.rc-name{'
-      + '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'
-      + '}'
-      + '</style></head><body>'
-      + '<div class="rc-control">'
-      + '<h2>YEC-BR Rare Cards — ' + rareCards.length + ' การ์ด</h2>'
-      + '<p>Collectible 63×88mm · 9 การ์ด/หน้า A4 · ดีไซน์ Pokémon TCG (กรอบฟอยล์ · หน้าครีม · ช่องอาร์ต · HP · Attack boxes · ดาว)</p>'
-      + '<button class="rc-btn" onclick="window.print()">พิมพ์</button>'
-      + '<button class="rc-btn rc-btn--ghost" onclick="window.close()">ปิด</button>'
-      + '</div>'
-      + '<div class="rc-pages">' + pagesHtml + '</div>'
-      + '</body></html>';
+      '.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:0.6mm;border-top:0.7px solid rgba(201,162,39,0.55);padding-top:0.6mm;}' +
+      '.rc-foot-left{font:700 5px/1 Cinzel,serif;letter-spacing:0.35px;color:#D4B86A;white-space:nowrap;}' +
+      '.rc-foot-stars{display:flex;align-items:center;justify-content:center;gap:0.6px;flex:1;}' +
+      '.rc-star{display:block;flex-shrink:0;}' +
+      '.rc-foot-serial{font:800 5.5px/1 Inter,sans-serif;color:#F0C94A;letter-spacing:0.3px;white-space:nowrap;}' +
+      '@page{size:A4 portrait;margin:0;}' +
+      '@media print{' +
+      'html,body{background:#fff!important;}' +
+      '.rc-control{display:none!important;}' +
+      '.rc-pages{gap:0;padding:0;}' +
+      '.rc-print-page{background:#fff!important;box-shadow:none;margin:0;}' +
+      /* Force ink on paper — CMYK-friendly solid fills */
+      '.rc-card,.rc-inner,.rc-border,.rc-graph-panel,.rc-stats,.rc-stat,.rc-zone,.rc-player-name,.rc-titles h1,.rc-hp-val,.rc-chart-svg{' +
+      '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}' +
+      '}' +
+      '</style></head><body>' +
+      '<div class="rc-control">' +
+      '<h2>YEC-BR Rare Cards — ' +
+      rareCards.length +
+      ' การ์ด</h2>' +
+      '<p>63×88mm (อัตราส่วนการ์ดสะสม) · 9 ใบ/หน้า A4 · สไตล์ Premium Cosmic Gold · <strong>ไม่มีฟอยล์</strong> · พิมพ์สี CMYK (print-color-adjust: exact)<br>' +
+      'แนะนำ: ตั้งค่าเครื่องพิมพ์เป็น <strong>Color · Best quality · Actual size 100%</strong> · กระดาษอาร์ต 200–300 gsm</p>' +
+      '<button class="rc-btn" onclick="window.print()">พิมพ์ (CMYK)</button>' +
+      '<button class="rc-btn rc-btn--ghost" onclick="window.close()">ปิด</button>' +
+      '</div>' +
+      '<div class="rc-pages">' +
+      pagesHtml +
+      '</div>' +
+      '</body></html>';
 
     if (isDebugPrint) {
       let debugContainer = document.getElementById('debug-rarecard-container');
       if (!debugContainer) {
         debugContainer = document.createElement('div');
         debugContainer.id = 'debug-rarecard-container';
-        debugContainer.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;background:#1a1520;';
+        debugContainer.style.cssText =
+          'position:fixed;inset:0;z-index:99999;overflow:auto;background:#0B1020;';
         document.body.appendChild(debugContainer);
       }
       debugContainer.innerHTML = printDoc.replace(/<script[\s\S]*?<\/script>/gi, '');
@@ -8437,6 +8071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     printWindow.document.write(printDoc);
     printWindow.document.close();
   }
+
 
   async function exportLeaderboardImage() {
     const section = document.getElementById('leaderboard');
