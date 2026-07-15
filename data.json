@@ -1099,6 +1099,28 @@
       "isKnockout": true,
       "date": "2026-07-12",
       "penaltyWinner": null
+    },
+    {
+      "id": 101,
+      "home": "ฝรั่งเศส",
+      "away": "สเปน",
+      "homeScore": 0,
+      "awayScore": 2,
+      "status": "finished",
+      "isKnockout": true,
+      "date": "2026-07-14",
+      "penaltyWinner": null
+    },
+    {
+      "id": 102,
+      "home": "อังกฤษ",
+      "away": "อาร์เจนตินา",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-15",
+      "penaltyWinner": null
     }
   ],
   "eliminatedTeams": [
@@ -1125,7 +1147,12 @@
     "โปรตุเกส",
     "สหรัฐอเมริกา",
     "อียิปต์",
-    "โคลอมเบีย"
+    "โคลอมเบีย",
+    "โมร็อกโก",
+    "เบลเยียม",
+    "นอร์เวย์",
+    "สวิตเซอร์แลนด์",
+    "ฝรั่งเศส"
   ],
   "broadcast": {
     "id": 1783829479113,

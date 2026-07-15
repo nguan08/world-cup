@@ -65,6 +65,12 @@ const ROUND32_START = '2026-06-28';
 const ROUND32_END = '2026-07-04';
 const ROUND16_START = '2026-07-04';
 const ROUND16_END = '2026-07-07';
+const QUARTER_START = '2026-07-09';
+const QUARTER_END = '2026-07-12';
+const SEMI_START = '2026-07-14';
+const SEMI_END = '2026-07-15';
+const FINAL_START = '2026-07-18';
+const FINAL_END = '2026-07-19';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -196,7 +202,7 @@ function mergeFixtures(...fixtureLists) {
 }
 
 function nextMatchId(matches) {
-  const ids = matches.filter((m) => m.id < 100).map((m) => Number(m.id)).filter(Number.isFinite);
+  const ids = matches.map((m) => Number(m.id)).filter(Number.isFinite);
   return ids.length > 0 ? Math.max(...ids) + 1 : 1;
 }
 
@@ -207,7 +213,16 @@ const knockoutBefore = matches.filter((m) => m.isKnockout).length;
 
 const round32Fixtures = await fetchKnockoutFixtures(ROUND32_START, ROUND32_END);
 const round16Fixtures = await fetchKnockoutFixtures(ROUND16_START, ROUND16_END);
-const fixtures = mergeFixtures(round32Fixtures, round16Fixtures);
+const quarterFixtures = await fetchKnockoutFixtures(QUARTER_START, QUARTER_END);
+const semiFixtures = await fetchKnockoutFixtures(SEMI_START, SEMI_END);
+const finalFixtures = await fetchKnockoutFixtures(FINAL_START, FINAL_END);
+const fixtures = mergeFixtures(
+  round32Fixtures,
+  round16Fixtures,
+  quarterFixtures,
+  semiFixtures,
+  finalFixtures
+);
 if (fixtures.length === 0) {
   console.error('[pull-knockout] No knockout fixtures found on ESPN');
   process.exit(1);
@@ -269,6 +284,8 @@ data.matches = matches;
 writeJson(DATA_PATH, data);
 
 const knockoutAfter = matches.filter((m) => m.isKnockout).length;
-console.log(`[pull-knockout] Round of 32: ${round32Fixtures.length}, Round of 16: ${round16Fixtures.length} fixtures from ESPN`);
+console.log(
+  `[pull-knockout] R32: ${round32Fixtures.length}, R16: ${round16Fixtures.length}, QF: ${quarterFixtures.length}, SF: ${semiFixtures.length}, Finals: ${finalFixtures.length} fixtures from ESPN`
+);
 console.log(`  added: ${added}, updated: ${updated}`);
 console.log(`  knockout matches: ${knockoutBefore} → ${knockoutAfter} (total ${matches.length})`);
