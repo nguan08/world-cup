@@ -6695,7 +6695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const THEMES = {
       gold: {
-        key: 'gold', rarity: 'LEGENDARY',
+        key: 'gold', rarity: 'LEGEND',
         accent: '#F0C94A', accentSoft: '#FFF4C2', accentDeep: '#8B5A00', mid: '#C9A227',
         line: '#E8B923', text: '#FFF4C2', muted: '#D4B86A', ink: '#3B1F00',
         border: '#C9A227', borderDeep: '#6B4200', jewel: '#8B5A00',
@@ -6969,7 +6969,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '<div class="rc-border" aria-hidden="true"></div>'
         + '<div class="rc-inner" style="background:' + th.bg + ';color:' + th.text + ';">'
         + '<header class="rc-head">'
-        + '<span class="rc-rare-badge" style="color:' + th.accent + ';">' + rarity + ' ★</span>'
+        + '<span class="rc-rare-badge" style="color:' + th.accent + ';border-color:' + th.border + ';white-space:nowrap;">' + rarity + ' ★</span>'
         + '<div class="rc-titles">'
         + '<h1 style="color:' + th.accent + ';">YEC-BR WORLD CUP 2026</h1>'
         + '<p style="color:' + th.muted + ';">MATCH TREND ANALYSIS</p>'
@@ -6983,7 +6983,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '<h2 class="rc-player-name" style="color:' + th.accent + ';">' + playerName + '</h2>'
         + '</section>'
         + '<section class="rc-graph-panel" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
-        + '<div class="rc-graph-title" style="color:' + th.accent + ';"><span>SCORE TREND</span></div>'
         + buildRareChartSvg(ph, cid, th)
         + '</section>'
         + '<section class="rc-stats" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
@@ -7047,21 +7046,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       'radial-gradient(circle at 90% 22%,#0E4A8A 0%,transparent 38%),' +
       'radial-gradient(circle at 70% 90%,#5A2040 0%,transparent 35%),' +
       'linear-gradient(165deg,#0A1638 0%,#0C0E28 45%,#12081F 100%);' +
-      'display:grid;grid-template-rows:7.6mm 26mm 25mm 10.5mm 6mm 4.8mm;gap:0.7mm;padding:2mm 2.1mm 1.6mm;' +
+      'display:grid;grid-template-rows:7.8mm 27.5mm 23.5mm 10.5mm 6mm 4.8mm;gap:0.7mm;padding:2mm 2.1mm 1.6mm;' +
       'color:#FFF4C2;}' +
       /* subtle stars (static dots, no animation) */
       '.rc-inner:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.55;z-index:0;' +
       'background-image:radial-gradient(1px 1px at 10% 12%,#FFF 0%,transparent 100%),radial-gradient(1.2px 1.2px at 88% 18%,#FFE9A0 0%,transparent 100%),radial-gradient(1px 1px at 22% 48%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 76% 62%,#B8E0FF 0%,transparent 100%),radial-gradient(1.1px 1.1px at 40% 88%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 60% 30%,#FFE9A0 0%,transparent 100%);}' +
       '.rc-head,.rc-hero,.rc-graph-panel,.rc-stats,.rc-all-flags,.rc-foot{position:relative;z-index:1;}' +
       /* Header */
-      '.rc-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.8mm;min-height:0;padding:0 0.4mm 0.4mm;border-bottom:0.55px solid rgba(180,160,80,0.4);}' +
-      '.rc-rare-badge{justify-self:start;font:800 5px/1 Inter,sans-serif;letter-spacing:0.55px;color:#F0C94A;text-transform:uppercase;padding:0.7mm 1.1mm;border:0.55px solid var(--rc-border,#C9A227);border-radius:1mm;background:rgba(0,0,0,0.28);}' +
+      '.rc-head{display:grid;grid-template-columns:minmax(16mm,1.15fr) auto minmax(10mm,0.85fr);align-items:center;gap:0.6mm;min-height:0;padding:0 0.3mm 0.5mm;border-bottom:0.55px solid rgba(180,160,80,0.4);}' +
+      '.rc-rare-badge{justify-self:start;align-self:center;font:900 6.2px/1 Inter,Arial,sans-serif;letter-spacing:0.35px;color:#F0C94A;text-transform:uppercase;padding:1mm 1.6mm;border:0.75px solid var(--rc-accent,#F0C94A);border-radius:1.2mm;background:linear-gradient(180deg,rgba(0,0,0,0.15),rgba(0,0,0,0.42));white-space:nowrap;max-width:100%;box-shadow:0 0.6px 0 var(--rc-border-deep,#6B4200),inset 0 0.5px 0 rgba(255,255,255,0.18);}' +
       '.rc-titles{text-align:center;min-width:0;justify-self:center;}' +
       '.rc-titles h1{margin:0;font:800 8.2px/1.05 Cinzel,Inter,serif;color:#F0C94A;letter-spacing:0.2px;text-shadow:0 1px 0 rgba(0,0,0,0.55);}' +
       '.rc-titles p{margin:0.8px 0 0;font:700 4.8px/1 Inter,sans-serif;letter-spacing:0.85px;color:#D4B86A;text-transform:uppercase;opacity:0.92;}' +
       '.rc-head-spacer{justify-self:end;width:1px;height:1px;opacity:0;}' +
       /* Hero */
-      '.rc-hero{position:relative;display:grid;grid-template-columns:10.5mm 1fr 10.5mm;align-items:center;min-height:0;padding-bottom:3.2mm;}' +
+      '.rc-hero{position:relative;display:grid;grid-template-columns:10.5mm 1fr 10.5mm;align-items:center;min-height:0;padding-bottom:4.2mm;}' +
       '.rc-hero-flags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6px;}' +
       '.rc-flag-chip{display:block;padding:0.6px;border-radius:1.4px;background:var(--rc-jewel,#8B5A00);border:0.5px solid var(--rc-accent,#F0C94A);box-shadow:0 0.5px 1px rgba(0,0,0,0.35);}' +
       '.rc-flag-chip img,.rc-hero-flags img{display:block;width:23px;height:14.5px;object-fit:cover;border-radius:1px;}' +
@@ -7073,13 +7072,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       '.rc-wc-badge{width:10.5mm;}' +
       '.rc-wc-badge svg{width:100%;height:auto;display:block;}' +
       '.rc-player-name{position:absolute;left:0;right:0;bottom:0;margin:0;text-align:center;' +
-      'font:800 11px/1.05 Sarabun,Inter,sans-serif;color:#F0C94A;' +
-      'text-shadow:0 1.2px 0 rgba(0,0,0,0.75);letter-spacing:0.15px;' +
-      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1.2mm;' +
-      'background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.35) 100%);padding-top:1.2mm;}' +
+      'font:900 13.5px/1.05 Sarabun,Inter,sans-serif;color:#F0C94A;' +
+      'text-shadow:0 1.6px 0 rgba(0,0,0,0.85),0 0 4px rgba(0,0,0,0.45);letter-spacing:0.2px;' +
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1mm 0.4mm;' +
+      'background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.45) 100%);padding-top:2mm;}' +
       /* Graph panel */
-      '.rc-graph-panel{border:0.85px solid var(--rc-border,#C9A227);border-radius:1.8mm;background:rgba(4,10,28,0.78);padding:1mm 1.2mm 0.5mm;min-height:0;overflow:hidden;display:flex;flex-direction:column;box-shadow:inset 0 0 0 0.35px rgba(255,255,255,0.06);}' +
-      '.rc-graph-title{text-align:center;font:800 5.8px/1 Inter,sans-serif;letter-spacing:1.1px;color:#F0C94A;margin-bottom:0.4mm;text-transform:uppercase;}' +
+      '.rc-graph-panel{border:0.85px solid var(--rc-border,#C9A227);border-radius:1.8mm;background:rgba(4,10,28,0.78);padding:1.2mm 1.2mm 0.8mm;min-height:0;overflow:hidden;display:flex;flex-direction:column;box-shadow:inset 0 0 0 0.35px rgba(255,255,255,0.06);}' +
       '.rc-chart-svg{width:100%;height:auto;flex:1;min-height:0;display:block;}' +
       /* Stats */
       '.rc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:stretch;justify-items:stretch;border:0.85px solid var(--rc-border,#C9A227);border-radius:1.8mm;overflow:hidden;background:rgba(6,12,30,0.88);min-height:0;}' +
