@@ -1115,9 +1115,9 @@
       "id": 102,
       "home": "อังกฤษ",
       "away": "อาร์เจนตินา",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 1,
+      "awayScore": 2,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-15",
       "penaltyWinner": null
@@ -1155,9 +1155,9 @@
     "ฝรั่งเศส"
   ],
   "broadcast": {
-    "id": 1783829479113,
-    "message": "⚽ อัปเดตสกอร์: อาร์เจนตินา 3-1 สวิตเซอร์แลนด์",
-    "sentAt": "2026-07-12T04:11:19.113Z"
+    "id": 1784148978402,
+    "message": "⚽ อัปเดตสกอร์: อังกฤษ 1-2 อาร์เจนตินา",
+    "sentAt": "2026-07-15T20:56:18.402Z"
   },
   "players": [
     {
