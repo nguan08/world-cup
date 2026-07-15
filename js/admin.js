@@ -206,6 +206,10 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = 'linear-gradient(135deg, var(--accent), #e11d48)';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'block';
+    const rareBtnElAdm = document.getElementById('rarecard-btn');
+    if (rareBtnElAdm) rareBtnElAdm.style.display = 'flex';
+    const exportAllGraphsBtnAdm = document.getElementById('export-all-graphs-btn');
+    if (exportAllGraphsBtnAdm) exportAllGraphsBtnAdm.style.display = 'flex';
 
     if (adminPanelHeader) {
       adminPanelHeader.style.display = 'flex';
@@ -244,6 +248,10 @@ export function updateAdminUI() {
       adminLoginToggleBtn.style.background = '';
     }
     if (resetAllBtn) resetAllBtn.style.display = 'none';
+    const rareBtnElAdm2 = document.getElementById('rarecard-btn');
+    if (rareBtnElAdm2) rareBtnElAdm2.style.display = 'none';
+    const exportAllGraphsBtnAdm2 = document.getElementById('export-all-graphs-btn');
+    if (exportAllGraphsBtnAdm2) exportAllGraphsBtnAdm2.style.display = 'none';
     setRoomSettingsPanelVisible(false);
 
     if (adminPanelHeader) adminPanelHeader.style.display = 'none';
