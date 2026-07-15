@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const PORT = 8080;
 const PUBLIC_DIR = __dirname;
@@ -444,8 +445,39 @@ const server = http.createServer((req, res) => {
       headers['Service-Worker-Allowed'] = '/';
     }
 
-    res.writeHead(200, headers);
-    fs.createReadStream(filePath).pipe(res);
+    fs.readFile(filePath, (readErr, buf) => {
+      if (readErr) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('500 Internal Server Error');
+        return;
+      }
+
+      const acceptEnc = String(req.headers['accept-encoding'] || '');
+      const compressible = /\.(js|mjs|css|html?|json|svg|txt|webmanifest|xml)$/i.test(filePath)
+        || contentType.startsWith('text/')
+        || contentType.includes('javascript')
+        || contentType.includes('json')
+        || contentType.includes('svg');
+      const wantsGzip = compressible && buf.length > 1024 && /\bgzip\b/i.test(acceptEnc);
+
+      if (wantsGzip) {
+        try {
+          const gz = zlib.gzipSync(buf, { level: 6 });
+          headers['Content-Encoding'] = 'gzip';
+          headers['Vary'] = 'Accept-Encoding';
+          headers['Content-Length'] = gz.length;
+          res.writeHead(200, headers);
+          res.end(gz);
+          return;
+        } catch {
+          // fall through to uncompressed
+        }
+      }
+
+      headers['Content-Length'] = buf.length;
+      res.writeHead(200, headers);
+      res.end(buf);
+    });
   });
 });
 

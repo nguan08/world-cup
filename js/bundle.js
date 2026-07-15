@@ -1145,24 +1145,44 @@ function getScoreChartCacheKey() {
   return `${app.matches.length}:${finished}:${simCount}:${leaderScore}:${app.processedPlayers.length}`;
 }
 
-function scheduleScoreChartRender() {
+let _scoreChartDeferTimer = 0;
+
+function scheduleScoreChartRender(options = {}) {
+  const { deferMs = 0 } = options;
   if (_scoreChartRenderRaf1) cancelAnimationFrame(_scoreChartRenderRaf1);
   if (_scoreChartRenderRaf2) cancelAnimationFrame(_scoreChartRenderRaf2);
-  _scoreChartRenderRaf1 = requestAnimationFrame(() => {
-    _scoreChartRenderRaf1 = 0;
-    _scoreChartRenderRaf2 = requestAnimationFrame(() => {
-      _scoreChartRenderRaf2 = 0;
-      const dash = document.getElementById('dashboard');
-      if (!dash || !dash.classList.contains('active')) return;
-      const svgEl = getCachedEl('score-chart-svg');
-      if (!svgEl) return;
-      const cacheKey = getScoreChartCacheKey();
-      if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
-      app._chartRankHistoryCacheKey = '';
-      renderScoreChart();
-      svgEl.dataset.chartCacheKey = cacheKey;
+  if (_scoreChartDeferTimer) {
+    clearTimeout(_scoreChartDeferTimer);
+    _scoreChartDeferTimer = 0;
+  }
+
+  const run = () => {
+    _scoreChartRenderRaf1 = requestAnimationFrame(() => {
+      _scoreChartRenderRaf1 = 0;
+      _scoreChartRenderRaf2 = requestAnimationFrame(() => {
+        _scoreChartRenderRaf2 = 0;
+        const dash = document.getElementById('dashboard');
+        if (!dash || !dash.classList.contains('active')) return;
+        const svgEl = getCachedEl('score-chart-svg');
+        if (!svgEl) return;
+        const cacheKey = getScoreChartCacheKey();
+        if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
+        app._chartRankHistoryCacheKey = '';
+        renderScoreChart();
+        svgEl.dataset.chartCacheKey = cacheKey;
+      });
     });
-  });
+  };
+
+  // Defer first paint of heavy chart so stats / live matches can show first
+  if (deferMs > 0) {
+    _scoreChartDeferTimer = setTimeout(() => {
+      _scoreChartDeferTimer = 0;
+      run();
+    }, deferMs);
+  } else {
+    run();
+  }
 }
 
 function updateDashboardStatCards() {
@@ -1309,11 +1329,13 @@ function renderDashboard(options = {}) {
   const { forceRecalc = true } = options;
   if (forceRecalc || !app.processedPlayers?.length) recalculateAll();
 
+  // Critical UI first — chart is expensive (62 players × 30+ days of SVG)
   updateDashboardStatCards();
-  scheduleScoreChartRender();
   renderRecentMatches();
   renderDashboardTopLeaders();
   renderTeamSelections(sortStatsArray(buildStatsArray()), 'compact');
+  const chartDeferMs = isChartLiteMode() ? 80 : 0;
+  scheduleScoreChartRender({ deferMs: chartDeferMs });
 }
 
 // RENDERING - LEADERBOARD (full table + average footer)
@@ -1736,9 +1758,18 @@ function isIOSChartDevice() {
   return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
 }
 
-/** iOS only — skip heavy ECG SVG filters/animations; PC + Android keep full effects */
+/**
+ * Lite chart: skip ECG filters/animations and reduce SVG markers.
+ * Used on iOS + any narrow viewport (mobile/Android) — full chart was freezing load for ~30s.
+ */
 function isChartLiteMode() {
-  return isIOSChartDevice();
+  if (isIOSChartDevice()) return true;
+  try {
+    if (window.matchMedia('(max-width: 768px)').matches) return true;
+  } catch {
+    /* ignore */
+  }
+  return window.innerWidth > 0 && window.innerWidth <= 768;
 }
 
 function requireAdminForPrintCards() {
@@ -2104,20 +2135,28 @@ function renderScoreChart() {
     const helperWidth = chartLite ? '12' : '8';
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="${helperWidth}" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
+    // Marker budget: lite = ~9 pts/player; desktop = endpoints + every 3rd step (not every day)
+    // Avoid 2000+ <image> soccer-ball nodes — use plain circles, ball only on final rank.
     const dotIndices = new Set();
     if (chartLite) {
       dotIndices.add(0);
       dotIndices.add(stepsCount);
-      for (let s = 1; s <= 7; s++) {
-        dotIndices.add(Math.round((s / 8) * stepsCount));
+      for (let s = 1; s <= 5; s++) {
+        dotIndices.add(Math.round((s / 6) * stepsCount));
       }
     } else {
-      for (let i = 0; i <= stepsCount; i++) dotIndices.add(i);
+      dotIndices.add(0);
+      dotIndices.add(stepsCount);
+      for (let i = 3; i < stepsCount; i += 3) dotIndices.add(i);
     }
     dotIndices.forEach(i => {
       const x = xOf(i);
       const y = yOf(ph.ranks[i]);
-      dotsGroup += `<g class="trend-dot" transform="translate(${x},${y})" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" data-base-scale="${dotBaseScale}" style="cursor:pointer; opacity:0.6; transition: opacity 0.2s;">${buildSoccerBallMarkerSvg(0, 0, dotR, color, { innerOnly: true })}</g>`;
+      const isLast = i === stepsCount;
+      const marker = (!chartLite && isLast)
+        ? buildSoccerBallMarkerSvg(0, 0, dotR, color, { innerOnly: true })
+        : `<circle r="${dotR}" fill="${color}" fill-opacity="0.85" stroke="rgba(0,0,0,0.35)" stroke-width="0.6"/>`;
+      dotsGroup += `<g class="trend-dot" transform="translate(${x},${y})" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" data-base-scale="${dotBaseScale}" style="cursor:pointer; opacity:0.6; transition: opacity 0.2s;">${marker}</g>`;
     });
 
     // Label at the end of the line

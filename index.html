@@ -16,7 +16,12 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://flagcdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://flagcdn.com">
-  <link rel="stylesheet" href="style.css?v=20260704-mobile-chart">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Non-blocking fonts: do not @import in CSS (that blocks first paint when Google is slow/down) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Sarabun:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Sarabun:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="style.css?v=20260715-perf-fonts">
   <style>
     #admin-room-settings-panel:not(.admin-room-settings-panel--visible){display:none!important}
   </style>
@@ -1127,6 +1132,6 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260715-rarecard-restore"></script>
+  <script type="module" src="js/main.js?v=20260715-perf-fonts"></script>
 </body>
 </html>
