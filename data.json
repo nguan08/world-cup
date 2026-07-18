@@ -1121,6 +1121,29 @@
       "isKnockout": true,
       "date": "2026-07-15",
       "penaltyWinner": null
+    },
+    {
+      "id": 103,
+      "home": "ฝรั่งเศส",
+      "away": "อังกฤษ",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-18",
+      "penaltyWinner": null
+    },
+    {
+      "id": 104,
+      "home": "สเปน",
+      "away": "อาร์เจนตินา",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
+      "isKnockout": true,
+      "date": "2026-07-19",
+      "penaltyWinner": null,
+      "isFinal": true
     }
   ],
   "eliminatedTeams": [

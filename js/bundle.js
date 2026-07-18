@@ -1758,18 +1758,9 @@ function isIOSChartDevice() {
   return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
 }
 
-/**
- * Lite chart: skip ECG filters/animations and reduce SVG markers.
- * Used on iOS + any narrow viewport (mobile/Android) — full chart was freezing load for ~30s.
- */
+/** iOS only — skip heavy ECG SVG filters/animations; PC + Android keep full effects */
 function isChartLiteMode() {
-  if (isIOSChartDevice()) return true;
-  try {
-    if (window.matchMedia('(max-width: 768px)').matches) return true;
-  } catch {
-    /* ignore */
-  }
-  return window.innerWidth > 0 && window.innerWidth <= 768;
+  return isIOSChartDevice();
 }
 
 function requireAdminForPrintCards() {
@@ -2135,28 +2126,21 @@ function renderScoreChart() {
     const helperWidth = chartLite ? '12' : '8';
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="${helperWidth}" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
-    // Marker budget: lite = ~9 pts/player; desktop = endpoints + every 3rd step (not every day)
-    // Avoid 2000+ <image> soccer-ball nodes — use plain circles, ball only on final rank.
+    // Full design: soccer-ball markers on every step (desktop); lite samples fewer points on iOS
     const dotIndices = new Set();
     if (chartLite) {
       dotIndices.add(0);
       dotIndices.add(stepsCount);
-      for (let s = 1; s <= 5; s++) {
-        dotIndices.add(Math.round((s / 6) * stepsCount));
+      for (let s = 1; s <= 7; s++) {
+        dotIndices.add(Math.round((s / 8) * stepsCount));
       }
     } else {
-      dotIndices.add(0);
-      dotIndices.add(stepsCount);
-      for (let i = 3; i < stepsCount; i += 3) dotIndices.add(i);
+      for (let i = 0; i <= stepsCount; i++) dotIndices.add(i);
     }
     dotIndices.forEach(i => {
       const x = xOf(i);
       const y = yOf(ph.ranks[i]);
-      const isLast = i === stepsCount;
-      const marker = (!chartLite && isLast)
-        ? buildSoccerBallMarkerSvg(0, 0, dotR, color, { innerOnly: true })
-        : `<circle r="${dotR}" fill="${color}" fill-opacity="0.85" stroke="rgba(0,0,0,0.35)" stroke-width="0.6"/>`;
-      dotsGroup += `<g class="trend-dot" transform="translate(${x},${y})" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" data-base-scale="${dotBaseScale}" style="cursor:pointer; opacity:0.6; transition: opacity 0.2s;">${marker}</g>`;
+      dotsGroup += `<g class="trend-dot" transform="translate(${x},${y})" data-player="${ph.name}" data-step="${i}" data-score="${ph.scores[i]}" data-rank="${ph.ranks[i]}" data-base-scale="${dotBaseScale}" style="cursor:pointer; opacity:0.6; transition: opacity 0.2s;">${buildSoccerBallMarkerSvg(0, 0, dotR, color, { innerOnly: true })}</g>`;
     });
 
     // Label at the end of the line
