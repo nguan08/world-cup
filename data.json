@@ -1126,9 +1126,9 @@
       "id": 103,
       "home": "ฝรั่งเศส",
       "away": "อังกฤษ",
-      "homeScore": null,
-      "awayScore": null,
-      "status": "pending",
+      "homeScore": 4,
+      "awayScore": 6,
+      "status": "finished",
       "isKnockout": true,
       "date": "2026-07-18",
       "penaltyWinner": null
@@ -1178,9 +1178,9 @@
     "ฝรั่งเศส"
   ],
   "broadcast": {
-    "id": 1784148978402,
-    "message": "⚽ อัปเดตสกอร์: อังกฤษ 1-2 อาร์เจนตินา",
-    "sentAt": "2026-07-15T20:56:18.402Z"
+    "id": 1784415919157,
+    "message": "⚽ อัปเดตสกอร์: ฝรั่งเศส 4-6 อังกฤษ",
+    "sentAt": "2026-07-18T23:05:19.157Z"
   },
   "players": [
     {
