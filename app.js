@@ -7624,9 +7624,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return (base || 'p') + '_' + idx;
     };
 
-    /** Theme: #1-2 gold · zone blue/green/red · last-2 black */
+    /** Theme: #1-2-3 gold · zone blue/green/red · last-2 black (รวย→จน) */
     const getCardThemeKey = (rank, zone) => {
-      if (rank <= 2) return 'gold';
+      if (rank <= 3) return 'gold';
       if (rank >= totalPlayers - 1) return 'black';
       if (zone === 'blue' || zone === 'green' || zone === 'red') return zone;
       return 'red';
@@ -7635,43 +7635,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const THEMES = {
       gold: {
         key: 'gold', rarity: 'LEGEND',
-        accent: '#F0C94A', accentSoft: '#FFF4C2', accentDeep: '#8B5A00', mid: '#C9A227',
-        line: '#E8B923', text: '#FFF4C2', muted: '#D4B86A', ink: '#3B1F00',
-        border: '#C9A227', borderDeep: '#6B4200', jewel: '#8B5A00',
-        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#6B4A12 0%,transparent 55%),radial-gradient(circle at 15% 80%,#3A2808 0%,transparent 42%),radial-gradient(circle at 88% 20%,#8B6914 0%,transparent 40%),linear-gradient(165deg,#2A1C06 0%,#1A1208 48%,#120E06 100%)',
-        panelBg: 'rgba(36,24,6,0.88)', chartBg: 'rgba(22,14,4,0.82)'
+        accent: '#F5D76E', accentSoft: '#FFF6D0', accentDeep: '#7A4800', mid: '#D4AF37',
+        line: '#F0C94A', text: '#FFF8DC', muted: '#E0C878', ink: '#2A1800',
+        border: '#D4AF37', borderDeep: '#5C3800', jewel: '#A67C00',
+        bg: 'radial-gradient(ellipse 100% 60% at 50% -5%,#8B6914 0%,transparent 52%),radial-gradient(circle at 8% 92%,#4A3008 0%,transparent 38%),radial-gradient(circle at 94% 12%,#C9A227 0%,transparent 32%),radial-gradient(circle at 50% 100%,#3B2408 0%,transparent 45%),linear-gradient(168deg,#2E2008 0%,#1A1206 42%,#0E0A04 100%)',
+        panelBg: 'rgba(42,28,8,0.92)', chartBg: 'rgba(18,12,4,0.9)'
       },
       blue: {
-        key: 'blue', rarity: 'RARE',
-        accent: '#5EC8FF', accentSoft: '#D6F0FF', accentDeep: '#0C4A8A', mid: '#2B8FD4',
-        line: '#3BA4FF', text: '#E8F6FF', muted: '#8EC8E8', ink: '#041830',
-        border: '#3BA4FF', borderDeep: '#0C3A6E', jewel: '#1E6FBF',
-        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#1A5AAA 0%,transparent 55%),radial-gradient(circle at 15% 80%,#0A2A60 0%,transparent 42%),radial-gradient(circle at 88% 20%,#0E6ABA 0%,transparent 40%),linear-gradient(165deg,#061E3A 0%,#041428 48%,#030C1C 100%)',
-        panelBg: 'rgba(4,20,44,0.88)', chartBg: 'rgba(3,14,34,0.84)'
+        key: 'blue', rarity: 'EPIC',
+        accent: '#6ED4FF', accentSoft: '#E8F8FF', accentDeep: '#0A3D78', mid: '#2B9FE8',
+        line: '#4BB8FF', text: '#F0FAFF', muted: '#9AD4F0', ink: '#021220',
+        border: '#4BB8FF', borderDeep: '#0A3268', jewel: '#1A6FBF',
+        bg: 'radial-gradient(ellipse 100% 60% at 50% -5%,#1E6ABA 0%,transparent 52%),radial-gradient(circle at 8% 92%,#0A2848 0%,transparent 38%),radial-gradient(circle at 94% 12%,#3BA4FF 0%,transparent 28%),radial-gradient(circle at 50% 100%,#061830 0%,transparent 45%),linear-gradient(168deg,#071E3A 0%,#04101F 42%,#020A14 100%)',
+        panelBg: 'rgba(4,22,48,0.92)', chartBg: 'rgba(2,12,28,0.9)'
       },
       green: {
         key: 'green', rarity: 'RARE',
-        accent: '#4AE89A', accentSoft: '#D4FFE8', accentDeep: '#0F5A32', mid: '#22B86A',
-        line: '#3DDB8A', text: '#E8FFF2', muted: '#8AD4A8', ink: '#042016',
-        border: '#3DDB8A', borderDeep: '#0F4A2A', jewel: '#1B8A54',
-        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#128A52 0%,transparent 55%),radial-gradient(circle at 15% 80%,#0A3A24 0%,transparent 42%),radial-gradient(circle at 88% 20%,#16A060 0%,transparent 40%),linear-gradient(165deg,#042418 0%,#031610 48%,#020E0A 100%)',
-        panelBg: 'rgba(4,28,18,0.88)', chartBg: 'rgba(3,20,12,0.84)'
+        accent: '#5CF0A8', accentSoft: '#E0FFE8', accentDeep: '#0A4A28', mid: '#28C878',
+        line: '#42E898', text: '#F0FFF6', muted: '#98E0B8', ink: '#02140C',
+        border: '#42E898', borderDeep: '#0A3A22', jewel: '#18A060',
+        bg: 'radial-gradient(ellipse 100% 60% at 50% -5%,#149A58 0%,transparent 52%),radial-gradient(circle at 8% 92%,#0A3020 0%,transparent 38%),radial-gradient(circle at 94% 12%,#3DDB8A 0%,transparent 28%),radial-gradient(circle at 50% 100%,#041A10 0%,transparent 45%),linear-gradient(168deg,#042818 0%,#02140C 42%,#010A06 100%)',
+        panelBg: 'rgba(4,30,18,0.92)', chartBg: 'rgba(2,16,10,0.9)'
       },
       red: {
-        key: 'red', rarity: 'RARE',
-        accent: '#FF6B88', accentSoft: '#FFE0E8', accentDeep: '#8A1028', mid: '#E03A58',
-        line: '#FF4D6D', text: '#FFE8EE', muted: '#E8A0B0', ink: '#2A0810',
-        border: '#FF4D6D', borderDeep: '#7A1228', jewel: '#B01E3A',
-        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#8A1838 0%,transparent 55%),radial-gradient(circle at 15% 80%,#4A0C1C 0%,transparent 42%),radial-gradient(circle at 88% 20%,#A02040 0%,transparent 40%),linear-gradient(165deg,#240810 0%,#16060C 48%,#0E0408 100%)',
-        panelBg: 'rgba(32,8,14,0.88)', chartBg: 'rgba(22,6,10,0.84)'
+        key: 'red', rarity: 'UNCOMMON',
+        accent: '#FF7A96', accentSoft: '#FFE8EE', accentDeep: '#7A0C22', mid: '#E84868',
+        line: '#FF5A7A', text: '#FFF0F4', muted: '#F0A8B8', ink: '#1E060C',
+        border: '#FF5A7A', borderDeep: '#68101F', jewel: '#C02848',
+        bg: 'radial-gradient(ellipse 100% 60% at 50% -5%,#9A1A38 0%,transparent 52%),radial-gradient(circle at 8% 92%,#3A0C18 0%,transparent 38%),radial-gradient(circle at 94% 12%,#E03A58 0%,transparent 28%),radial-gradient(circle at 50% 100%,#1A060C 0%,transparent 45%),linear-gradient(168deg,#280810 0%,#140408 42%,#0A0204 100%)',
+        panelBg: 'rgba(36,8,14,0.92)', chartBg: 'rgba(18,4,8,0.9)'
       },
       black: {
         key: 'black', rarity: 'COMMON',
-        accent: '#C8CCD4', accentSoft: '#F0F2F5', accentDeep: '#2A2E36', mid: '#6A7080',
-        line: '#9AA0AC', text: '#E8EAEE', muted: '#9AA0AC', ink: '#0A0C10',
-        border: '#6A7080', borderDeep: '#1A1C22', jewel: '#3A3E48',
-        bg: 'radial-gradient(ellipse 90% 55% at 50% 0%,#3A3E48 0%,transparent 55%),radial-gradient(circle at 15% 80%,#1A1C24 0%,transparent 42%),radial-gradient(circle at 88% 20%,#4A4E58 0%,transparent 40%),linear-gradient(165deg,#12141A 0%,#0A0C10 48%,#06070A 100%)',
-        panelBg: 'rgba(14,16,20,0.92)', chartBg: 'rgba(8,10,14,0.9)'
+        accent: '#D0D4DC', accentSoft: '#F4F6F8', accentDeep: '#22262E', mid: '#787E8C',
+        line: '#A8AEB8', text: '#F0F2F5', muted: '#A8AEB8', ink: '#080A0E',
+        border: '#787E8C', borderDeep: '#16181E', jewel: '#40444E',
+        bg: 'radial-gradient(ellipse 100% 60% at 50% -5%,#484C56 0%,transparent 52%),radial-gradient(circle at 8% 92%,#1A1C22 0%,transparent 38%),radial-gradient(circle at 94% 12%,#6A7080 0%,transparent 28%),radial-gradient(circle at 50% 100%,#0A0C10 0%,transparent 45%),linear-gradient(168deg,#14161C 0%,#0A0C10 42%,#040508 100%)',
+        panelBg: 'rgba(16,18,22,0.94)', chartBg: 'rgba(8,10,14,0.92)'
       }
     };
 
@@ -7682,15 +7682,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
-    /** Solid gold crown — no foil shimmer (CMYK-friendly) */
+    /**
+     * Headwear by rank/wealth ladder (รวย→จน):
+     * #1 imperial crown · #2 royal crown · #3 noble crown
+     * blue jeweled circlet · green laurel · red spiked band · black poor cap
+     * Solid fills only — CMYK / print safe (no foil).
+     */
     const buildCrownSvg = (rank, cid, th) => {
       const t = th || THEMES.gold;
       const g = 'cg_' + cid;
       const g2 = 'cb_' + cid;
-      const textFill = t.key === 'gold' ? '#3B1F00' : (t.key === 'black' ? '#F0F2F5' : '#FFFFFF');
-      return (
-        '<svg class="rc-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
-        + '<defs>'
+      const g3 = 'ch_' + cid;
+      const defs =
+        '<defs>'
         + '<linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1">'
         + '<stop offset="0%" stop-color="' + t.accentSoft + '"/><stop offset="35%" stop-color="' + t.accent + '"/>'
         + '<stop offset="70%" stop-color="' + t.mid + '"/><stop offset="100%" stop-color="' + t.accentDeep + '"/>'
@@ -7699,17 +7703,123 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '<stop offset="0%" stop-color="' + t.accentDeep + '"/><stop offset="50%" stop-color="' + t.accentSoft + '"/>'
         + '<stop offset="100%" stop-color="' + t.accentDeep + '"/>'
         + '</linearGradient>'
-        + '</defs>'
-        + '<ellipse cx="70" cy="62" rx="52" ry="28" fill="' + t.mid + '" opacity="0.28"/>'
-        + '<path d="M14 82 L22 34 L40 58 L56 24 L70 12 L84 24 L100 58 L118 34 L126 82 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="2.4" stroke-linejoin="round"/>'
-        + '<rect x="12" y="80" width="116" height="18" rx="4" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.5"/>'
-        + '<rect x="16" y="83" width="108" height="4" rx="1" fill="' + t.accentSoft + '" opacity="0.35"/>'
-        + '<circle cx="70" cy="30" r="7" fill="#E11D48" stroke="' + t.accentSoft + '" stroke-width="1.4"/>'
-        + '<circle cx="24" cy="52" r="5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
-        + '<circle cx="116" cy="52" r="5" fill="#16A34A" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
-        + '<circle cx="42" cy="66" r="3.5" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.8"/>'
-        + '<circle cx="98" cy="66" r="3.5" fill="#8B5CF6" stroke="' + t.accentSoft + '" stroke-width="0.8"/>'
-        + '<text x="70" y="72" text-anchor="middle" font-size="22" font-weight="900" fill="' + textFill + '" font-family="Inter,Arial,sans-serif" dominant-baseline="middle">#' + rank + '</text>'
+        + '<linearGradient id="' + g3 + '" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0%" stop-color="' + t.accent + '"/><stop offset="100%" stop-color="' + t.accentDeep + '"/>'
+        + '</linearGradient>'
+        + '</defs>';
+      // Rank number lives in top-right chip only — crown has no # text
+      const glow =
+        '<ellipse cx="70" cy="62" rx="52" ry="28" fill="' + t.mid + '" opacity="0.28"/>';
+
+      // #1 — Imperial crown (tallest center, 5 peaks, full jewels)
+      if (rank === 1) {
+        return (
+          '<svg class="rc-crown rc-crown--1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<path d="M10 84 L18 28 L36 56 L52 18 L70 6 L88 18 L104 56 L122 28 L130 84 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="2.5" stroke-linejoin="round"/>'
+          + '<path d="M52 18 L70 6 L88 18 L78 48 L62 48 Z" fill="' + t.accentSoft + '" opacity="0.35"/>'
+          + '<rect x="10" y="82" width="120" height="20" rx="5" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.6"/>'
+          + '<rect x="14" y="85" width="112" height="5" rx="1.5" fill="' + t.accentSoft + '" opacity="0.4"/>'
+          + '<circle cx="70" cy="22" r="8" fill="#E11D48" stroke="' + t.accentSoft + '" stroke-width="1.5"/>'
+          + '<circle cx="70" cy="22" r="3.2" fill="#FFF4C2"/>'
+          + '<circle cx="20" cy="46" r="5.5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+          + '<circle cx="120" cy="46" r="5.5" fill="#16A34A" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+          + '<circle cx="40" cy="62" r="4" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '<circle cx="100" cy="62" r="4" fill="#8B5CF6" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '<circle cx="55" cy="90" r="3" fill="#E11D48"/><circle cx="70" cy="90" r="3.5" fill="#2563EB"/><circle cx="85" cy="90" r="3" fill="#16A34A"/>'
+          + '</svg>'
+        );
+      }
+
+      // #2 — Royal crown (arched / closed top, dual side peaks)
+      if (rank === 2) {
+        return (
+          '<svg class="rc-crown rc-crown--2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<path d="M18 86 L26 42 L44 62 L58 30 L70 20 L82 30 L96 62 L114 42 L122 86 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="2.3" stroke-linejoin="round"/>'
+          + '<path d="M40 86 Q70 34 100 86" fill="none" stroke="' + t.accentSoft + '" stroke-width="3.2" stroke-linecap="round" opacity="0.85"/>'
+          + '<path d="M48 86 Q70 48 92 86" fill="none" stroke="' + t.mid + '" stroke-width="2" stroke-linecap="round" opacity="0.7"/>'
+          + '<rect x="16" y="84" width="108" height="18" rx="4" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.4"/>'
+          + '<circle cx="70" cy="28" r="6.5" fill="#E11D48" stroke="' + t.accentSoft + '" stroke-width="1.3"/>'
+          + '<circle cx="28" cy="54" r="4.5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="1"/>'
+          + '<circle cx="112" cy="54" r="4.5" fill="#16A34A" stroke="' + t.accentSoft + '" stroke-width="1"/>'
+          + '<circle cx="70" cy="52" r="4" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '</svg>'
+        );
+      }
+
+      // #3 — Noble crown (3 peaks, simpler gold)
+      if (rank === 3) {
+        return (
+          '<svg class="rc-crown rc-crown--3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<path d="M22 88 L30 48 L50 68 L70 28 L90 68 L110 48 L118 88 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="2.2" stroke-linejoin="round"/>'
+          + '<rect x="20" y="86" width="100" height="16" rx="3.5" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.3"/>'
+          + '<rect x="24" y="89" width="92" height="3.5" rx="1" fill="' + t.accentSoft + '" opacity="0.35"/>'
+          + '<circle cx="70" cy="36" r="6" fill="#E11D48" stroke="' + t.accentSoft + '" stroke-width="1.2"/>'
+          + '<circle cx="34" cy="60" r="4" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '<circle cx="106" cy="60" r="4" fill="#F59E0B" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '</svg>'
+        );
+      }
+
+      // Blue zone — jeweled circlet (still rich, open crown)
+      if (t.key === 'blue') {
+        return (
+          '<svg class="rc-crown rc-crown--blue" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<ellipse cx="70" cy="58" rx="46" ry="14" fill="none" stroke="url(#' + g + ')" stroke-width="10"/>'
+          + '<ellipse cx="70" cy="58" rx="46" ry="14" fill="none" stroke="' + t.accentSoft + '" stroke-width="1.6" opacity="0.8"/>'
+          + '<circle cx="70" cy="40" r="9" fill="url(#' + g3 + ')" stroke="' + t.accentSoft + '" stroke-width="1.4"/>'
+          + '<circle cx="70" cy="40" r="4" fill="#FFF"/>'
+          + '<circle cx="30" cy="54" r="6" fill="#5EC8FF" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+          + '<circle cx="110" cy="54" r="6" fill="#5EC8FF" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+          + '<circle cx="46" cy="68" r="4.5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '<circle cx="94" cy="68" r="4.5" fill="#2563EB" stroke="' + t.accentSoft + '" stroke-width="0.9"/>'
+          + '<rect x="24" y="78" width="92" height="14" rx="7" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.2"/>'
+          + '</svg>'
+        );
+      }
+
+      // Green zone — laurel wreath (mid wealth)
+      if (t.key === 'green') {
+        return (
+          '<svg class="rc-crown rc-crown--green" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<path d="M36 88 C22 70 24 42 44 32 C36 48 38 68 48 80 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="1.2"/>'
+          + '<path d="M104 88 C118 70 116 42 96 32 C104 48 102 68 92 80 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="1.2"/>'
+          + '<ellipse cx="48" cy="40" rx="7" ry="4" transform="rotate(-35 48 40)" fill="' + t.accentSoft + '" opacity="0.9"/>'
+          + '<ellipse cx="40" cy="54" rx="7" ry="4" transform="rotate(-20 40 54)" fill="' + t.mid + '"/>'
+          + '<ellipse cx="38" cy="68" rx="7" ry="4" transform="rotate(-8 38 68)" fill="' + t.accentSoft + '" opacity="0.85"/>'
+          + '<ellipse cx="92" cy="40" rx="7" ry="4" transform="rotate(35 92 40)" fill="' + t.accentSoft + '" opacity="0.9"/>'
+          + '<ellipse cx="100" cy="54" rx="7" ry="4" transform="rotate(20 100 54)" fill="' + t.mid + '"/>'
+          + '<ellipse cx="102" cy="68" rx="7" ry="4" transform="rotate(8 102 68)" fill="' + t.accentSoft + '" opacity="0.85"/>'
+          + '<path d="M52 86 Q70 78 88 86" fill="none" stroke="' + t.accent + '" stroke-width="3" stroke-linecap="round"/>'
+          + '<circle cx="70" cy="48" r="8" fill="url(#' + g3 + ')" stroke="' + t.accentSoft + '" stroke-width="1.3"/>'
+          + '</svg>'
+        );
+      }
+
+      // Red zone — spiked band (lesser)
+      if (t.key === 'red') {
+        return (
+          '<svg class="rc-crown rc-crown--red" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+          + defs + glow
+          + '<path d="M24 90 L32 56 L48 74 L62 48 L70 58 L78 48 L92 74 L108 56 L116 90 Z" fill="url(#' + g + ')" stroke="' + t.accentSoft + '" stroke-width="1.8" stroke-linejoin="round"/>'
+          + '<rect x="22" y="88" width="96" height="14" rx="3" fill="url(#' + g2 + ')" stroke="' + t.accentSoft + '" stroke-width="1.1"/>'
+          + '<circle cx="70" cy="62" r="5" fill="#FF6B88" stroke="' + t.accentSoft + '" stroke-width="1"/>'
+          + '</svg>'
+        );
+      }
+
+      // Black (last ranks) — plain poor cap (จนที่สุด)
+      return (
+        '<svg class="rc-crown rc-crown--black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" aria-hidden="true">'
+        + defs + glow
+        + '<ellipse cx="70" cy="58" rx="40" ry="22" fill="url(#' + g3 + ')" stroke="' + t.border + '" stroke-width="1.5"/>'
+        + '<path d="M30 62 Q70 78 110 62 L110 72 Q70 90 30 72 Z" fill="' + t.mid + '" stroke="' + t.border + '" stroke-width="1.2"/>'
+        + '<path d="M34 50 Q70 36 106 50" fill="none" stroke="' + t.accentSoft + '" stroke-width="2" opacity="0.35"/>'
+        + '<rect x="38" y="84" width="64" height="10" rx="2" fill="' + t.accentDeep + '" stroke="' + t.border + '" stroke-width="1"/>'
         + '</svg>'
       );
     };
@@ -7899,29 +8009,44 @@ document.addEventListener('DOMContentLoaded', async () => {
       const playerName = escapeHtml(ph.name);
 
       const cardHtml =
-        '<article class="rc-card rc-theme-' + th.key + '" style="--rc-accent:' + th.accent
+        '<article class="rc-card rc-theme-' + th.key + (finalRank <= 3 ? ' rc-card--podium rc-card--r' + finalRank : '') + '" style="--rc-accent:' + th.accent
         + ';--rc-accent-soft:' + th.accentSoft + ';--rc-accent-deep:' + th.accentDeep
         + ';--rc-mid:' + th.mid + ';--rc-line:' + th.line + ';--rc-text:' + th.text
         + ';--rc-muted:' + th.muted + ';--rc-ink:' + th.ink + ';--rc-border:' + th.border
         + ';--rc-border-deep:' + th.borderDeep + ';--rc-jewel:' + th.jewel
         + ';--rc-panel:' + th.panelBg + ';">'
         + '<div class="rc-border" aria-hidden="true"></div>'
+        + '<div class="rc-border-inner" aria-hidden="true"></div>'
+        + '<span class="rc-corner rc-corner--tl" aria-hidden="true"></span>'
+        + '<span class="rc-corner rc-corner--tr" aria-hidden="true"></span>'
+        + '<span class="rc-corner rc-corner--bl" aria-hidden="true"></span>'
+        + '<span class="rc-corner rc-corner--br" aria-hidden="true"></span>'
         + '<div class="rc-inner" style="background:' + th.bg + ';color:' + th.text + ';">'
+        + '<div class="rc-vignette" aria-hidden="true"></div>'
         + '<header class="rc-head">'
-        + '<span class="rc-rare-badge" style="color:' + th.accent + ';border-color:' + th.border + ';white-space:nowrap;">' + rarity + ' ★</span>'
+        + '<span class="rc-rare-badge" style="color:' + th.ink + ';border-color:' + th.accentSoft + ';background:linear-gradient(180deg,' + th.accentSoft + ' 0%,' + th.accent + ' 45%,' + th.mid + ' 100%);">' + rarity + ' ★</span>'
         + '<div class="rc-titles">'
         + '<h1 style="color:' + th.accent + ';">YEC-BR WORLD CUP 2026</h1>'
-        + '<p style="color:' + th.muted + ';">MATCH TREND ANALYSIS</p>'
+        + '<p style="color:' + th.muted + ';">COLLECTOR SERIES</p>'
         + '</div>'
-        + '<span class="rc-head-spacer" aria-hidden="true"></span>'
+        + '<span class="rc-rank-chip" aria-label="Rank ' + finalRank + '">'
+        + '<span class="rc-rank-chip__aura" aria-hidden="true" style="background:radial-gradient(circle, ' + th.accent + 'aa 0%, ' + th.mid + '55 42%, transparent 72%);"></span>'
+        + '<span class="rc-rank-chip__rim" aria-hidden="true" style="background:linear-gradient(145deg,' + th.accentSoft + ' 0%,' + th.mid + ' 38%,' + th.borderDeep + ' 72%,' + th.accent + ' 100%);box-shadow:0 1.1px 1.6px rgba(0,0,0,0.55),0 0 0 0.45px ' + th.borderDeep + ';"></span>'
+        + '<span class="rc-rank-chip__core" style="background:radial-gradient(circle at 32% 26%,' + th.accentSoft + ' 0%,' + th.accent + ' 34%,' + th.mid + ' 68%,' + th.accentDeep + ' 100%);box-shadow:inset 0 1.1px 0 rgba(255,255,255,0.72),inset 0 -1.4px 2px rgba(0,0,0,0.38),0 0 0 0.55px ' + th.accentSoft + '88;">'
+        + '<b style="color:' + th.ink + ';text-shadow:0 0.55px 0 ' + th.accentSoft + 'cc,0 1.1px 0 rgba(0,0,0,0.25);">' + finalRank + '</b>'
+        + '</span>'
+        + '</span>'
         + '</header>'
         + '<section class="rc-hero">'
         + '<div class="rc-hero-flags">' + (topFlagsHtml || '<span class="rc-flag-fallback">—</span>') + '</div>'
         + '<div class="rc-hero-crown">' + buildCrownSvg(finalRank, cid, th) + '</div>'
         + '<div class="rc-hero-badge">' + buildWcBadge(cid, th) + '</div>'
-        + '<h2 class="rc-player-name" style="color:' + th.accent + ';">' + playerName + '</h2>'
+        + '<div class="rc-nameplate" style="border-color:' + th.border + ';background:linear-gradient(180deg,' + th.accentDeep + 'ee 0%,' + th.ink + 'f2 100%);">'
+        + '<h2 class="rc-player-name" style="color:' + th.accentSoft + ';">' + playerName + '</h2>'
+        + '</div>'
         + '</section>'
         + '<section class="rc-graph-panel" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
+        + '<div class="rc-panel-label" style="color:' + th.muted + ';">SCORE TREND</div>'
         + buildRareChartSvg(ph, cid, th)
         + '</section>'
         + '<section class="rc-stats" style="border-color:' + th.border + ';background:' + th.panelBg + ';">'
@@ -7929,7 +8054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '<b style="color:' + th.accent + ';">' + ptVal + '</b></div>'
         + '<div class="rc-stat rc-stat--mid" style="border-color:' + th.border + '66;"><small style="color:' + th.muted + ';">ZONE</small>'
         + '<b class="rc-zone" style="color:' + z.color + ';">' + z.label + '</b></div>'
-        + '<div class="rc-stat"><small style="color:' + th.muted + ';">TOTAL</small>'
+        + '<div class="rc-stat"><small style="color:' + th.muted + ';">RANK</small>'
         + '<b style="color:' + th.accent + ';">' + finalRank + '<i style="color:' + th.muted + ';">/' + totalPlayers + '</i></b></div>'
         + '</section>'
         + '<div class="rc-all-flags">' + allFlagsHtml + '</div>'
@@ -7957,92 +8082,120 @@ document.addEventListener('DOMContentLoaded', async () => {
       '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
       '<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@600;700;800;900&family=Sarabun:wght@600;700;800&display=swap" rel="stylesheet">' +
       '<style>' +
-      /* CMYK / print-safe: solid colors, no foil, no mix-blend, exact color adjust */
+      /* CMYK / print-safe premium collectible — solid metal layers, no foil/holo */
       '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}' +
-      'html,body{background:#0B1020;font-family:Sarabun,Inter,Arial,sans-serif;color:#FFF4C2;}' +
-      '.rc-control{max-width:880px;margin:18px auto;padding:16px 22px;background:#12182A;border:1.5px solid #C9A227;border-radius:12px;text-align:center;}' +
-      '.rc-control h2{color:#F0C94A;font-size:17px;font-family:Cinzel,serif;margin-bottom:6px;}' +
-      '.rc-control p{color:#A8B4D0;font-size:12.5px;line-height:1.5;margin-bottom:14px;}' +
-      '.rc-btn{padding:10px 22px;font-weight:800;background:#C9A227;color:#1A1200;border:none;border-radius:8px;cursor:pointer;font-size:14px;margin:4px;font-family:Inter,sans-serif;}' +
-      '.rc-btn--ghost{background:transparent;border:1px solid #5A6480;color:#D0D8F0;}' +
+      'html,body{background:#080C16;font-family:Sarabun,Inter,Arial,sans-serif;color:#FFF4C2;}' +
+      '.rc-control{max-width:900px;margin:18px auto;padding:18px 24px;background:linear-gradient(165deg,#161C30 0%,#0E1424 100%);border:1.5px solid #D4AF37;border-radius:14px;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.06);}' +
+      '.rc-control h2{color:#F5D76E;font-size:18px;font-family:Cinzel,serif;margin-bottom:6px;letter-spacing:0.4px;}' +
+      '.rc-control p{color:#A8B4D0;font-size:12.5px;line-height:1.55;margin-bottom:14px;}' +
+      '.rc-btn{padding:11px 24px;font-weight:800;background:linear-gradient(180deg,#F0C94A,#C9A227);color:#1A1200;border:none;border-radius:8px;cursor:pointer;font-size:14px;margin:4px;font-family:Inter,sans-serif;box-shadow:0 2px 0 #6B4200,0 4px 12px rgba(201,162,39,0.25);}' +
+      '.rc-btn--ghost{background:transparent;border:1px solid #5A6480;color:#D0D8F0;box-shadow:none;}' +
       '.rc-pages{display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0 40px;}' +
-      /* A4 · 3×3 · 63×88mm Pokemon ratio with bleed-friendly margins */
-      '.rc-print-page{width:210mm;height:297mm;display:grid;grid-template-columns:repeat(3,70mm);grid-template-rows:repeat(3,99mm);place-items:center;background:#0B1020;page-break-after:always;break-after:page;}' +
-      /* Card shell 63×88mm */
-      '.rc-card{width:63mm;height:88mm;position:relative;overflow:hidden;border-radius:3.2mm;page-break-inside:avoid;break-inside:avoid;' +
-      'background:#070B18;isolation:isolate;}' +
-      /* Ornate gold border — solid metal look, NO foil/holo */
-      '.rc-border{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:3.2mm;' +
-      'border:2.1mm solid var(--rc-border,#C9A227);' +
-      'box-shadow:inset 0 0 0 0.55mm var(--rc-jewel,#8B5A00),inset 0 0 0 0.95mm var(--rc-accent,#F0C94A),inset 0 0 0 1.15mm var(--rc-border-deep,#6B4200);' +
+      '.rc-print-page{width:210mm;height:297mm;display:grid;grid-template-columns:repeat(3,70mm);grid-template-rows:repeat(3,99mm);place-items:center;background:#080C16;page-break-after:always;break-after:page;}' +
+      /* Card shell 63×88mm — premium metal frame */
+      '.rc-card{width:63mm;height:88mm;position:relative;overflow:hidden;border-radius:3.4mm;page-break-inside:avoid;break-inside:avoid;' +
+      'background:linear-gradient(145deg,var(--rc-border-deep,#5C3800) 0%,#070B12 40%,var(--rc-jewel,#A67C00) 100%);isolation:isolate;' +
+      'box-shadow:0 2mm 4mm rgba(0,0,0,0.55),0 0 0 0.35mm rgba(255,255,255,0.08);}' +
+      '.rc-card--podium{box-shadow:0 2.2mm 5mm rgba(0,0,0,0.6),0 0 0 0.4mm var(--rc-accent-soft,#FFF6D0),0 0 3mm rgba(212,175,55,0.22);}' +
+      /* Outer metal rim */
+      '.rc-border{position:absolute;inset:0;z-index:6;pointer-events:none;border-radius:3.4mm;' +
+      'border:1.85mm solid var(--rc-border,#D4AF37);' +
+      'box-shadow:inset 0 0 0 0.45mm var(--rc-accent-soft,#FFF6D0),inset 0 0 0 0.85mm var(--rc-jewel,#A67C00),inset 0 0 0 1.15mm var(--rc-border-deep,#5C3800),0 0 0 0.35mm var(--rc-border-deep,#5C3800);' +
       'background:transparent;}' +
-      
-      '.rc-inner{position:absolute;inset:2.4mm;z-index:1;border-radius:1.8mm;overflow:hidden;' +
-      /* Cosmic galaxy — solid layered gradients (print-safe) */
-      'background:' +
-      'radial-gradient(ellipse 90% 55% at 50% 0%,#1A3A7A 0%,transparent 55%),' +
-      'radial-gradient(circle at 12% 78%,#3A1570 0%,transparent 40%),' +
-      'radial-gradient(circle at 90% 22%,#0E4A8A 0%,transparent 38%),' +
-      'radial-gradient(circle at 70% 90%,#5A2040 0%,transparent 35%),' +
-      'linear-gradient(165deg,#0A1638 0%,#0C0E28 45%,#12081F 100%);' +
-      'display:grid;grid-template-rows:7.8mm 27.5mm 23.5mm 10.5mm 6mm 4.8mm;gap:0.7mm;padding:2mm 2.1mm 1.6mm;' +
+      /* Inner double-line frame */
+      '.rc-border-inner{position:absolute;inset:2.15mm;z-index:5;pointer-events:none;border-radius:2mm;' +
+      'border:0.55px solid var(--rc-accent-soft,#FFF6D0);opacity:0.55;' +
+      'box-shadow:inset 0 0 0 0.9mm rgba(0,0,0,0.35),0 0 0 0.45px var(--rc-mid,#D4AF37);}' +
+      /* Ornate corner brackets */
+      '.rc-corner{position:absolute;z-index:7;width:4.2mm;height:4.2mm;pointer-events:none;' +
+      'border-color:var(--rc-accent-soft,#FFF6D0);border-style:solid;opacity:0.95;}' +
+      '.rc-corner--tl{top:1.1mm;left:1.1mm;border-width:1.1px 0 0 1.1px;border-top-left-radius:1.2mm;' +
+      'box-shadow:inset 1.4px 1.4px 0 0 var(--rc-mid,#D4AF37);}' +
+      '.rc-corner--tr{top:1.05mm;right:1.05mm;width:3.4mm;height:3.4mm;border-width:1px 1px 0 0;border-top-right-radius:1mm;' +
+      'box-shadow:inset -1.1px 1.1px 0 0 var(--rc-mid,#D4AF37);opacity:0.85;}' +
+      '.rc-corner--bl{bottom:1.1mm;left:1.1mm;border-width:0 0 1.1px 1.1px;border-bottom-left-radius:1.2mm;' +
+      'box-shadow:inset 1.4px -1.4px 0 0 var(--rc-mid,#D4AF37);}' +
+      '.rc-corner--br{bottom:1.1mm;right:1.1mm;border-width:0 1.1px 1.1px 0;border-bottom-right-radius:1.2mm;' +
+      'box-shadow:inset -1.4px -1.4px 0 0 var(--rc-mid,#D4AF37);}' +
+      '.rc-inner{position:absolute;inset:2.55mm;z-index:1;border-radius:1.7mm;overflow:hidden;' +
+      'display:grid;grid-template-rows:9.4mm 24.8mm 22.6mm 10.1mm 5.8mm 4.5mm;gap:0.55mm;padding:1.5mm 1.65mm 1.25mm;' +
       'color:#FFF4C2;}' +
-      /* subtle stars (static dots, no animation) */
-      '.rc-inner:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.55;z-index:0;' +
-      'background-image:radial-gradient(1px 1px at 10% 12%,#FFF 0%,transparent 100%),radial-gradient(1.2px 1.2px at 88% 18%,#FFE9A0 0%,transparent 100%),radial-gradient(1px 1px at 22% 48%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 76% 62%,#B8E0FF 0%,transparent 100%),radial-gradient(1.1px 1.1px at 40% 88%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 60% 30%,#FFE9A0 0%,transparent 100%);}' +
+      /* Vignette + premium depth */
+      '.rc-vignette{position:absolute;inset:0;z-index:0;pointer-events:none;' +
+      'background:radial-gradient(ellipse 85% 70% at 50% 42%,transparent 30%,rgba(0,0,0,0.45) 100%),linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 18%,transparent 78%,rgba(0,0,0,0.35) 100%);}' +
+      /* Static star field */
+      '.rc-inner:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.62;z-index:0;' +
+      'background-image:radial-gradient(1px 1px at 10% 12%,#FFF 0%,transparent 100%),radial-gradient(1.3px 1.3px at 88% 16%,#FFE9A0 0%,transparent 100%),radial-gradient(1px 1px at 22% 48%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 76% 62%,#B8E0FF 0%,transparent 100%),radial-gradient(1.2px 1.2px at 40% 88%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 60% 30%,#FFE9A0 0%,transparent 100%),radial-gradient(0.9px 0.9px at 48% 20%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 15% 70%,#FFE9A0 0%,transparent 100%);}' +
       '.rc-head,.rc-hero,.rc-graph-panel,.rc-stats,.rc-all-flags,.rc-foot{position:relative;z-index:1;}' +
-      /* Header */
-      '.rc-head{display:grid;grid-template-columns:minmax(16mm,1.15fr) auto minmax(10mm,0.85fr);align-items:center;gap:0.6mm;min-height:0;padding:0 0.3mm 0.5mm;border-bottom:0.55px solid rgba(180,160,80,0.4);}' +
-      '.rc-rare-badge{justify-self:start;align-self:center;font:900 6.2px/1 Inter,Arial,sans-serif;letter-spacing:0.35px;color:#F0C94A;text-transform:uppercase;padding:1mm 1.6mm;border:0.75px solid var(--rc-accent,#F0C94A);border-radius:1.2mm;background:linear-gradient(180deg,rgba(0,0,0,0.15),rgba(0,0,0,0.42));white-space:nowrap;max-width:100%;box-shadow:0 0.6px 0 var(--rc-border-deep,#6B4200),inset 0 0.5px 0 rgba(255,255,255,0.18);}' +
-      '.rc-titles{text-align:center;min-width:0;justify-self:center;}' +
-      '.rc-titles h1{margin:0;font:800 8.2px/1.05 Cinzel,Inter,serif;color:#F0C94A;letter-spacing:0.2px;text-shadow:0 1px 0 rgba(0,0,0,0.55);}' +
-      '.rc-titles p{margin:0.8px 0 0;font:700 4.8px/1 Inter,sans-serif;letter-spacing:0.85px;color:#D4B86A;text-transform:uppercase;opacity:0.92;}' +
-      '.rc-head-spacer{justify-self:end;width:1px;height:1px;opacity:0;}' +
-      /* Hero */
-      '.rc-hero{position:relative;display:grid;grid-template-columns:10.5mm 1fr 10.5mm;align-items:center;min-height:0;padding-bottom:4.2mm;}' +
-      '.rc-hero-flags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6px;}' +
-      '.rc-flag-chip{display:block;padding:0.6px;border-radius:1.4px;background:var(--rc-jewel,#8B5A00);border:0.5px solid var(--rc-accent,#F0C94A);box-shadow:0 0.5px 1px rgba(0,0,0,0.35);}' +
-      '.rc-flag-chip img,.rc-hero-flags img{display:block;width:23px;height:14.5px;object-fit:cover;border-radius:1px;}' +
-      '.rc-flag-fallback{font-size:5.5px;font-weight:800;color:#A8B4D0;}' +
+      /* Header — equal side columns so titles are truly centered; line lower */
+      '.rc-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:0.5mm;min-height:8.8mm;padding:0.25mm 0.15mm 1.15mm 0.15mm;border-bottom:0.65px solid var(--rc-border,#D4AF37);position:relative;overflow:visible;}' +
+      '.rc-rare-badge{justify-self:start;align-self:center;font:900 5.5px/1 Inter,Arial,sans-serif;letter-spacing:0.32px;text-transform:uppercase;padding:0.9mm 1.25mm;border:0.7px solid var(--rc-accent-soft,#FFF6D0);border-radius:1.1mm;white-space:nowrap;max-width:100%;' +
+      'box-shadow:0 0.7px 0 var(--rc-border-deep,#5C3800),inset 0 0.6px 0 rgba(255,255,255,0.45);z-index:2;}' +
+      '.rc-titles{text-align:center;min-width:0;justify-self:center;align-self:center;padding:0 0.6mm;z-index:2;width:100%;max-width:34mm;}' +
+      '.rc-titles h1{margin:0;font:800 8.2px/1.08 Cinzel,Inter,serif;letter-spacing:0.08px;text-shadow:0 1px 0 rgba(0,0,0,0.7),0 0 3px rgba(0,0,0,0.25);white-space:nowrap;}' +
+      '.rc-titles p{margin:1px 0 0;font:700 4.8px/1 Inter,sans-serif;letter-spacing:0.95px;text-transform:uppercase;opacity:0.95;}' +
+      /* Rank medal — slightly larger, sits above full-width line */
+      '.rc-rank-chip{position:relative;justify-self:end;align-self:center;width:8.2mm;height:8.2mm;min-width:8.2mm;max-width:8.2mm;' +
+      'margin:0 0.05mm 0.2mm 0;padding:0;border:none;background:transparent;z-index:4;isolation:isolate;}' +
+      '.rc-rank-chip__aura{position:absolute;inset:-0.95mm;border-radius:50%;pointer-events:none;z-index:0;opacity:0.92;}' +
+      '.rc-rank-chip__rim{position:absolute;inset:0;border-radius:50%;z-index:1;pointer-events:none;}' +
+      '.rc-rank-chip__core{position:absolute;inset:0.95mm;border-radius:50%;z-index:2;display:flex;align-items:center;justify-content:center;overflow:hidden;line-height:1;}' +
+      '.rc-rank-chip__core:before{content:"";position:absolute;left:12%;top:8%;width:46%;height:34%;border-radius:50%;' +
+      'background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0.22) 55%,transparent 100%);pointer-events:none;z-index:1;}' +
+      '.rc-rank-chip__core:after{content:"";position:absolute;left:16%;right:16%;bottom:9%;height:30%;border-radius:50%;' +
+      'background:radial-gradient(ellipse at 50% 100%,rgba(0,0,0,0.3) 0%,transparent 78%);pointer-events:none;z-index:1;}' +
+      '.rc-rank-chip b{position:relative;z-index:2;display:block;font:900 12px/1 Inter,Arial,sans-serif;letter-spacing:-0.4px;' +
+      'transform:translateY(0.12mm);text-align:center;}' +
+      /* Hero — smaller crown, flags/logo stay centered */
+      '.rc-hero{position:relative;display:grid;grid-template-columns:10.5mm minmax(0,1fr) 10.5mm;grid-template-rows:20.5mm;align-items:center;justify-items:center;min-height:0;padding:0.7mm 0.2mm 5.7mm;box-sizing:border-box;}' +
+      '.rc-hero-flags,.rc-hero-crown,.rc-hero-badge{display:flex;align-items:center;justify-content:center;align-self:center;justify-self:center;' +
+      'width:100%;height:20.5mm;max-height:20.5mm;min-height:20.5mm;margin:0;padding:0;box-sizing:border-box;overflow:visible;}' +
+      '.rc-hero-flags{flex-direction:column;gap:1.5px;}' +
+      '.rc-flag-chip{display:block;flex-shrink:0;padding:0.65px;border-radius:1.4px;background:linear-gradient(145deg,var(--rc-accent,#F5D76E),var(--rc-jewel,#A67C00));border:0.55px solid var(--rc-accent-soft,#FFF6D0);box-shadow:0 0.6px 1.2px rgba(0,0,0,0.4);}' +
+      '.rc-flag-chip img,.rc-hero-flags img{display:block;width:21px;height:13.5px;object-fit:cover;border-radius:1px;margin:0 auto;}' +
+      '.rc-flag-fallback{font-size:5.5px;font-weight:800;color:#A8B4D0;text-align:center;}' +
       '.rc-flag-fallback--sm{font-size:4px;}' +
-      '.rc-hero-crown{display:flex;align-items:center;justify-content:center;transform:translateY(-0.4mm);}' +
-      '.rc-crown{width:29mm;height:23mm;display:block;}' +
-      '.rc-hero-badge{display:flex;align-items:center;justify-content:center;}' +
-      '.rc-wc-badge{width:10.5mm;}' +
-      '.rc-wc-badge svg{width:100%;height:auto;display:block;}' +
-      '.rc-player-name{position:absolute;left:0;right:0;bottom:0;margin:0;text-align:center;' +
-      'font:900 13.5px/1.05 Sarabun,Inter,sans-serif;color:#F0C94A;' +
-      'text-shadow:0 1.6px 0 rgba(0,0,0,0.85),0 0 4px rgba(0,0,0,0.45);letter-spacing:0.2px;' +
-      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1mm 0.4mm;' +
-      'background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.45) 100%);padding-top:2mm;}' +
+      '.rc-hero-crown{filter:drop-shadow(0 1.1px 1.3px rgba(0,0,0,0.45));transform:none;}' +
+      '.rc-crown{width:22.5mm;height:17.5mm;max-width:22.5mm;max-height:17.5mm;display:block;margin:0 auto;object-fit:contain;}' +
+      '.rc-hero-badge{filter:drop-shadow(0 0.8px 1px rgba(0,0,0,0.35));}' +
+      '.rc-wc-badge{width:9.6mm;height:auto;max-height:18.5mm;display:flex;align-items:center;justify-content:center;margin:0 auto;}' +
+      '.rc-wc-badge svg{width:100%;height:auto;max-height:18.5mm;display:block;margin:0 auto;}' +
+      /* Metal nameplate */
+      '.rc-nameplate{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:0.7px solid var(--rc-accent,#F5D76E);border-bottom:0.55px solid var(--rc-border-deep,#5C3800);' +
+      'padding:1.1mm 1.2mm 1mm;box-shadow:inset 0 0.6px 0 rgba(255,255,255,0.12),0 -1px 3px rgba(0,0,0,0.35);}' +
+      '.rc-player-name{margin:0;text-align:center;font:900 12.8px/1.05 Sarabun,Inter,sans-serif;' +
+      'text-shadow:0 1.2px 0 rgba(0,0,0,0.9);letter-spacing:0.25px;' +
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
       /* Graph panel */
-      '.rc-graph-panel{border:0.85px solid var(--rc-border,#C9A227);border-radius:1.8mm;background:rgba(4,10,28,0.78);padding:1.2mm 1.2mm 0.8mm;min-height:0;overflow:hidden;display:flex;flex-direction:column;box-shadow:inset 0 0 0 0.35px rgba(255,255,255,0.06);}' +
+      '.rc-graph-panel{border:0.9px solid var(--rc-border,#D4AF37);border-radius:1.7mm;padding:0.7mm 1.1mm 0.7mm;min-height:0;overflow:hidden;display:flex;flex-direction:column;' +
+      'box-shadow:inset 0 0 0 0.4px rgba(255,255,255,0.08),inset 0 1.2px 2.5px rgba(0,0,0,0.35);}' +
+      '.rc-panel-label{font:800 4.4px/1 Inter,sans-serif;letter-spacing:1.1px;text-align:center;text-transform:uppercase;opacity:0.9;margin-bottom:0.35mm;}' +
       '.rc-chart-svg{width:100%;height:auto;flex:1;min-height:0;display:block;}' +
       /* Stats */
-      '.rc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:stretch;justify-items:stretch;border:0.85px solid var(--rc-border,#C9A227);border-radius:1.8mm;overflow:hidden;background:rgba(6,12,30,0.88);min-height:0;}' +
-      '.rc-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.1mm 0.6mm;min-width:0;gap:0.55mm;}' +
-      '.rc-stat--mid{border-left:0.7px solid rgba(180,160,80,0.4);border-right:0.7px solid rgba(180,160,80,0.4);}' +
-      '.rc-stat small{display:block;width:100%;font:800 4.6px/1 Inter,sans-serif;letter-spacing:0.7px;color:#D4B86A;text-transform:uppercase;}' +
-      '.rc-stat b{display:block;width:100%;font:900 11.5px/1 Inter,sans-serif;color:#F0C94A;letter-spacing:-0.2px;text-align:center;}' +
-      '.rc-stat b i{font-style:normal;font-size:6.2px;color:#D4B86A;font-weight:700;margin-left:0.3px;}' +
-      '.rc-zone{font-weight:900!important;letter-spacing:0.4px;}' +
+      '.rc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:stretch;justify-items:stretch;border:0.9px solid var(--rc-border,#D4AF37);border-radius:1.7mm;overflow:hidden;min-height:0;' +
+      'box-shadow:inset 0 0 0 0.4px rgba(255,255,255,0.07),inset 0 1px 2px rgba(0,0,0,0.3);}' +
+      '.rc-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1mm 0.5mm;min-width:0;gap:0.5mm;}' +
+      '.rc-stat--mid{border-left:0.7px solid rgba(255,255,255,0.12);border-right:0.7px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);}' +
+      '.rc-stat small{display:block;width:100%;font:800 4.4px/1 Inter,sans-serif;letter-spacing:0.75px;text-transform:uppercase;opacity:0.92;}' +
+      '.rc-stat b{display:block;width:100%;font:900 11.2px/1 Inter,sans-serif;letter-spacing:-0.15px;text-align:center;text-shadow:0 0.6px 0 rgba(0,0,0,0.45);}' +
+      '.rc-stat b i{font-style:normal;font-size:6px;font-weight:700;margin-left:0.3px;opacity:0.85;}' +
+      '.rc-zone{font-weight:900!important;letter-spacing:0.45px;}' +
       /* All flags */
-      '.rc-all-flags{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;align-items:center;gap:1.4px;overflow:hidden;padding:0.2mm 0.4mm;}' +
-      '.rc-all-flags img{width:12px;height:8px;object-fit:cover;border-radius:1px;border:0.4px solid var(--rc-accent,#F0C94A);display:block;opacity:0.95;}' +
+      '.rc-all-flags{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;align-items:center;gap:1.5px;overflow:hidden;padding:0.15mm 0.3mm;}' +
+      '.rc-all-flags img{width:11.5px;height:7.5px;object-fit:cover;border-radius:1px;border:0.45px solid var(--rc-accent,#F5D76E);display:block;opacity:0.96;box-shadow:0 0.4px 0.6px rgba(0,0,0,0.35);}' +
       /* Footer */
-      '.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:0.8mm;border-top:0.65px solid rgba(180,160,80,0.35);padding-top:0.7mm;}' +
-      '.rc-foot-left{font:700 4.8px/1 Inter,sans-serif;letter-spacing:0.4px;color:#D4B86A;white-space:nowrap;}' +
-      '.rc-foot-stars{display:flex;align-items:center;justify-content:center;gap:0.7px;flex:1;}' +
-      '.rc-star{display:block;flex-shrink:0;}' +
-      '.rc-foot-serial{font:800 5.3px/1 Inter,sans-serif;color:#F0C94A;letter-spacing:0.35px;white-space:nowrap;}' +
+      '.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:0.7mm;border-top:0.7px solid var(--rc-border,#D4AF37);padding-top:0.65mm;box-shadow:0 -0.5px 0 rgba(255,255,255,0.05);}' +
+      '.rc-foot-left{font:700 4.6px/1 Inter,sans-serif;letter-spacing:0.45px;white-space:nowrap;}' +
+      '.rc-foot-stars{display:flex;align-items:center;justify-content:center;gap:0.8px;flex:1;}' +
+      '.rc-star{display:block;flex-shrink:0;filter:drop-shadow(0 0.4px 0.4px rgba(0,0,0,0.35));}' +
+      '.rc-foot-serial{font:800 5.2px/1 Inter,sans-serif;letter-spacing:0.4px;white-space:nowrap;}' +
       '@page{size:A4 portrait;margin:0;}' +
       '@media print{' +
       'html,body{background:#fff!important;}' +
       '.rc-control{display:none!important;}' +
       '.rc-pages{gap:0;padding:0;}' +
       '.rc-print-page{background:#fff!important;box-shadow:none;margin:0;}' +
-      /* Force ink on paper — CMYK-friendly solid fills */
-      '.rc-card,.rc-inner,.rc-border,.rc-graph-panel,.rc-stats,.rc-stat,.rc-zone,.rc-player-name,.rc-titles h1,.rc-chart-svg,.rc-rare-badge{' +
+      '.rc-card,.rc-inner,.rc-border,.rc-border-inner,.rc-corner,.rc-graph-panel,.rc-stats,.rc-stat,.rc-zone,.rc-player-name,.rc-nameplate,.rc-titles h1,.rc-chart-svg,.rc-rare-badge,.rc-rank-chip,.rc-rank-chip__aura,.rc-rank-chip__rim,.rc-rank-chip__core{' +
       '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}' +
       '}' +
       '</style></head><body>' +
@@ -8050,8 +8203,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       '<h2>YEC-BR Rare Cards — ' +
       rareCards.length +
       ' การ์ด</h2>' +
-      '<p>63×88mm (อัตราส่วนการ์ดสะสม) · 9 ใบ/หน้า A4 · Sport card · <strong>#1–2 ทอง</strong> · โซน <strong>Blue/Green/Red</strong> · <strong>ท้ายสุด ดำ</strong> · ไม่มีฟอยล์/HP · พิมพ์สี CMYK (print-color-adjust: exact)<br>' +
-      'แนะนำ: ตั้งค่าเครื่องพิมพ์เป็น <strong>Color · Best quality · Actual size 100%</strong> · กระดาษอาร์ต 200–300 gsm</p>' +
+      '<p>63×88mm Premium Collector · 9 ใบ/หน้า A4 · <strong>#1–3 ทอง + มงกุฏต่างกัน</strong> · โซน <strong>ฟ้า/เขียว/แดง/ดำ</strong> หมวกไล่รวย→จน · พิมพ์ CMYK · ไม่มีฟอยล์<br>' +
+      'แนะนำ: <strong>Color · Best quality · Actual size 100%</strong> · กระดาษอาร์ต 200–300 gsm</p>' +
       '<button class="rc-btn" onclick="window.print()">พิมพ์ (CMYK)</button>' +
       '<button class="rc-btn rc-btn--ghost" onclick="window.close()">ปิด</button>' +
       '</div>' +
