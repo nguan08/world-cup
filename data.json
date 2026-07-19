@@ -1126,9 +1126,9 @@
       "id": 103,
       "home": "ฝรั่งเศส",
       "away": "อังกฤษ",
-      "homeScore": 4,
-      "awayScore": 6,
-      "status": "finished",
+      "homeScore": null,
+      "awayScore": null,
+      "status": "pending",
       "isKnockout": true,
       "date": "2026-07-18",
       "penaltyWinner": null
@@ -1178,9 +1178,9 @@
     "ฝรั่งเศส"
   ],
   "broadcast": {
-    "id": 1784498619133,
+    "id": 1784499348389,
     "message": "⚽ อัปเดตสกอร์: สเปน 1-0 อาร์เจนตินา",
-    "sentAt": "2026-07-19T22:03:39.133Z"
+    "sentAt": "2026-07-19T22:15:48.389Z"
   },
   "players": [
     {
