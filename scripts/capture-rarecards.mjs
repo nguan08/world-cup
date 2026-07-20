@@ -37,7 +37,7 @@ if (await roomSelect.count()) {
     if (val) await roomSelect.selectOption(val);
   }
 }
-await page.click('#admin-login-submit-btn');
+await page.locator('#admin-login-submit-btn').click({ force: true });
 await page.waitForTimeout(1200);
 
 // Wait rarecard button

@@ -4,7 +4,7 @@
 import {
   handleSimulationScoreChange,
   openPlayerDetails
-} from './bundle.js?v=20260720-rarecard-align';
+} from './bundle.js?v=20260720-rarecard-challenge';
 
 window.handleSimulationScoreChange = handleSimulationScoreChange;
 window.openPlayerDetails = openPlayerDetails;

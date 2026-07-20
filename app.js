@@ -8027,7 +8027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         + '<span class="rc-rare-badge" style="color:' + th.ink + ';border-color:' + th.accentSoft + ';background:linear-gradient(180deg,' + th.accentSoft + ' 0%,' + th.accent + ' 45%,' + th.mid + ' 100%);">' + rarity + ' ★</span>'
         + '<div class="rc-titles">'
         + '<h1 style="color:' + th.accent + ';">YEC-BR WORLD CUP 2026</h1>'
-        + '<p style="color:' + th.muted + ';">COLLECTOR SERIES</p>'
+        + '<p class="rc-titles-challenge" style="color:' + th.accent + ';">CHALLENGE</p>'
         + '</div>'
         + '<span class="rc-rank-chip" aria-label="Rank ' + finalRank + '">'
         + '<span class="rc-rank-chip__aura" aria-hidden="true" style="background:radial-gradient(circle, ' + th.accent + 'aa 0%, ' + th.mid + '55 42%, transparent 72%);"></span>'
@@ -8118,29 +8118,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       '.rc-corner--br{bottom:1.1mm;right:1.1mm;border-width:0 1.1px 1.1px 0;border-bottom-right-radius:1.2mm;' +
       'box-shadow:inset -1.4px -1.4px 0 0 var(--rc-mid,#D4AF37);}' +
       '.rc-inner{position:absolute;inset:2.55mm;z-index:1;border-radius:1.7mm;overflow:hidden;' +
-      'display:grid;grid-template-rows:8.8mm 25.2mm 22.6mm 10.1mm 5.8mm 4.5mm;gap:0.55mm;padding:1.5mm 1.65mm 1.25mm;' +
+      'display:grid;grid-template-rows:8.4mm 27mm 21.8mm 10mm 5.7mm 4.4mm;gap:0.5mm;padding:1.45mm 1.6mm 1.2mm;' +
       'color:#FFF4C2;}' +
       /* Vignette + premium depth */
       '.rc-vignette{position:absolute;inset:0;z-index:0;pointer-events:none;' +
       'background:radial-gradient(ellipse 85% 70% at 50% 42%,transparent 30%,rgba(0,0,0,0.45) 100%),linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 18%,transparent 78%,rgba(0,0,0,0.35) 100%);}' +
-      /* Static star field */
-      '.rc-inner:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.62;z-index:0;' +
-      'background-image:radial-gradient(1px 1px at 10% 12%,#FFF 0%,transparent 100%),radial-gradient(1.3px 1.3px at 88% 16%,#FFE9A0 0%,transparent 100%),radial-gradient(1px 1px at 22% 48%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 76% 62%,#B8E0FF 0%,transparent 100%),radial-gradient(1.2px 1.2px at 40% 88%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 60% 30%,#FFE9A0 0%,transparent 100%),radial-gradient(0.9px 0.9px at 48% 20%,#FFF 0%,transparent 100%),radial-gradient(1px 1px at 15% 70%,#FFE9A0 0%,transparent 100%);}' +
+      /* No decorative star dots on card face */
+      '.rc-inner:before{content:none;display:none;}' +
       '.rc-head,.rc-hero,.rc-graph-panel,.rc-stats,.rc-all-flags,.rc-foot{position:relative;z-index:1;}' +
-      /* Header — left / title / rank share one vertical center line */
-      '.rc-head{display:grid;grid-template-columns:minmax(11mm,1fr) auto minmax(11mm,1fr);align-items:center;column-gap:0.5mm;min-height:8.6mm;height:8.6mm;padding:0 0.15mm;border-bottom:none;position:relative;overflow:visible;}' +
-      '.rc-rare-badge{justify-self:start;align-self:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;' +
-      'min-height:6.4mm;max-width:13mm;padding:0.55mm 1mm;border:0.65px solid var(--rc-accent-soft,#FFF6D0);border-radius:1mm;' +
-      'font:900 5px/1.12 Inter,Arial,sans-serif;letter-spacing:0.2px;text-transform:uppercase;text-align:center;' +
-      'white-space:normal;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;' +
-      'box-shadow:0 0.55px 0 var(--rc-border-deep,#5C3800),inset 0 0.5px 0 rgba(255,255,255,0.42);z-index:2;}' +
+      /* Header — badge flush top-left (no wrap); title center; rank top-right; no overlap */
+      '.rc-head{display:grid;grid-template-columns:1fr;align-items:center;justify-items:center;min-height:8.6mm;height:8.6mm;padding:0 9mm;border-bottom:none;position:relative;overflow:visible;}' +
+      '.rc-rare-badge{position:absolute;top:0;left:0;z-index:5;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;' +
+      'width:max-content;max-width:none;height:auto;min-height:0;margin:0;padding:0.3mm 0.65mm;border:0.55px solid var(--rc-accent-soft,#FFF6D0);' +
+      'border-radius:0 0 0.7mm 0;font:900 4.6px/1 Inter,Arial,sans-serif;letter-spacing:0.12px;text-transform:uppercase;text-align:center;' +
+      'white-space:nowrap!important;word-break:keep-all;overflow-wrap:normal;hyphens:none;' +
+      'box-shadow:0 0.4px 0 var(--rc-border-deep,#5C3800),inset 0 0.35px 0 rgba(255,255,255,0.4);}' +
       '.rc-titles{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;' +
-      'justify-self:center;align-self:center;padding:0 0.35mm;z-index:2;width:100%;max-width:38mm;gap:0.55px;}' +
-      '.rc-titles h1{margin:0;padding:0;font:800 8.8px/1 Cinzel,Inter,serif;letter-spacing:0.04px;text-shadow:0 1px 0 rgba(0,0,0,0.7),0 0 2.5px rgba(0,0,0,0.22);white-space:nowrap;}' +
-      '.rc-titles p{margin:0;padding:0;font:700 5px/1 Inter,sans-serif;letter-spacing:0.95px;text-transform:uppercase;opacity:0.92;}' +
-      /* Rank medal — same row center as title text */
-      '.rc-rank-chip{position:relative;justify-self:end;align-self:center;width:7.6mm;height:7.6mm;min-width:7.6mm;max-width:7.6mm;' +
-      'margin:0;padding:0;border:none;background:transparent;z-index:4;isolation:isolate;}' +
+      'justify-self:center;align-self:center;padding:0;z-index:2;width:100%;max-width:100%;gap:0.55px;}' +
+      '.rc-titles h1{margin:0;padding:0;font:800 8.4px/1 Cinzel,Inter,serif;letter-spacing:0.02px;text-shadow:0 1px 0 rgba(0,0,0,0.7),0 0 2.5px rgba(0,0,0,0.22);white-space:nowrap;}' +
+      '.rc-titles p,.rc-titles-challenge{margin:0;padding:0;font:800 5.4px/1 Cinzel,Inter,serif;letter-spacing:1.2px;text-transform:uppercase;opacity:0.95;text-shadow:0 0.6px 0 rgba(0,0,0,0.55);}' +
+      /* Rank medal — pinned top-right */
+      '.rc-rank-chip{position:absolute;top:0.4mm;right:0;z-index:4;width:7.6mm;height:7.6mm;min-width:7.6mm;max-width:7.6mm;' +
+      'margin:0;padding:0;border:none;background:transparent;isolation:isolate;}' +
       '.rc-rank-chip__aura{position:absolute;inset:-0.75mm;border-radius:50%;pointer-events:none;z-index:0;opacity:0.9;}' +
       '.rc-rank-chip__rim{position:absolute;inset:0;border-radius:50%;z-index:1;pointer-events:none;}' +
       '.rc-rank-chip__core{position:absolute;inset:0.9mm;border-radius:50%;z-index:2;display:flex;align-items:center;justify-content:center;overflow:hidden;line-height:1;}' +
@@ -8150,20 +8149,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       'background:radial-gradient(ellipse at 50% 100%,rgba(0,0,0,0.3) 0%,transparent 78%);pointer-events:none;z-index:1;}' +
       '.rc-rank-chip b{position:relative;z-index:2;display:block;font:900 11.2px/1 Inter,Arial,sans-serif;letter-spacing:-0.35px;' +
       'margin:0;padding:0;text-align:center;}' +
-      /* Hero — flags without border frames */
-      '.rc-hero{position:relative;display:grid;grid-template-columns:10.5mm minmax(0,1fr) 10.5mm;grid-template-rows:20.5mm;align-items:center;justify-items:center;min-height:0;padding:0.5mm 0.2mm 5.5mm;box-sizing:border-box;}' +
+      /* Hero — larger crown fits center slot; flags without borders */
+      '.rc-hero{position:relative;display:grid;grid-template-columns:10mm minmax(0,1fr) 10mm;grid-template-rows:23mm;align-items:center;justify-items:center;min-height:0;padding:0.35mm 0.15mm 5.4mm;box-sizing:border-box;}' +
       '.rc-hero-flags,.rc-hero-crown,.rc-hero-badge{display:flex;align-items:center;justify-content:center;align-self:center;justify-self:center;' +
-      'width:100%;height:20.5mm;max-height:20.5mm;min-height:20.5mm;margin:0;padding:0;box-sizing:border-box;overflow:visible;}' +
+      'width:100%;height:23mm;max-height:23mm;min-height:23mm;margin:0;padding:0;box-sizing:border-box;overflow:visible;}' +
       '.rc-hero-flags{flex-direction:column;gap:1.8px;}' +
       '.rc-flag-chip{display:block;flex-shrink:0;padding:0;border:none;border-radius:1px;background:transparent;box-shadow:none;}' +
       '.rc-flag-chip img,.rc-hero-flags img{display:block;width:22px;height:14px;object-fit:cover;border:none;border-radius:1px;margin:0 auto;box-shadow:none;outline:none;}' +
       '.rc-flag-fallback{font-size:5.5px;font-weight:800;color:#A8B4D0;text-align:center;border:none;}' +
       '.rc-flag-fallback--sm{font-size:4px;}' +
-      '.rc-hero-crown{filter:drop-shadow(0 1.1px 1.3px rgba(0,0,0,0.45));transform:none;}' +
-      '.rc-crown{width:22.5mm;height:17.5mm;max-width:22.5mm;max-height:17.5mm;display:block;margin:0 auto;object-fit:contain;}' +
+      '.rc-hero-crown{filter:drop-shadow(0 1.2px 1.4px rgba(0,0,0,0.45));transform:none;}' +
+      '.rc-crown{width:29mm;height:22mm;max-width:29mm;max-height:22mm;display:block;margin:0 auto;object-fit:contain;}' +
       '.rc-hero-badge{filter:drop-shadow(0 0.8px 1px rgba(0,0,0,0.35));}' +
-      '.rc-wc-badge{width:9.6mm;height:auto;max-height:18.5mm;display:flex;align-items:center;justify-content:center;margin:0 auto;}' +
-      '.rc-wc-badge svg{width:100%;height:auto;max-height:18.5mm;display:block;margin:0 auto;}' +
+      '.rc-wc-badge{width:9.4mm;height:auto;max-height:18mm;display:flex;align-items:center;justify-content:center;margin:0 auto;}' +
+      '.rc-wc-badge svg{width:100%;height:auto;max-height:18mm;display:block;margin:0 auto;}' +
       /* Nameplate — no top/bottom lines */
       '.rc-nameplate{position:absolute;left:0;right:0;bottom:0;z-index:2;border:none;border-top:none;border-bottom:none;' +
       'padding:1.15mm 1.2mm 0.95mm;background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.28) 100%);box-shadow:none;}' +
