@@ -1145,44 +1145,24 @@ function getScoreChartCacheKey() {
   return `${app.matches.length}:${finished}:${simCount}:${leaderScore}:${app.processedPlayers.length}`;
 }
 
-let _scoreChartDeferTimer = 0;
-
-function scheduleScoreChartRender(options = {}) {
-  const { deferMs = 0 } = options;
+function scheduleScoreChartRender() {
   if (_scoreChartRenderRaf1) cancelAnimationFrame(_scoreChartRenderRaf1);
   if (_scoreChartRenderRaf2) cancelAnimationFrame(_scoreChartRenderRaf2);
-  if (_scoreChartDeferTimer) {
-    clearTimeout(_scoreChartDeferTimer);
-    _scoreChartDeferTimer = 0;
-  }
-
-  const run = () => {
-    _scoreChartRenderRaf1 = requestAnimationFrame(() => {
-      _scoreChartRenderRaf1 = 0;
-      _scoreChartRenderRaf2 = requestAnimationFrame(() => {
-        _scoreChartRenderRaf2 = 0;
-        const dash = document.getElementById('dashboard');
-        if (!dash || !dash.classList.contains('active')) return;
-        const svgEl = getCachedEl('score-chart-svg');
-        if (!svgEl) return;
-        const cacheKey = getScoreChartCacheKey();
-        if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
-        app._chartRankHistoryCacheKey = '';
-        renderScoreChart();
-        svgEl.dataset.chartCacheKey = cacheKey;
-      });
+  _scoreChartRenderRaf1 = requestAnimationFrame(() => {
+    _scoreChartRenderRaf1 = 0;
+    _scoreChartRenderRaf2 = requestAnimationFrame(() => {
+      _scoreChartRenderRaf2 = 0;
+      const dash = document.getElementById('dashboard');
+      if (!dash || !dash.classList.contains('active')) return;
+      const svgEl = getCachedEl('score-chart-svg');
+      if (!svgEl) return;
+      const cacheKey = getScoreChartCacheKey();
+      if (svgEl.dataset.chartCacheKey === cacheKey && svgEl.innerHTML.trim()) return;
+      app._chartRankHistoryCacheKey = '';
+      renderScoreChart();
+      svgEl.dataset.chartCacheKey = cacheKey;
     });
-  };
-
-  // Defer first paint of heavy chart so stats / live matches can show first
-  if (deferMs > 0) {
-    _scoreChartDeferTimer = setTimeout(() => {
-      _scoreChartDeferTimer = 0;
-      run();
-    }, deferMs);
-  } else {
-    run();
-  }
+  });
 }
 
 function updateDashboardStatCards() {
@@ -1329,13 +1309,11 @@ function renderDashboard(options = {}) {
   const { forceRecalc = true } = options;
   if (forceRecalc || !app.processedPlayers?.length) recalculateAll();
 
-  // Critical UI first — chart is expensive (62 players × 30+ days of SVG)
   updateDashboardStatCards();
+  scheduleScoreChartRender();
   renderRecentMatches();
   renderDashboardTopLeaders();
   renderTeamSelections(sortStatsArray(buildStatsArray()), 'compact');
-  const chartDeferMs = isChartLiteMode() ? 80 : 0;
-  scheduleScoreChartRender({ deferMs: chartDeferMs });
 }
 
 // RENDERING - LEADERBOARD (full table + average footer)
@@ -2126,7 +2104,6 @@ function renderScoreChart() {
     const helperWidth = chartLite ? '12' : '8';
     hoverHelpers += `<path d="${pathD}" fill="none" stroke="transparent" stroke-width="${helperWidth}" class="trend-line-hover-helper" data-player="${ph.name}" style="cursor:pointer;"/>`;
 
-    // Full design: soccer-ball markers on every step (desktop); lite samples fewer points on iOS
     const dotIndices = new Set();
     if (chartLite) {
       dotIndices.add(0);
@@ -7806,11 +7783,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       exportAllPlayerCards();
     }, 100);
   }
-  if (urlParams.has('debug_rarecard') && app.isAdmin) {
-    setTimeout(() => {
-      exportRarePlayerCards();
-    }, 100);
-  }
 });
 
 // Handle window resize to update chart responsiveness (debounced + guarded)
@@ -7960,7 +7932,8 @@ window.showTeamSelectionPopup = function (teamName, event) {
   const existing = document.getElementById('team-selection-popup');
   if (existing) existing.remove();
 
-  const selectedBy = app.players.filter(p => p.teams && p.teams.includes(teamName))
+  const selectedBy = app.players
+    .filter(p => p.teams && p.teams.includes(teamName))
     .map(p => p.name)
     .sort((a, b) => a.localeCompare(b, 'th'));
   const popup = document.createElement('div');
